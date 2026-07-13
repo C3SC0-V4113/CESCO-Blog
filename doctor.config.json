@@ -1,0 +1,12 @@
+{
+  "ignore": {
+    "rules": ["deslop/unused-dev-dependency"],
+    "files": [".agents/**", ".claude/**", "src/components/ui/**"],
+    "overrides": [
+      {
+        "files": ["src/lib/utils.ts"],
+        "rules": ["deslop/unused-file", "knip/exports", "exports"]
+      }
+    ]
+  }
+}

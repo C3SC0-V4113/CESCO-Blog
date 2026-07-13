@@ -1,0 +1,16 @@
+node_modules
+.astro
+.next
+dist
+build
+coverage
+out
+*.min.js
+*.min.css
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+# Agent skills are vendored/managed by the skills CLI (see skills-lock.json) and
+# already excluded from ESLint and React Doctor; ignore the whole tree so Prettier
+# never churns third-party skill content or drifts on per-skill folder names.
+.agents
