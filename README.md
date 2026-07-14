@@ -1,13 +1,75 @@
-# Astro with Tailwind
+# Cesco Blog
+
+Cesco Blog is an Astro editorial blog for video game analysis, opinion, guides,
+and recommendations.
+
+## Current phase
+
+This phase only establishes the Cloudflare runtime foundation and architecture
+documentation. It does not yet implement D1, R2, Cloudflare Access, cache
+invalidation, admin screens, public route pages, or a rich text editor.
+
+## Architecture direction
+
+| Concern            | Decision                                                    |
+| ------------------ | ----------------------------------------------------------- |
+| Runtime            | Astro server output on Cloudflare via `@astrojs/cloudflare` |
+| Content database   | Cloudflare D1                                               |
+| Media storage      | Cloudflare R2                                               |
+| Admin protection   | Cloudflare Access for `/admin` and admin APIs               |
+| Public performance | ISR-like behavior through Cloudflare cache and invalidation |
+
+See [Architecture Decision Records](docs/adr/README.md) for the durable decision
+log.
+
+## Planned public routes
+
+- `/` — editorial home with recent and featured content
+- `/blog` — full post listing
+- `/analisis` — video game analysis
+- `/analisis/[slug]` — analysis with technical metadata and no score
+- `/opiniones` — personal/editorial opinion
+- `/opiniones/[slug]`
+- `/guias` — guides, lists, and recommendations
+- `/guias/[slug]`
+- `/juegos/[slug]` — future game page with related content
+- `/tags/[slug]` — topic navigation
+- `/buscar` — future search
+
+## Planned private routes
+
+Private routes will be protected by Cloudflare Access:
+
+- `/admin` — editorial dashboard
+- `/admin/posts` — post review and listing
+- `/admin/posts/new` — post creation
+- `/admin/posts/[id]/edit` — rich text editing
+- `/admin/posts/[id]/seo` — SEO metadata management
+- `/admin/media` — R2-backed media management
+- `/admin/review` — draft review before publishing
+
+## Planned content model
+
+### Post
+
+- `title`, `slug`, `excerpt`, `content`
+- `status`: `draft | published`
+- `section`: `analysis | opinion | guide`
+- `seoTitle`, `seoDescription`, `canonicalUrl`
+- `coverImageKey`
+- `publishedAt`, `updatedAt`
+
+### GameMetadata
+
+Only analysis posts have game metadata:
+
+- `gameTitle`, `platforms`, `developer`, `publisher`, `releaseDate`, `genres`
+- no numeric score
+
+## Development
 
 ```sh
-pnpm create astro@latest -- --template with-tailwindcss
+pnpm install
+pnpm dev
+pnpm build
 ```
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/with-tailwindcss)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/with-tailwindcss)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/with-tailwindcss/devcontainer.json)
-
-Astro comes with [Tailwind](https://tailwindcss.com) support out of the box. This example showcases how to style your Astro project with Tailwind.
-
-For complete setup instructions, please see our [Tailwind Styling Guide](https://docs.astro.build/en/guides/styling/#tailwind).

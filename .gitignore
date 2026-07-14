@@ -18,5 +18,6 @@ pnpm-debug.log*
 .idea/
 .claude/skills/
 .react-scan/
+.wrangler/
 playwright-report/
 test-results/
