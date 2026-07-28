@@ -1,0 +1,208 @@
+import { sql } from 'drizzle-orm';
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
+
+export const mediaAssets = sqliteTable(
+  'media_assets',
+  {
+    id: text('id').primaryKey(),
+    r2Key: text('r2_key').notNull(),
+    altText: text('alt_text'),
+    caption: text('caption'),
+    contentType: text('content_type').notNull(),
+    width: integer('width'),
+    height: integer('height'),
+    sizeBytes: integer('size_bytes'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex('media_assets_r2_key_unique').on(table.r2Key),
+    index('media_assets_content_type_idx').on(table.contentType),
+  ]
+);
+
+export const games = sqliteTable(
+  'games',
+  {
+    id: text('id').primaryKey(),
+    slug: text('slug').notNull(),
+    title: text('title').notNull(),
+    developer: text('developer'),
+    publisher: text('publisher'),
+    releaseDate: text('release_date'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex('games_slug_unique').on(table.slug),
+    index('games_title_idx').on(table.title),
+  ]
+);
+
+export const posts = sqliteTable(
+  'posts',
+  {
+    id: text('id').primaryKey(),
+    slug: text('slug').notNull(),
+    section: text('section', { enum: ['analysis', 'opinion', 'guide'] }).notNull(),
+    status: text('status', { enum: ['draft', 'published', 'archived'] })
+      .notNull()
+      .default('draft'),
+    gameId: text('game_id').references(() => games.id, { onDelete: 'set null' }),
+    coverMediaId: text('cover_media_id').references(() => mediaAssets.id, {
+      onDelete: 'set null',
+    }),
+    publishedRevisionId: text('published_revision_id'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    publishedAt: text('published_at'),
+  },
+  (table) => [
+    uniqueIndex('posts_slug_unique').on(table.slug),
+    index('posts_section_idx').on(table.section),
+    index('posts_status_idx').on(table.status),
+    index('posts_game_id_idx').on(table.gameId),
+    index('posts_cover_media_id_idx').on(table.coverMediaId),
+    index('posts_published_revision_id_idx').on(table.publishedRevisionId),
+    index('posts_published_at_idx').on(table.publishedAt),
+  ]
+);
+
+export const postRevisions = sqliteTable(
+  'post_revisions',
+  {
+    id: text('id').primaryKey(),
+    postId: text('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    title: text('title').notNull(),
+    excerpt: text('excerpt'),
+    contentJson: text('content_json', { mode: 'json' }).notNull(),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    canonicalUrl: text('canonical_url'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex('post_revisions_post_id_version_unique').on(table.postId, table.version),
+    index('post_revisions_post_id_idx').on(table.postId),
+    index('post_revisions_created_at_idx').on(table.createdAt),
+  ]
+);
+
+export const tags = sqliteTable(
+  'tags',
+  {
+    id: text('id').primaryKey(),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex('tags_slug_unique').on(table.slug),
+    uniqueIndex('tags_name_unique').on(table.name),
+  ]
+);
+
+export const postTags = sqliteTable(
+  'post_tags',
+  {
+    postId: text('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    tagId: text('tag_id')
+      .notNull()
+      .references(() => tags.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.postId, table.tagId] }),
+    index('post_tags_tag_id_idx').on(table.tagId),
+  ]
+);
+
+export const platforms = sqliteTable(
+  'platforms',
+  {
+    id: text('id').primaryKey(),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+  },
+  (table) => [
+    uniqueIndex('platforms_slug_unique').on(table.slug),
+    uniqueIndex('platforms_name_unique').on(table.name),
+  ]
+);
+
+export const gamePlatforms = sqliteTable(
+  'game_platforms',
+  {
+    gameId: text('game_id')
+      .notNull()
+      .references(() => games.id, { onDelete: 'cascade' }),
+    platformId: text('platform_id')
+      .notNull()
+      .references(() => platforms.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.gameId, table.platformId] }),
+    index('game_platforms_platform_id_idx').on(table.platformId),
+  ]
+);
+
+export const genres = sqliteTable(
+  'genres',
+  {
+    id: text('id').primaryKey(),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+  },
+  (table) => [
+    uniqueIndex('genres_slug_unique').on(table.slug),
+    uniqueIndex('genres_name_unique').on(table.name),
+  ]
+);
+
+export const gameGenres = sqliteTable(
+  'game_genres',
+  {
+    gameId: text('game_id')
+      .notNull()
+      .references(() => games.id, { onDelete: 'cascade' }),
+    genreId: text('genre_id')
+      .notNull()
+      .references(() => genres.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.gameId, table.genreId] }),
+    index('game_genres_genre_id_idx').on(table.genreId),
+  ]
+);
+
+export type Post = typeof posts.$inferSelect;
+export type NewPost = typeof posts.$inferInsert;
+export type PostRevision = typeof postRevisions.$inferSelect;
+export type NewPostRevision = typeof postRevisions.$inferInsert;

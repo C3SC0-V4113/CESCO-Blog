@@ -5,9 +5,11 @@ and recommendations.
 
 ## Current phase
 
-This phase only establishes the Cloudflare runtime foundation and architecture
-documentation. It does not yet implement D1, R2, Cloudflare Access, cache
-invalidation, admin screens, public route pages, or a rich text editor.
+This phase establishes the Cloudflare runtime foundation and the first D1
+database foundation. It includes Drizzle schema/migrations, Wrangler D1 binding,
+local D1 migration workflow, and database documentation. It does not yet
+implement R2 uploads, Cloudflare Access policies, cache invalidation, admin
+screens, public route pages, or a rich text editor.
 
 ## Architecture direction
 
@@ -73,3 +75,25 @@ pnpm install
 pnpm dev
 pnpm build
 ```
+
+## Database and Cloudflare local development
+
+The content database is Cloudflare D1, with schema and migrations managed by
+Drizzle.
+
+```sh
+pnpm run db:generate
+pnpm run db:migrate:local
+pnpm run cf:types
+pnpm run dev:cf
+```
+
+`pnpm run dev:cf` runs the Astro app through Wrangler so local development uses
+Cloudflare-style bindings. Use `pnpm dev` when Cloudflare bindings are not
+needed. Remote D1 deploys require replacing the placeholder `database_id` in
+`wrangler.jsonc` with the real D1 database ID. Remote deploys also need real
+Cloudflare resource IDs for explicitly configured bindings such as the Astro
+`SESSION` KV namespace.
+
+See [Database schema](docs/database/schema.md) for the Mermaid ER diagram and
+relationship notes.

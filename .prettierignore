@@ -6,6 +6,7 @@ dist
 build
 coverage
 out
+src/env.d.ts
 *.min.js
 *.min.css
 pnpm-lock.yaml

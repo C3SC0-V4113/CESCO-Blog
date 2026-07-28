@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cesco-blog",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-07-18",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist",
+  },
+  "observability": {
+    "enabled": true,
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cesco-blog",
+      // Local D1 works with this placeholder. Replace it with the real
+      // Cloudflare D1 database ID before remote deploys or remote migrations.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "drizzle",
+    },
+  ],
+  "kv_namespaces": [
+    {
+      // Astro's Cloudflare adapter provisions sessions through this binding.
+      // It is platform plumbing; admin protection remains Cloudflare Access.
+      "binding": "SESSION",
+      "id": "00000000000000000000000000000000",
+    },
+  ],
+}

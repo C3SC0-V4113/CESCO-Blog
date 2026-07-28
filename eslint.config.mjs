@@ -108,6 +108,8 @@ const eslintConfig = defineConfig([
     '.agents/**',
     '.claude/**',
     '.astro/**',
+    '.wrangler/**',
+    'src/env.d.ts',
     'src/components/ui/**',
   ]),
 ]);
