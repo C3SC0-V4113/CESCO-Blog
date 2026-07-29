@@ -58,8 +58,18 @@ Private routes will be protected by Cloudflare Access:
 - `status`: `draft | published`
 - `section`: `analysis | opinion | guide`
 - `seoTitle`, `seoDescription`, `canonicalUrl`
+- `ogTitle`, `ogDescription`, `ogImageMediaId`, `ogImageAlt`
 - `coverImageKey`
+- inline image placements in rich-text content
 - `publishedAt`, `updatedAt`
+
+### MediaAsset
+
+Media assets are R2-backed records that can be reused as cover images, inline
+rich-text images, and Open Graph/social preview images. `altText` is the
+canonical accessibility and SEO alt text. Attribution fields track description,
+own-work status, creator, source URL, license label, and license URL, with
+per-placement overrides available for inline post revision media.
 
 ### GameMetadata
 

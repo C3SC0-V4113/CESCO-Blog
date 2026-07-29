@@ -15,6 +15,12 @@ export const mediaAssets = sqliteTable(
     r2Key: text('r2_key').notNull(),
     altText: text('alt_text'),
     caption: text('caption'),
+    description: text('description'),
+    isOwnWork: integer('is_own_work', { mode: 'boolean' }).notNull().default(false),
+    creatorName: text('creator_name'),
+    sourceUrl: text('source_url'),
+    licenseLabel: text('license_label'),
+    licenseUrl: text('license_url'),
     contentType: text('content_type').notNull(),
     width: integer('width'),
     height: integer('height'),
@@ -101,6 +107,12 @@ export const postRevisions = sqliteTable(
     seoTitle: text('seo_title'),
     seoDescription: text('seo_description'),
     canonicalUrl: text('canonical_url'),
+    ogTitle: text('og_title'),
+    ogDescription: text('og_description'),
+    ogImageMediaId: text('og_image_media_id').references(() => mediaAssets.id, {
+      onDelete: 'set null',
+    }),
+    ogImageAlt: text('og_image_alt'),
     createdAt: text('created_at')
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
@@ -108,7 +120,35 @@ export const postRevisions = sqliteTable(
   (table) => [
     uniqueIndex('post_revisions_post_id_version_unique').on(table.postId, table.version),
     index('post_revisions_post_id_idx').on(table.postId),
+    index('post_revisions_og_image_media_id_idx').on(table.ogImageMediaId),
     index('post_revisions_created_at_idx').on(table.createdAt),
+  ]
+);
+
+export const postRevisionMedia = sqliteTable(
+  'post_revision_media',
+  {
+    revisionId: text('revision_id')
+      .notNull()
+      .references(() => postRevisions.id, { onDelete: 'cascade' }),
+    mediaAssetId: text('media_asset_id')
+      .notNull()
+      .references(() => mediaAssets.id, { onDelete: 'cascade' }),
+    blockId: text('block_id').notNull(),
+    position: integer('position').notNull(),
+    altText: text('alt_text'),
+    caption: text('caption'),
+    creditOverride: text('credit_override'),
+  },
+  (table) => [
+    primaryKey({ columns: [table.revisionId, table.blockId, table.mediaAssetId] }),
+    uniqueIndex('post_revision_media_revision_block_position_unique').on(
+      table.revisionId,
+      table.blockId,
+      table.position
+    ),
+    index('post_revision_media_revision_id_idx').on(table.revisionId),
+    index('post_revision_media_media_asset_id_idx').on(table.mediaAssetId),
   ]
 );
 
@@ -206,3 +246,5 @@ export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
 export type PostRevision = typeof postRevisions.$inferSelect;
 export type NewPostRevision = typeof postRevisions.$inferInsert;
+export type PostRevisionMedia = typeof postRevisionMedia.$inferSelect;
+export type NewPostRevisionMedia = typeof postRevisionMedia.$inferInsert;
