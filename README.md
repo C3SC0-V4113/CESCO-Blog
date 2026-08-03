@@ -9,7 +9,9 @@ This phase establishes the Cloudflare runtime foundation and the first D1
 database foundation. It includes Drizzle schema/migrations, Wrangler D1 binding,
 local D1 migration workflow, and database documentation. It does not yet
 implement R2 uploads, Cloudflare Access policies, cache invalidation, admin
-screens, public route pages, or a rich text editor.
+screens, public content route pages, or a rich text editor. The only public
+pages currently present are temporary localized home placeholders required to
+support Astro i18n routing.
 
 ## Architecture direction
 
@@ -26,15 +28,20 @@ log.
 
 ## Planned public routes
 
-- `/` — editorial home with recent and featured content
-- `/blog` — full post listing
-- `/analisis` — video game analysis
-- `/analisis/[slug]` — analysis with technical metadata and no score
-- `/opiniones` — personal/editorial opinion
-- `/opiniones/[slug]`
-- `/juegos/[slug]` — future game page with related content
-- `/tags/[slug]` — topic navigation
-- `/buscar` — future search
+Public routes are localized with explicit `/es` and `/en` prefixes. Spanish is
+the default locale, but default-locale URLs are still prefixed for SEO clarity.
+
+- `/es` and `/en` — editorial home with recent and featured content
+- `/es/blog` and `/en/blog` — full post listing
+- `/es/analisis` and `/en/analysis` — video game analysis
+- `/es/analisis/[slug]` and `/en/analysis/[slug]` — analysis with technical
+  metadata and no score
+- `/es/opiniones` and `/en/opinions` — personal/editorial opinion
+- `/es/opiniones/[slug]` and `/en/opinions/[slug]`
+- `/es/juegos/[slug]` and `/en/games/[slug]` — future game page with related
+  content
+- `/es/etiquetas/[slug]` and `/en/tags/[slug]` — topic navigation
+- `/es/buscar` and `/en/search` — future search
 
 ## Planned private routes
 
@@ -52,14 +59,19 @@ Private routes will be protected by Cloudflare Access:
 
 ### Post
 
-- `title`, `slug`, `excerpt`, `content`
-- `status`: `draft | published`
+- `Post`: shared aggregate with `section`, `editorialState`, `gameId`, and `coverMediaId`
+- `Post.editorialState`: `active | archived`
+- `PostLocalization`: per-locale `locale`, `slug`, localized `status`,
+  `publishedRevisionId`, and `publishedAt`
+- `PostLocalization.status`: `draft | published | archived`
+- admin can archive the post aggregate to hide all localizations at once, while
+  localization status still controls each language publication lifecycle
+- per-locale revisions: `title`, `excerpt`, `content`
 - `section`: `analysis | opinion`
-- `seoTitle`, `seoDescription`, `canonicalUrl`
-- `ogTitle`, `ogDescription`, `ogImageMediaId`, `ogImageAlt`
-- `coverImageKey`
+- language-specific `seoTitle`, `seoDescription`, `canonicalUrl`
+- language-specific `ogTitle`, `ogDescription`, `ogImageMediaId`, `ogImageAlt`
 - inline image placements in rich-text content
-- `publishedAt`, `updatedAt`
+- `createdAt`, `updatedAt`
 
 ### MediaAsset
 

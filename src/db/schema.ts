@@ -64,32 +64,57 @@ export const posts = sqliteTable(
   'posts',
   {
     id: text('id').primaryKey(),
-    slug: text('slug').notNull(),
     section: text('section', { enum: ['analysis', 'opinion'] }).notNull(),
-    status: text('status', { enum: ['draft', 'published', 'archived'] })
+    editorialState: text('editorial_state', { enum: ['active', 'archived'] })
       .notNull()
-      .default('draft'),
+      .default('active'),
     gameId: text('game_id').references(() => games.id, { onDelete: 'set null' }),
     coverMediaId: text('cover_media_id').references(() => mediaAssets.id, {
       onDelete: 'set null',
     }),
-    publishedRevisionId: text('published_revision_id'),
     createdAt: text('created_at')
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at')
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
-    publishedAt: text('published_at'),
   },
   (table) => [
-    uniqueIndex('posts_slug_unique').on(table.slug),
     index('posts_section_idx').on(table.section),
-    index('posts_status_idx').on(table.status),
+    index('posts_editorial_state_idx').on(table.editorialState),
     index('posts_game_id_idx').on(table.gameId),
     index('posts_cover_media_id_idx').on(table.coverMediaId),
-    index('posts_published_revision_id_idx').on(table.publishedRevisionId),
-    index('posts_published_at_idx').on(table.publishedAt),
+  ]
+);
+
+export const postLocalizations = sqliteTable(
+  'post_localizations',
+  {
+    id: text('id').primaryKey(),
+    postId: text('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    locale: text('locale', { enum: ['es', 'en'] }).notNull(),
+    slug: text('slug').notNull(),
+    status: text('status', { enum: ['draft', 'published', 'archived'] })
+      .notNull()
+      .default('draft'),
+    publishedRevisionId: text('published_revision_id'),
+    publishedAt: text('published_at'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex('post_localizations_post_id_locale_unique').on(table.postId, table.locale),
+    uniqueIndex('post_localizations_locale_slug_unique').on(table.locale, table.slug),
+    index('post_localizations_locale_idx').on(table.locale),
+    index('post_localizations_status_idx').on(table.status),
+    index('post_localizations_published_revision_id_idx').on(table.publishedRevisionId),
+    index('post_localizations_published_at_idx').on(table.publishedAt),
   ]
 );
 
@@ -97,9 +122,9 @@ export const postRevisions = sqliteTable(
   'post_revisions',
   {
     id: text('id').primaryKey(),
-    postId: text('post_id')
+    postLocalizationId: text('post_localization_id')
       .notNull()
-      .references(() => posts.id, { onDelete: 'cascade' }),
+      .references(() => postLocalizations.id, { onDelete: 'cascade' }),
     version: integer('version').notNull(),
     title: text('title').notNull(),
     excerpt: text('excerpt'),
@@ -118,8 +143,11 @@ export const postRevisions = sqliteTable(
       .default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    uniqueIndex('post_revisions_post_id_version_unique').on(table.postId, table.version),
-    index('post_revisions_post_id_idx').on(table.postId),
+    uniqueIndex('post_revisions_post_localization_id_version_unique').on(
+      table.postLocalizationId,
+      table.version
+    ),
+    index('post_revisions_post_localization_id_idx').on(table.postLocalizationId),
     index('post_revisions_og_image_media_id_idx').on(table.ogImageMediaId),
     index('post_revisions_created_at_idx').on(table.createdAt),
   ]
@@ -244,6 +272,8 @@ export const gameGenres = sqliteTable(
 
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
+export type PostLocalization = typeof postLocalizations.$inferSelect;
+export type NewPostLocalization = typeof postLocalizations.$inferInsert;
 export type PostRevision = typeof postRevisions.$inferSelect;
 export type NewPostRevision = typeof postRevisions.$inferInsert;
 export type PostRevisionMedia = typeof postRevisionMedia.$inferSelect;

@@ -14,15 +14,25 @@ inside the Cloudflare platform.
 
 Use Cloudflare D1 as the primary content database.
 
-The initial content model is:
+The initial content model was later localized by
+[ADR-0008](0008-adopt-bilingual-localized-publishing.md) and gained a
+post-level archival switch in
+[ADR-0009](0009-use-post-editorial-state-for-global-archive.md). The current
+content model is:
 
 - `Post`
-  - `title`, `slug`, `excerpt`, `content`
-  - `status`: `draft | published`
+  - locale-neutral aggregate for `section`, `editorialState`, game metadata
+    link, and cover media
   - `section`: `analysis | opinion`
-  - `seoTitle`, `seoDescription`, `canonicalUrl`
-  - `coverImageKey`
-  - `publishedAt`, `updatedAt`
+- `PostLocalization`
+  - `locale`: `es | en`
+  - localized `slug`
+  - localized `status`: `draft | published | archived`
+  - `publishedRevisionId`, `publishedAt`
+- `PostRevision`
+  - localized `title`, `excerpt`, `content`
+  - localized `seoTitle`, `seoDescription`, `canonicalUrl`
+  - localized Open Graph/social preview metadata
 - `GameMetadata` for analysis posts only:
   - `gameTitle`, `platforms`, `developer`, `publisher`, `releaseDate`, `genres`
   - no numeric score

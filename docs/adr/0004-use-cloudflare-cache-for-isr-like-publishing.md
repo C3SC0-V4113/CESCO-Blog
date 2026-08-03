@@ -17,10 +17,11 @@ phase.
 
 Publishing a post should eventually invalidate or refresh:
 
-- `/`
-- `/blog`
-- the post detail route
-- related section routes such as `/analisis` or `/opiniones`
+- `/es` and `/en`
+- localized listing routes such as `/es/blog` and `/en/blog`
+- the localized post detail route for the published language
+- related localized section routes such as `/es/analisis`, `/en/analysis`,
+  `/es/opiniones`, or `/en/opinions`
 - related tag/game pages
 
 Cache tags and path-based invalidation are the preferred model when the cache
@@ -28,15 +29,17 @@ phase is implemented.
 
 ## Public route model
 
-- `/` — editorial home with recent and featured content
-- `/blog` — full post listing
-- `/analisis` — video game analysis
-- `/analisis/[slug]` — analysis with technical metadata and no score
-- `/opiniones` — personal/editorial opinion
-- `/opiniones/[slug]`
-- `/juegos/[slug]` — future game page with related content
-- `/tags/[slug]` — topic navigation
-- `/buscar` — future search
+- `/es` and `/en` — editorial home with recent and featured content
+- `/es/blog` and `/en/blog` — full post listing
+- `/es/analisis` and `/en/analysis` — video game analysis
+- `/es/analisis/[slug]` and `/en/analysis/[slug]` — analysis with technical
+  metadata and no score
+- `/es/opiniones` and `/en/opinions` — personal/editorial opinion
+- `/es/opiniones/[slug]` and `/en/opinions/[slug]`
+- `/es/juegos/[slug]` and `/en/games/[slug]` — future game page with related
+  content
+- `/es/etiquetas/[slug]` and `/en/tags/[slug]` — topic navigation
+- `/es/buscar` and `/en/search` — future search
 
 ## Consequences
 

@@ -1,8 +1,9 @@
 # Database schema
 
 Cesco Blog stores editorial content in Cloudflare D1 using Drizzle-managed SQLite
-migrations. The schema supports drafts, published revisions, SEO metadata,
-Open Graph/social preview metadata, game metadata for analysis posts, tags, and
+migrations. The schema supports locale-neutral editorial posts, per-locale
+drafts and published revisions, localized SEO metadata, localized Open
+Graph/social preview metadata, game metadata for analysis posts, tags, and
 R2-backed media references.
 
 ## Entity relationship diagram
@@ -11,20 +12,29 @@ R2-backed media references.
 erDiagram
   POSTS {
     text id PK
-    text slug UK
     text section
-    text status
+    text editorial_state
     text game_id FK
     text cover_media_id FK
-    text published_revision_id
     text created_at
     text updated_at
+  }
+
+  POST_LOCALIZATIONS {
+    text id PK
+    text post_id FK
+    text locale
+    text slug
+    text status
+    text published_revision_id
     text published_at
+    text created_at
+    text updated_at
   }
 
   POST_REVISIONS {
     text id PK
-    text post_id FK
+    text post_localization_id FK
     integer version
     text title
     text excerpt
@@ -110,7 +120,8 @@ erDiagram
 
   GAMES ||--o{ POSTS : "analysis content"
   MEDIA_ASSETS ||--o{ POSTS : "cover image"
-  POSTS ||--o{ POST_REVISIONS : "has revisions"
+  POSTS ||--o{ POST_LOCALIZATIONS : "translated as"
+  POST_LOCALIZATIONS ||--o{ POST_REVISIONS : "has localized revisions"
   POST_REVISIONS ||--o{ POST_REVISION_MEDIA : "uses inline media"
   MEDIA_ASSETS ||--o{ POST_REVISION_MEDIA : "embedded in revisions"
   MEDIA_ASSETS |o--o{ POST_REVISIONS : "optional social preview image"
@@ -124,18 +135,23 @@ erDiagram
 
 ## Draft and publish model
 
-| Concept        | Rule                                                                                                                                                                                                                                                                                         |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Draft          | A post can have many `post_revisions`; the latest draft is the highest version.                                                                                                                                                                                                              |
-| Publish        | `posts.published_revision_id` points to the revision currently public.                                                                                                                                                                                                                       |
-| Integrity      | `published_revision_id` is indexed text to avoid a circular D1/Drizzle foreign key. Application code must ensure it belongs to the same post.                                                                                                                                                |
-| Enums          | `section` and `status` are typed in Drizzle; application code must validate allowed values before writes. Current section values are `analysis` and `opinion`.                                                                                                                               |
-| Rich text      | `post_revisions.content_json` stores structured editor JSON, not HTML.                                                                                                                                                                                                                       |
-| Analysis       | Analysis posts may reference one `games` row. Games never store numeric scores.                                                                                                                                                                                                              |
-| Media          | `media_assets.r2_key` stores the future R2 object key; uploads are not implemented in this slice. `alt_text` remains the canonical accessibility and SEO alt text for the asset.                                                                                                             |
-| Attribution    | `media_assets` stores reusable attribution fields: description, own-work flag, creator, source URL, license label, and license URL. Inline placements may override displayed credit with `post_revision_media.credit_override`.                                                              |
-| Inline media   | `post_revision_media` maps editor block IDs to media assets per revision. It cascades with the revision and asset, stores per-placement alt text/caption overrides, uses `(revision_id, block_id, media_asset_id)` as its primary key, and keeps `(revision_id, block_id, position)` unique. |
-| Social preview | `post_revisions` stores Open Graph/social fields independently from base SEO fields. `og_image_media_id` references `media_assets` and is set to null if the asset is removed.                                                                                                               |
+| Concept              | Rule                                                                                                                                                                                                                                                                                         |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Post aggregate       | `posts` is locale-neutral and stores shared editorial state, section, game metadata link, and cover media. `posts.editorial_state` is the aggregate-level hide/archive switch across all localizations.                                                                                      |
+| Localization         | `post_localizations` stores one row per `(post_id, locale)` with localized slug, lifecycle status, published pointer, and publish timestamp. Supported locales are `es` and `en`.                                                                                                            |
+| Draft                | A localization can have many `post_revisions`; the latest draft for a language is the highest version for that localization.                                                                                                                                                                 |
+| Publish              | `post_localizations.published_revision_id` points to the revision currently public for that language, so Spanish and English can publish independently.                                                                                                                                      |
+| Integrity            | `published_revision_id` is indexed text to avoid a circular D1/Drizzle foreign key. Application code must ensure it belongs to the same localization.                                                                                                                                        |
+| Slugs                | `(locale, slug)` is unique so `/es/...` and `/en/...` can use language-specific slugs without colliding across languages.                                                                                                                                                                    |
+| Enums                | `section`, post aggregate `editorial_state`, localization `status`, and `locale` are typed in Drizzle; application code must validate allowed values before writes. Current section values are `analysis` and `opinion`; post editorial states are `active` and `archived`.                  |
+| Rich text            | `post_revisions.content_json` stores structured editor JSON, not HTML, scoped to a localization.                                                                                                                                                                                             |
+| Localized SEO/OG     | `post_revisions` stores title, excerpt, canonical URL, SEO fields, and Open Graph/social fields per localization revision.                                                                                                                                                                   |
+| Analysis             | Analysis posts may reference one `games` row. Games never store numeric scores.                                                                                                                                                                                                              |
+| Media                | `media_assets.r2_key` stores the future R2 object key; uploads are not implemented in this slice. `alt_text` remains the canonical accessibility and SEO alt text for the asset.                                                                                                             |
+| Attribution          | `media_assets` stores reusable attribution fields: description, own-work flag, creator, source URL, license label, and license URL. Inline placements may override displayed credit with `post_revision_media.credit_override`.                                                              |
+| Inline media         | `post_revision_media` maps editor block IDs to media assets per revision. It cascades with the revision and asset, stores per-placement alt text/caption overrides, uses `(revision_id, block_id, media_asset_id)` as its primary key, and keeps `(revision_id, block_id, position)` unique. |
+| Social preview image | `post_revisions.og_image_media_id` references `media_assets` and is set to null if the asset is removed.                                                                                                                                                                                     |
+| Public visibility    | Public post queries must require `posts.editorial_state = 'active'` and `post_localizations.status = 'published'`. The post aggregate can hide all localized versions while each localization keeps its own publication lifecycle.                                                           |
 
 ## Local workflow
 

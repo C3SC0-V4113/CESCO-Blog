@@ -13,6 +13,8 @@ This directory records durable architecture decisions for Cesco Blog.
 | [0005](0005-use-drizzle-for-d1-schema-and-migrations.md)          | Use Drizzle for D1 schema and migrations          | Accepted | 2026-07-18 |
 | [0006](0006-model-editorial-media-and-social-preview-images.md)   | Model editorial media and social preview images   | Accepted | 2026-07-28 |
 | [0007](0007-narrow-editorial-sections-to-analysis-and-opinion.md) | Narrow editorial sections to analysis and opinion | Accepted | 2026-08-03 |
+| [0008](0008-adopt-bilingual-localized-publishing.md)              | Adopt bilingual localized publishing              | Accepted | 2026-08-03 |
+| [0009](0009-use-post-editorial-state-for-global-archive.md)       | Use post editorial state for global archive       | Accepted | 2026-08-03 |
 
 ## Status values
 

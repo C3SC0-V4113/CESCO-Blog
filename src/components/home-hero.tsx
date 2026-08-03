@@ -7,7 +7,7 @@ export default function HomeHero() {
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-8 text-center text-foreground">
       <Cat className="size-10 text-muted-foreground" aria-hidden />
       <h1 className="text-2xl font-semibold tracking-tight">Cesco Blog</h1>
-      <p className="text-sm text-muted-foreground">Edit src/pages/index.astro to start building.</p>
+      <p className="text-sm text-muted-foreground">Localized editorial home coming soon.</p>
       <Button type="button">Start building</Button>
     </main>
   );
