@@ -19,13 +19,16 @@ The initial content model is:
 - `Post`
   - `title`, `slug`, `excerpt`, `content`
   - `status`: `draft | published`
-  - `section`: `analysis | opinion | guide`
+  - `section`: `analysis | opinion`
   - `seoTitle`, `seoDescription`, `canonicalUrl`
   - `coverImageKey`
   - `publishedAt`, `updatedAt`
 - `GameMetadata` for analysis posts only:
   - `gameTitle`, `platforms`, `developer`, `publisher`, `releaseDate`, `genres`
   - no numeric score
+
+Current editorial sections are intentionally limited to analysis as the primary
+section and opinion as the secondary section.
 
 ## Considered options
 

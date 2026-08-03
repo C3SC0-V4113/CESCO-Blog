@@ -1,7 +1,7 @@
 # Cesco Blog
 
-Cesco Blog is an Astro editorial blog for video game analysis, opinion, guides,
-and recommendations.
+Cesco Blog is an Astro editorial blog focused on video game analysis, with
+opinion as a secondary section.
 
 ## Current phase
 
@@ -32,8 +32,6 @@ log.
 - `/analisis/[slug]` — analysis with technical metadata and no score
 - `/opiniones` — personal/editorial opinion
 - `/opiniones/[slug]`
-- `/guias` — guides, lists, and recommendations
-- `/guias/[slug]`
 - `/juegos/[slug]` — future game page with related content
 - `/tags/[slug]` — topic navigation
 - `/buscar` — future search
@@ -56,7 +54,7 @@ Private routes will be protected by Cloudflare Access:
 
 - `title`, `slug`, `excerpt`, `content`
 - `status`: `draft | published`
-- `section`: `analysis | opinion | guide`
+- `section`: `analysis | opinion`
 - `seoTitle`, `seoDescription`, `canonicalUrl`
 - `ogTitle`, `ogDescription`, `ogImageMediaId`, `ogImageAlt`
 - `coverImageKey`

@@ -65,7 +65,7 @@ export const posts = sqliteTable(
   {
     id: text('id').primaryKey(),
     slug: text('slug').notNull(),
-    section: text('section', { enum: ['analysis', 'opinion', 'guide'] }).notNull(),
+    section: text('section', { enum: ['analysis', 'opinion'] }).notNull(),
     status: text('status', { enum: ['draft', 'published', 'archived'] })
       .notNull()
       .default('draft'),

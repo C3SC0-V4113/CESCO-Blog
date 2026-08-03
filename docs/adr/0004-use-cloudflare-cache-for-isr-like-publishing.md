@@ -20,7 +20,7 @@ Publishing a post should eventually invalidate or refresh:
 - `/`
 - `/blog`
 - the post detail route
-- related section routes such as `/analisis`, `/opiniones`, or `/guias`
+- related section routes such as `/analisis` or `/opiniones`
 - related tag/game pages
 
 Cache tags and path-based invalidation are the preferred model when the cache
@@ -34,8 +34,6 @@ phase is implemented.
 - `/analisis/[slug]` — analysis with technical metadata and no score
 - `/opiniones` — personal/editorial opinion
 - `/opiniones/[slug]`
-- `/guias` — guides, lists, and recommendations
-- `/guias/[slug]`
 - `/juegos/[slug]` — future game page with related content
 - `/tags/[slug]` — topic navigation
 - `/buscar` — future search
