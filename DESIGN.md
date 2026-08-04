@@ -74,6 +74,11 @@ Governed by
 **A component is `.astro` unless it needs client-side JavaScript, or unless it
 must compose inside a React island.**
 
+This section governs **public surfaces only**. Everything under `/admin` is
+client-rendered React by
+[ADR-0023](docs/adr/0023-treat-the-admin-as-a-client-rendered-application.md) —
+see [Admin surfaces](#admin-surfaces).
+
 A common misreading to get out of the way first: a React component **without** a
 `client:*` directive is server-rendered to HTML and ships **no** JavaScript. Only
 a hydration directive creates an island. There are four options, not two:
@@ -133,12 +138,17 @@ Governed by
 | Registry primitive         | `src/components/ui/`        |
 | Reusable product component | `src/components/common/`    |
 | Feature-specific component | `src/components/<feature>/` |
+| Admin component            | `src/components/admin/`     |
 | Route composition          | `src/pages/`                |
 | Theme token                | `src/styles/global.css`     |
 
-Dependencies flow one way: **feature → common → ui**. Never edit a primitive to
-add product behavior — wrap it from `common/`, because the next registry update
-reverts local edits.
+Dependencies flow one way: **feature → common → ui**, and **admin → common →
+ui**. Never edit a primitive to add product behavior — wrap it from `common/`,
+because the next registry update reverts local edits.
+
+`common/` must never import from `admin/`. Astro splits bundles by route, but a
+single careless shared import can drag the editor into a public page — see
+[ADR-0023](docs/adr/0023-treat-the-admin-as-a-client-rendered-application.md).
 
 ### Registries
 
@@ -169,23 +179,118 @@ it are islands.
 
 ---
 
-## Surfaces
+## Public surfaces
 
 Routes from
-[ADR-0004](docs/adr/0004-use-cloudflare-cache-for-isr-like-publishing.md).
+[ADR-0004](docs/adr/0004-use-cloudflare-cache-for-isr-like-publishing.md). Each
+surface declares its composition top to bottom, the primitives it uses and in
+which mode, its islands, and the tables it reads.
 
-| Surface        | Route                                | Key components                                                                                                                                                       |
-| -------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Editorial home | `/es`, `/en`                         | `PostCard` (featured + recent), `SectionHeading`, `EmptyState`                                                                                                       |
-| Full listing   | `/es/blog`, `/en/blog`               | `PostCard`, `Pagination`                                                                                                                                             |
-| Section        | `/es/analisis`, `/es/opiniones` + EN | `PostCard`, `Pagination`, `SectionHeading`                                                                                                                           |
-| Article detail | `/es/analisis/[slug]` + EN           | `Prose`, `ArticleBody`, `Byline`, `TableOfContents`, `TocScrollSpy`, `DisclosureNotice`, `AnalysisMetaPanel`, `SeriesNav`, `TagPill`, `CopyLinkButton`, `Breadcrumb` |
-| Game page      | `/es/juegos/[slug]` + EN             | `GameFactsPanel`, `PostCard`, `Badge`                                                                                                                                |
-| Tag page       | `/es/etiquetas/[slug]` + EN          | `PostCard`, `Pagination`, `TagPill`                                                                                                                                  |
-| Series         | `/es/series/[slug]` + EN             | `CollectionHeader`, ordered `PostCard` list                                                                                                                          |
-| Trust pages    | 5 routes × 2 locales                 | `Prose` only                                                                                                                                                         |
-| `404`          | any locale                           | `ErrorState` — "this never existed"                                                                                                                                  |
-| `410`          | any locale                           | `ErrorState` — "this was removed"                                                                                                                                    |
+Every surface below filters on `posts.editorial_state = 'active'` **and**
+`post_localizations.status = 'published'`. That is assumed rather than repeated.
+
+### Editorial home — `/es`, `/en`
+
+`SiteHeader` → featured `PostCard` (large variant, one per locale) →
+`SectionHeading` "Latest" → `PostCard` grid → `SectionHeading` per section →
+`PostCard` row → `SiteFooter`
+
+- **Primitives:** `card` (cva), `badge` (cva), `separator` (cva)
+- **Islands:** none beyond global chrome
+- **Data:** `post_localizations` ordered by `first_published_at DESC`,
+  `featured_at` for the featured slot, `posts.cover_media_id`, `authors`
+- **Empty:** `EmptyState` when a locale has no published posts — a real case
+  early on, since locales publish independently
+
+### Full listing — `/es/blog`, `/en/blog`
+
+`SiteHeader` → `SectionHeading` → `PostCard` list → `Pagination` → `SiteFooter`
+
+- **Primitives:** `card` (cva), `badge` (cva), `pagination` (cva)
+- **Islands:** none
+- **Data:** paginated `post_localizations` by `first_published_at DESC`
+- **Constraint:** one joined query per page, never one per card — D1 allows 50
+  queries per invocation ([ADR-0016](docs/adr/0016-host-blog-on-checkpoint-subdomain.md))
+
+### Section — `/es/analisis`, `/es/opiniones` + EN
+
+Same as full listing, filtered by `posts.section`. `SectionHeading` carries the
+section description.
+
+- **Data:** adds `posts.section` to the filter
+
+### Article detail — `/es/analisis/[slug]` + EN
+
+`SiteHeader` → `Breadcrumb` → `CoverImage` → `h1` → `Byline` → `ReadingTime` →
+`DisclosureNotice` _(analysis with a review copy only)_ → `TableOfContents`
+_(aside on desktop, collapsed above content on mobile)_ → `ArticleBody` →
+`AnalysisMetaPanel` _(analysis only)_ → `TagPill` list → `SeriesNav` _(only if
+the post belongs to a collection)_ → `CopyLinkButton` → `SiteFooter`
+
+- **Primitives:** `breadcrumb` (cva), `badge` (cva), `separator` (cva), `avatar`
+  (cva), `scroll-area` (React, only when the TOC is long)
+- **Islands:** `TocScrollSpy` (`client:visible`), `CopyLinkButton`
+  (`client:visible`)
+- **Data:** `post_localizations`, the published `post_revisions` row,
+  `posts.cover_media_id`, `authors`, `post_analysis_metadata`,
+  `post_revision_media` for inline placements, `post_tags`, `collection_posts`
+- **Rules:** `Byline` dates are visible; `DisclosureNotice` renders rather than
+  merely existing; TOC anchors come from `content_json` block IDs
+
+### Game page — `/es/juegos/[slug]` + EN
+
+`SiteHeader` → `h1` (game title) → `GameFactsPanel` → `Tabs` (analysis / opinion)
+→ `PostCard` list per tab → `SiteFooter`
+
+- **Primitives:** `card` (cva), `badge` (cva) for platforms and genres, `tabs`
+  (React, server-rendered without a directive)
+- **Islands:** none — tabs render every panel; navigation is not interaction
+- **Data:** `games`, `game_platforms`, `game_genres`, posts joined through
+  `posts.game_id`
+
+### Tag page — `/es/etiquetas/[slug]` + EN
+
+`SiteHeader` → `SectionHeading` (tag name) → `PostCard` list → `Pagination` →
+`SiteFooter`
+
+- **Primitives:** `card` (cva), `pagination` (cva), `badge` (cva)
+- **Data:** `tags`, `post_tags`
+
+### Series — `/es/series/[slug]` + EN
+
+`SiteHeader` → `CollectionHeader` (title, description, post count) → ordered
+`PostCard` list → `SiteFooter`
+
+- **Primitives:** `card` (cva), `separator` (cva)
+- **Data:** `collections`, `collection_localizations`, `collection_posts` ordered
+  by `position` — **not** by date; a series has an authored order
+- **Rules:** the collection localization must itself be published; see
+  [ADR-0010](docs/adr/0010-define-public-url-lifecycle-for-localized-posts.md)
+
+### Trust pages — 5 routes × 2 locales
+
+`SiteHeader` → `Prose` → `SiteFooter`
+
+- **Primitives:** none
+- **Data:** none — static content
+- **Note:** these are what
+  [ADR-0018](docs/adr/0018-adopt-privacy-first-analytics-and-defer-monetization.md)
+  requires for Discover eligibility, so they must be reachable from the footer on
+  every page
+
+### Error states — `404` and `410`
+
+`SiteHeader` → `ErrorState` → `SiteFooter`
+
+Two distinct pages with distinct copy, per
+[ADR-0010](docs/adr/0010-define-public-url-lifecycle-for-localized-posts.md):
+
+| Status | Meaning                   | Copy direction                              |
+| ------ | ------------------------- | ------------------------------------------- |
+| `404`  | Never existed             | Offer navigation: sections, latest posts    |
+| `410`  | Existed and was withdrawn | Say so plainly; do not imply it will return |
+
+A `410` that reads like a `404` wastes the distinction the schema pays for.
 
 `/es/buscar` and `/en/search` are deferred; see
 [Debt and open questions](#debt-and-open-questions).
@@ -253,6 +358,111 @@ an oversight.
 | `LocaleSwitcher`           | `nav/`        | **island** | `client:idle`; stays `.astro` if it is only a link                                 |
 
 Five islands. Everything else ships no JavaScript.
+
+This table covers **public** components only. Admin components live in
+`src/components/admin/`, are always `.tsx`, and are listed under
+[Admin surfaces](#admin-surfaces).
+
+---
+
+## Admin surfaces
+
+Governed by
+[ADR-0023](docs/adr/0023-treat-the-admin-as-a-client-rendered-application.md):
+everything under `/admin` is **client-rendered React**. The public rules —
+`.astro` first, zero JavaScript, CPU budget — do not apply here. Components live
+in `src/components/admin/` and are `.tsx`.
+
+Routes from [ADR-0003](docs/adr/0003-protect-admin-with-cloudflare-access.md),
+including its route-model extension.
+
+| Route                    | Purpose                                                             | Writes                                                                       |
+| ------------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `/admin`                 | Dashboard: drafts in progress, unpublished locales, recent activity | —                                                                            |
+| `/admin/posts`           | Post list with locale status per row, featuring controls            | `post_localizations.featured_at`, `posts.editorial_state`                    |
+| `/admin/posts/new`       | Create the aggregate and its first localization                     | `posts`, `post_localizations`                                                |
+| `/admin/posts/[id]/edit` | Rich text editing — see below                                       | `post_revisions`, `post_revision_media`, `post_analysis_metadata`            |
+| `/admin/posts/[id]/seo`  | SEO and social metadata — see below                                 | `post_revisions` SEO/OG fields                                               |
+| `/admin/media`           | R2-backed asset library with attribution fields                     | `media_assets`                                                               |
+| `/admin/review`          | Draft review before publishing; publish action                      | `post_localizations` status and timestamps, `post_localization_slug_history` |
+| `/admin/collections`     | Series list and ordering                                            | `collections`, `collection_localizations`, `collection_posts`                |
+| `/admin/authors`         | Author profiles for bylines and structured data                     | `authors`                                                                    |
+
+### `/admin/posts/[id]/edit`
+
+The editor. Governed by
+[ADR-0024](docs/adr/0024-adopt-tiptap-for-the-editorial-content-pipeline.md).
+
+| Component              | Role                                                                                                     |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| `LocalizationSwitcher` | Selects which localization is being edited — a revision belongs to **one** localization, not to the post |
+| `EditorToolbar`        | Base UI buttons wired to Tiptap commands; Tiptap ships no UI                                             |
+| `EditorCanvas`         | The Tiptap instance                                                                                      |
+| `ImageUploadHandler`   | Paste and drop → admin upload endpoint → R2 → `media_assets` row → node gets `mediaAssetId`              |
+| `MediaPlacementPanel`  | Per-placement `alt_text`, `caption`, `credit_override` — the columns `post_revision_media` already has   |
+| `AnalysisMetaForm`     | Platform (FK to `platforms`), playtime, completion state, review-copy flag and provider                  |
+| `SlugField`            | Editing a **published** slug triggers the history flow, not a plain update                               |
+
+On save, the `content_json` is walked to collect image nodes and upsert
+`post_revision_media` rows with their `block_id`, `position`, and
+`media_asset_id`. Reading time and TOC are derived through the shared module.
+
+### `/admin/posts/[id]/seo`
+
+Long form: SEO title and description, canonical URL, OG title and description,
+OG image selector against `media_assets`, and a **social card preview**.
+
+The form must make the distinction from
+[ADR-0015](docs/adr/0015-separate-social-card-from-editorial-cover-image.md)
+visible, because it is the one place a person could get it wrong:
+
+- `posts.cover_media_id` is the clean editorial image. It feeds JSON-LD `image`,
+  the article hero, and Google Discover.
+- `post_revisions.og_image_media_id` is the composed card with burned-in text. It
+  feeds `og:image` only.
+- **Publishing is blocked without a cover.** The OG card is optional and falls
+  back to the cover.
+
+### `/admin/review`
+
+The publish surface, and the one with the most rules behind a single button:
+
+- Sets `first_published_at` if unset, and **never** overwrites or clears it
+- Updates `current_published_at`
+- Moves `published_revision_id`
+- Purges the affected cache tags per
+  [ADR-0011](docs/adr/0011-invalidate-cloudflare-cache-by-cache-tag.md) —
+  including the **other locale's** page, whose `hreflang` just changed
+- Refuses to publish a post with no cover image
+
+---
+
+## Dependencies
+
+Everything that does not come from a component registry, grouped by where it
+runs. The right column is what has to be **adapted** — none of these arrive
+matching the design system.
+
+| Scope        | Dependency                               | Purpose and adaptation                                                                                                                                                                                                    |
+| ------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin        | `@tiptap/react`, `@tiptap/starter-kit`   | Editor core. Headless — the entire toolbar and menus are ours to build from Base UI components                                                                                                                            |
+| Admin        | `@tiptap/extension-unique-id`            | Stable node IDs that survive split, merge, and undo. These **are** `post_revision_media.block_id`                                                                                                                         |
+| Admin        | Custom Tiptap image node                 | Stores `mediaAssetId` on the node; not a package, ours to write                                                                                                                                                           |
+| Admin        | `zod`                                    | Form and payload validation. Error messages must be localized — Zod's defaults are English                                                                                                                                |
+| Admin        | `react-hook-form`, `@hookform/resolvers` | Form state and per-field errors. shadcn's `form` component already assumes this pairing                                                                                                                                   |
+| Shared       | `content_json` Zod schema                | The contract between the editor, the seed script, and `ArticleBody`. Ours to write; lives outside `admin/` so all three can import it                                                                                     |
+| Shared       | Reading time + TOC module                | Derived at publish, per [ADR-0012](docs/adr/0012-extend-editorial-schema-for-authors-series-and-analysis.md) and [ADR-0017](docs/adr/0017-bootstrap-content-with-seed-script.md). Shared by the seed script and the admin |
+| Publish-time | Shiki                                    | Code highlighting, run **when publishing**, result stored in the code node. Never at render time                                                                                                                          |
+| Public       | `Intl.DateTimeFormat`                    | Bilingual dates with no dependency. Receives the locale from the URL, not from the browser                                                                                                                                |
+| Public       | —                                        | **Nothing else.** That is the point of [ADR-0019](docs/adr/0019-render-astro-first-with-react-islands-for-behavior.md)                                                                                                    |
+
+Two rules that keep this list from leaking:
+
+1. **No admin dependency may be imported from a public surface.** The permitted
+   direction is `admin → common → ui`. `common/` must not import from `admin/`.
+2. **Shared modules must not import Tiptap.** The `content_json` schema and the
+   derivation module are consumed by the Worker at render time; pulling the
+   editor in behind them would ship it to readers.
 
 ---
 
@@ -326,6 +536,12 @@ Every page also carries the small blocking inline theme script that prevents a
 flash of the wrong theme — the one deliberate exception in
 [ADR-0019](docs/adr/0019-render-astro-first-with-react-islands-for-behavior.md).
 
+**`/admin` is exempt from this budget entirely.** It sits behind Cloudflare
+Access, is never indexed, and serves one authenticated user, so none of the
+reasons for the budget apply. That exemption is the whole point of
+[ADR-0023](docs/adr/0023-treat-the-admin-as-a-client-rendered-application.md) —
+and it is also why the admin bundle must never leak into a public route.
+
 LCP on the article page is the cover image. It needs explicit dimensions from
 `media_assets.width`/`height` to avoid layout shift. A concrete LCP target is
 still to be set.
@@ -356,3 +572,17 @@ still to be set.
   ([schema](docs/database/schema.md)); the shared module that fills them is part
   of the seed script work in
   [ADR-0017](docs/adr/0017-bootstrap-content-with-seed-script.md).
+- **Editor autosave is undesigned.** Revisions are immutable, so every save
+  creating a revision would flood the table, while saving only on demand risks
+  losing work. The draft-versus-revision boundary needs deciding before the
+  editor is built.
+- **No bundle guard.** Nothing detects an admin import leaking into a public
+  route. That boundary is currently a convention, and a size check on the public
+  bundles would make it enforceable.
+- **The slug-change flow has no interface.** The rules exist
+  ([ADR-0010](docs/adr/0010-define-public-url-lifecycle-for-localized-posts.md))
+  but no surface presents them: renaming a published slug must write history,
+  rewrite prior rows, and warn that the old URL becomes a redirect.
+- **Shiki theming is a one-way door.** Highlighted output is stored inside
+  `content_json`, so changing the theme later means reprocessing published
+  revisions.

@@ -30,6 +30,9 @@ This directory records durable architecture decisions for Cesco Blog.
 | [0021](0021-define-editorial-typography-and-component-boundaries.md) | Define editorial typography and component ownership boundaries | Accepted | 2026-08-03 |
 | [0022](0022-adopt-css-only-motion-with-shared-easing-scale.md) | Adopt CSS-only motion with a shared easing scale | Accepted | 2026-08-03 |
 
+| [0023](0023-treat-the-admin-as-a-client-rendered-application.md) | Treat the admin as a client-rendered application | Accepted | 2026-08-03 |
+| [0024](0024-adopt-tiptap-for-the-editorial-content-pipeline.md) | Adopt Tiptap for the editorial content pipeline | Accepted | 2026-08-03 |
+
 ## Status values
 
 - **Accepted**: decision is approved for implementation.

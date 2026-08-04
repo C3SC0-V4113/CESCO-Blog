@@ -28,6 +28,30 @@ Target private routes:
 Application code should still treat admin APIs as private and avoid exposing
 draft data through public routes.
 
+## Route model extension
+
+> This route list predates
+> [ADR-0012](0012-extend-editorial-schema-for-authors-series-and-analysis.md),
+> which added entities it does not cover. The following surfaces are part of the
+> same protected boundary. This note extends the list; the Access decision above
+> is unchanged.
+
+| Surface                                            | Entity                                                        |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| `/admin/collections` and `/admin/collections/[id]` | `collections`, `collection_localizations`, `collection_posts` |
+| `/admin/authors`                                   | `authors`                                                     |
+| Featuring controls within `/admin/posts`           | `post_localizations.featured_at`                              |
+| Analysis metadata within `/admin/posts/[id]/edit`  | `post_analysis_metadata`                                      |
+
+Changing the slug of a published localization is **not a plain update**. Per
+[ADR-0010](0010-define-public-url-lifecycle-for-localized-posts.md) it must write
+to `post_localization_slug_history` and rewrite existing history rows so retired
+slugs resolve in a single hop. It is an admin action with rules, not a form
+field, and the interface must present it as such.
+
+The admin's rendering model is defined by
+[ADR-0023](0023-treat-the-admin-as-a-client-rendered-application.md).
+
 ## Consequences
 
 ### Positive
