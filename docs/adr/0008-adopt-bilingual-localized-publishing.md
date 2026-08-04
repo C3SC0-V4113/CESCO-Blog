@@ -67,3 +67,9 @@ Admin routes remain under `/admin` and are not localized public content.
   schema and migrations.
 - [0009](0009-use-post-editorial-state-for-global-archive.md): Use post editorial
   state for global archive.
+- [0010](0010-define-public-url-lifecycle-for-localized-posts.md): Define public
+  URL lifecycle for localized posts — concretes what a non-servable localized URL
+  returns.
+- [0013](0013-define-server-first-seo-metadata-contract.md): Define the
+  server-first SEO metadata contract — concretes the `hreflang`, `x-default`, and
+  metadata field sources this ADR requires.

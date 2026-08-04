@@ -1,0 +1,1 @@
+ALTER TABLE `collection_localizations` ADD `first_published_at` text;

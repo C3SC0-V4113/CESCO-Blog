@@ -23,11 +23,21 @@ Publishing a post should eventually invalidate or refresh:
 - related localized section routes such as `/es/analisis`, `/en/analysis`,
   `/es/opiniones`, or `/en/opinions`
 - related tag/game pages
+- related collection/series pages
+- the RSS endpoint for the published language
+- the sitemap
+- `301` redirect responses for retired slugs and `410` responses for withdrawn
+  localizations
 
-Cache tags and path-based invalidation are the preferred model when the cache
-phase is implemented.
+> **Concreted by [ADR-0011](0011-invalidate-cloudflare-cache-by-cache-tag.md).**
+> The cache-tag model preferred here is confirmed: Cloudflare made every purge
+> method available on all plans on 2025-04-01, so tags are usable on this
+> project's plan. ADR-0011 defines the tag vocabulary and the purge triggers.
 
 ## Public route model
+
+Served from `checkpoint.cescovalle.com` per
+[ADR-0016](0016-host-blog-on-checkpoint-subdomain.md).
 
 - `/es` and `/en` — editorial home with recent and featured content
 - `/es/blog` and `/en/blog` — full post listing
@@ -39,7 +49,10 @@ phase is implemented.
 - `/es/juegos/[slug]` and `/en/games/[slug]` — future game page with related
   content
 - `/es/etiquetas/[slug]` and `/en/tags/[slug]` — topic navigation
+- `/es/series/[slug]` and `/en/series/[slug]` — editorial collections
 - `/es/buscar` and `/en/search` — future search
+- `/sitemap.xml`, `/es/rss.xml`, `/en/rss.xml`, `/robots.txt` — distribution
+  endpoints, see [ADR-0014](0014-serve-rss-and-sitemap-as-dynamic-endpoints.md)
 
 ## Consequences
 

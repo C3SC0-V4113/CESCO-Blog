@@ -21,3 +21,4 @@ pnpm-debug.log*
 .wrangler/
 playwright-report/
 test-results/
+.atl

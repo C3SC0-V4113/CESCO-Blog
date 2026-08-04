@@ -29,6 +29,48 @@
       "when": 1785794697924,
       "tag": "0003_posts_editorial_state",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1785815170561,
+      "tag": "0004_authors",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1785815231793,
+      "tag": "0005_localization_publish_timestamps",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1785815253563,
+      "tag": "0006_drop_legacy_published_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1785815298701,
+      "tag": "0007_slug_history_and_derived_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1785815341594,
+      "tag": "0008_collections_and_analysis_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1785817592726,
+      "tag": "0009_collection_first_published_at",
+      "breakpoints": true
     }
   ]
 }
