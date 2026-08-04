@@ -25,6 +25,11 @@ This directory records durable architecture decisions for Cesco Blog.
 | [0017](0017-bootstrap-content-with-seed-script.md)                      | Bootstrap content with a seed script and defer the admin                        | Accepted | 2026-08-03 |
 | [0018](0018-adopt-privacy-first-analytics-and-defer-monetization.md)    | Adopt privacy-first analytics, transparency pages, and defer monetization       | Accepted | 2026-08-03 |
 
+| [0019](0019-render-astro-first-with-react-islands-for-behavior.md) | Render Astro-first and reserve React islands for behavior | Accepted | 2026-08-03 |
+| [0020](0020-extend-shadcn-with-base-ui-compatible-registries.md) | Extend shadcn with Base UI–compatible registries | Accepted | 2026-08-03 |
+| [0021](0021-define-editorial-typography-and-component-boundaries.md) | Define editorial typography and component ownership boundaries | Accepted | 2026-08-03 |
+| [0022](0022-adopt-css-only-motion-with-shared-easing-scale.md) | Adopt CSS-only motion with a shared easing scale | Accepted | 2026-08-03 |
+
 ## Status values
 
 - **Accepted**: decision is approved for implementation.

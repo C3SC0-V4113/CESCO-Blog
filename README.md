@@ -24,7 +24,8 @@ support Astro i18n routing.
 | Public performance | ISR-like behavior through Cloudflare cache and invalidation |
 
 See [Architecture Decision Records](docs/adr/README.md) for the durable decision
-log.
+log, and [DESIGN.md](DESIGN.md) for the living reference of the interface: design
+tokens, typography, the component inventory, and the motion rules.
 
 ## Planned public routes
 
