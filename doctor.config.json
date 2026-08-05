@@ -1,6 +1,5 @@
 {
   "ignore": {
-    "rules": ["deslop/unused-dev-dependency"],
     "files": [".agents/**", ".claude/**", ".wrangler/**", "src/components/ui/**", "src/env.d.ts"],
     "overrides": [
       {
