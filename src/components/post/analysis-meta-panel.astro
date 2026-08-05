@@ -1,0 +1,73 @@
+---
+import { getTranslations } from '@/i18n/utils';
+
+import type { AnalysisMetadata } from '@/db/queries/posts';
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * The structured facts behind an analysis (ADR-0012).
+ *
+ * Which platform it was played on, for how long, and how far the writer got.
+ * Readers use these to weigh the piece, so they are modelled rather than
+ * buried in prose — and the platform is a reference to `platforms` rather than
+ * free text, which would fragment the same platform across spellings.
+ *
+ * Rendered as a description list because that is what it is: a set of labelled
+ * values, not a table and not a paragraph.
+ */
+
+interface Props {
+  locale: Locale;
+  analysis: AnalysisMetadata;
+}
+
+const { locale, analysis } = Astro.props;
+const t = getTranslations(locale);
+
+// Spelled out rather than interpolated: `analysis.completion.${state}` is a
+// template literal TypeScript cannot check against the dictionary, and that
+// check is the guarantee ADR-0027 buys.
+const completionKeys = {
+  completed: 'analysis.completion.completed',
+  main_story: 'analysis.completion.main_story',
+  partial: 'analysis.completion.partial',
+  abandoned: 'analysis.completion.abandoned',
+  ongoing: 'analysis.completion.ongoing',
+} as const;
+
+// Built by pushing rather than filtering a list of `&&` expressions: those
+// evaluate to the falsy value itself, so an empty platform name would leave an
+// empty string in the array that no filter predicate narrows away.
+const facts: { label: string; value: string }[] = [];
+
+if (analysis.playedPlatform) {
+  facts.push({ label: t('analysis.platform'), value: analysis.playedPlatform });
+}
+
+if (analysis.playtimeHours !== null) {
+  facts.push({
+    label: t('analysis.playtime'),
+    value: `${analysis.playtimeHours} ${t('analysis.playtimeHours')}`,
+  });
+}
+
+if (analysis.completionState) {
+  facts.push({
+    label: t('analysis.completion'),
+    value: t(completionKeys[analysis.completionState]),
+  });
+}
+---
+
+{
+  facts.length > 0 && (
+    <dl class="grid gap-x-6 gap-y-3 border-t border-border pt-6 sm:grid-cols-3">
+      {facts.map((fact) => (
+        <div>
+          <dt class="text-xs tracking-wide text-muted-foreground uppercase">{fact.label}</dt>
+          <dd class="mt-1 text-sm text-foreground">{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}

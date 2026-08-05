@@ -1,19 +1,42 @@
 import { and, eq } from 'drizzle-orm';
 
 import { schema, type Db } from '@/db/client';
-import { parseContentDoc, type ContentDoc } from '@/lib/content/schema';
+import { parseContentDoc, parseToc, type ContentDoc, type TocEntry } from '@/lib/content/schema';
 import { resolveLocalizationUrl } from '@/lib/urls';
 
-import type { Post } from '@/db/schema';
+import type { Post, PostAnalysisMetadata } from '@/db/schema';
 import type { Locale } from '@/i18n/locales';
 
 /** Derived from the column rather than restated, so the two cannot drift. */
 export type PostSection = Post['section'];
 
+/** Same reasoning: the enum lives on the column, not in a second list here. */
+export type CompletionState = NonNullable<PostAnalysisMetadata['completionState']>;
+
+export type AnalysisMetadata = {
+  playedPlatform: string | null;
+  playtimeHours: number | null;
+  completionState: CompletionState | null;
+  receivedReviewCopy: boolean;
+  reviewCopyProvider: string | null;
+};
+
 export type PublishedPost = {
   title: string;
   excerpt: string | null;
   content: ContentDoc;
+  readingTimeMinutes: number | null;
+  toc: TocEntry[];
+  /**
+   * First publication, never the most recent one. ADR-0010 keeps
+   * `first_published_at` immutable so `datePublished` survives an unpublish and
+   * republish cycle, and the byline shows the same date it always showed.
+   */
+  publishedAt: string | null;
+  section: PostSection;
+  authorName: string | null;
+  /** Present only for analysis posts that have a metadata row (ADR-0012). */
+  analysis: AnalysisMetadata | null;
 };
 
 export type ArticleUrlResolution =
@@ -33,12 +56,14 @@ type UrlCriteria = { locale: Locale; section: PostSection; slug: string };
  * distinction this ADR exists to preserve. The row comes back whatever its
  * state, and the policy decides.
  *
- * One query answers the common case. The slug history is only consulted when no
- * live slug matched, so a served article costs a single query against the 50 a
- * Worker invocation may issue (ADR-0016).
+ * Still **one query** for a served article, now across six tables. A Worker
+ * invocation may issue at most 50 (ADR-0016), and the page needs the author,
+ * the derived fields and the analysis metadata together — fetching them
+ * separately would spend four where one does. The slug history is only
+ * consulted when no live slug matched.
  *
  * The published revision is reached through `published_revision_id`, never
- * through the highest `version`, so a newer draft revision cannot reach readers.
+ * through the highest `version`, so a newer draft cannot reach readers.
  */
 export async function resolveArticleUrl(
   db: Db,
@@ -49,9 +74,18 @@ export async function resolveArticleUrl(
       status: schema.postLocalizations.status,
       firstPublishedAt: schema.postLocalizations.firstPublishedAt,
       editorialState: schema.posts.editorialState,
+      section: schema.posts.section,
       title: schema.postRevisions.title,
       excerpt: schema.postRevisions.excerpt,
       contentJson: schema.postRevisions.contentJson,
+      readingTimeMinutes: schema.postRevisions.readingTimeMinutes,
+      tocJson: schema.postRevisions.tocJson,
+      authorName: schema.authors.name,
+      playedPlatform: schema.platforms.name,
+      playtimeHours: schema.postAnalysisMetadata.playtimeHours,
+      completionState: schema.postAnalysisMetadata.completionState,
+      receivedReviewCopy: schema.postAnalysisMetadata.receivedReviewCopy,
+      reviewCopyProvider: schema.postAnalysisMetadata.reviewCopyProvider,
     })
     .from(schema.postLocalizations)
     .innerJoin(schema.posts, eq(schema.posts.id, schema.postLocalizations.postId))
@@ -60,6 +94,15 @@ export async function resolveArticleUrl(
     .leftJoin(
       schema.postRevisions,
       eq(schema.postRevisions.id, schema.postLocalizations.publishedRevisionId)
+    )
+    // Every remaining join is optional by nature. A post may have no author, an
+    // opinion piece has no analysis metadata, and an analysis need not name the
+    // platform it was played on — none of which makes the URL unservable.
+    .leftJoin(schema.authors, eq(schema.authors.id, schema.posts.authorId))
+    .leftJoin(schema.postAnalysisMetadata, eq(schema.postAnalysisMetadata.postId, schema.posts.id))
+    .leftJoin(
+      schema.platforms,
+      eq(schema.platforms.id, schema.postAnalysisMetadata.playedPlatformId)
     )
     .where(
       and(
@@ -98,6 +141,24 @@ export async function resolveArticleUrl(
       // known to be a render — a malformed revision must not turn a 410 into a
       // crash (ADR-0024).
       content: parseContentDoc(live.contentJson),
+      readingTimeMinutes: live.readingTimeMinutes,
+      toc: parseToc(live.tocJson),
+      publishedAt: live.firstPublishedAt,
+      section: live.section,
+      authorName: live.authorName,
+      // `receivedReviewCopy` is the presence signal: it is `NOT NULL` on the
+      // table, so a null here means the left join found no row at all rather
+      // than a row saying "no review copy".
+      analysis:
+        live.receivedReviewCopy === null
+          ? null
+          : {
+              playedPlatform: live.playedPlatform,
+              playtimeHours: live.playtimeHours,
+              completionState: live.completionState,
+              receivedReviewCopy: live.receivedReviewCopy,
+              reviewCopyProvider: live.reviewCopyProvider,
+            },
     },
   };
 }

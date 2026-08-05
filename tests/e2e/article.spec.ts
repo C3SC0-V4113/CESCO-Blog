@@ -49,15 +49,15 @@ test('never hydrates the article body', async ({ page }) => {
 
 test('keeps the article page inside its island budget', async ({ page }) => {
   // DESIGN.md budgets five islands for the entire public site and states that
-  // everything else ships no JavaScript. The article page spends exactly one of
-  // them today, on the theme toggle.
+  // everything else ships no JavaScript. The article page spends two of them:
+  // the theme toggle in the chrome, and the table-of-contents scroll spy.
   //
-  // The number is the point: this fails when an island is added here, which
-  // forces the addition to be a decision someone made rather than one that
-  // arrived with a component.
+  // The number is the point, and it has already earned its keep — adding the
+  // scroll spy failed this test, which is what turns "an island appeared" into
+  // a decision someone made rather than one that arrived with a component.
   await page.goto(ES_ARTICLE);
 
-  await expect(page.locator('astro-island')).toHaveCount(1);
+  await expect(page.locator('astro-island')).toHaveCount(2);
 });
 
 test('anchors headings by block id rather than by their text', async ({ page }) => {
@@ -128,4 +128,49 @@ test('redirects a retired slug to the current one in a single hop', async ({ pag
   }
 
   expect(hops).toHaveLength(1);
+});
+
+test('shows the byline, reading time and table of contents', async ({ page }) => {
+  await page.goto(ES_ARTICLE);
+
+  // Scoped to the article: the footer also carries the name, in the copyright
+  // line, and an unscoped match finds both.
+  const article = page.getByRole('article');
+
+  // ADR-0013 wants the date in structured data; DESIGN.md additionally requires
+  // it to be visible, because a reader judging whether a games piece is still
+  // current needs it as much as a crawler does.
+  await expect(article.getByText('Cesco Valle')).toBeVisible();
+  await expect(article.getByText('min de lectura')).toBeVisible();
+
+  const toc = page.getByRole('navigation', { name: 'Contenido' });
+  await expect(toc.getByRole('link', { name: 'El silencio como herramienta' })).toBeVisible();
+});
+
+test('anchors the table of contents at block ids, not heading text', async ({ page }) => {
+  // The same ADR-0012 guarantee as the headings themselves, from the other end:
+  // if the link and the heading disagree the outline silently stops working.
+  await page.goto(ES_ARTICLE);
+
+  const link = page
+    .getByRole('navigation', { name: 'Contenido' })
+    .getByRole('link', { name: 'El silencio como herramienta' });
+
+  await expect(link).toHaveAttribute('href', /^#[0-9a-f-]{36}$/);
+});
+
+test('renders the review-copy disclosure rather than merely storing it', async ({ page }) => {
+  // ADR-0012 is explicit that this has to be on the page. A disclosure nobody
+  // reads is not a disclosure.
+  await page.goto(ES_ARTICLE);
+
+  await expect(page.getByText('Estudio Ejemplo')).toBeVisible();
+});
+
+test('shows the analysis facts', async ({ page }) => {
+  await page.goto(ES_ARTICLE);
+
+  await expect(page.getByText('Plataforma')).toBeVisible();
+  await expect(page.getByText('PC', { exact: true })).toBeVisible();
+  await expect(page.getByText('Completado')).toBeVisible();
 });

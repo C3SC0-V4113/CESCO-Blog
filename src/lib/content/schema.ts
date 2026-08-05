@@ -91,6 +91,29 @@ export type ContentDoc = z.infer<typeof contentDocSchema>;
 export type ContentBlock = z.infer<typeof contentBlockSchema>;
 
 /**
+ * The shape stored in `post_revisions.toc_json`.
+ *
+ * Validated on read for the same reason `content_json` is: it is a JSON column,
+ * so the database guarantees nothing about what is inside it. This one is
+ * written by `deriveToc` rather than by an editor, which makes it *less* likely
+ * to be malformed and not less important to check — a silently wrong table of
+ * contents is harder to notice than a broken article body.
+ */
+const tocEntrySchema = z.strictObject({
+  id: z.string().min(1),
+  level: z.number().int().min(1).max(6),
+  text: z.string(),
+});
+
+export const tocSchema = z.array(tocEntrySchema);
+
+/**
+ * Defined here rather than beside the derivation that produces it: this is the
+ * shape the column holds, and the reader needs it as much as the writer does.
+ */
+export type TocEntry = z.infer<typeof tocEntrySchema>;
+
+/**
  * Validates and returns the typed document, throwing on anything invalid.
  *
  * Publishing paths use this rather than `safeParse`: a malformed document must
@@ -98,4 +121,16 @@ export type ContentBlock = z.infer<typeof contentBlockSchema>;
  */
 export function parseContentDoc(value: unknown): ContentDoc {
   return contentDocSchema.parse(value);
+}
+
+/**
+ * Reads a stored table of contents, treating a missing one as empty.
+ *
+ * Null is legitimate: revisions written before the derivation existed have no
+ * TOC, and an article with no headings correctly has nothing to list. Neither
+ * is an error, and both should render as "no table of contents" rather than
+ * failing the page.
+ */
+export function parseToc(value: unknown): TocEntry[] {
+  return value === null || value === undefined ? [] : tocSchema.parse(value);
 }

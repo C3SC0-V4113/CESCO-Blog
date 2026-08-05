@@ -33,7 +33,7 @@ if (resolution.kind === 'not-found') Astro.response.status = 404;
 <Layout>
   {
     resolution.kind === 'render' ? (
-      <ArticleDetail post={resolution.post} />
+      <ArticleDetail locale={locale} post={resolution.post} />
     ) : (
       <ErrorState locale={locale} status={resolution.kind === 'gone' ? 410 : 404} />
     )

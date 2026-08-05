@@ -1,0 +1,58 @@
+---
+import TocScrollSpy from '@/components/post/toc-scroll-spy';
+import { getTranslations } from '@/i18n/utils';
+
+import type { Locale } from '@/i18n/locales';
+import type { TocEntry } from '@/lib/content/schema';
+
+/**
+ * Heading outline for the article (ADR-0012).
+ *
+ * Every anchor is a **block ID**, never a slug of the heading text. That is the
+ * whole reason the derivation exists: rewording a heading must not break a deep
+ * link or a table-of-contents entry, and text-derived anchors break both
+ * silently.
+ *
+ * Server-rendered markup. The scroll spy beside it is an island that only adds
+ * the highlight, so with JavaScript disabled this stays a working list of links.
+ */
+
+interface Props {
+  locale: Locale;
+  entries: TocEntry[];
+}
+
+const { locale, entries } = Astro.props;
+const t = getTranslations(locale);
+
+// Only the top two levels. Deeper headings make the outline longer than the
+// article is navigable, and the derivation deliberately stores every level so
+// this choice stays a presentation one.
+const shown = entries.filter((entry) => entry.level <= 3);
+---
+
+{
+  shown.length > 0 && (
+    <nav aria-labelledby="toc-heading" class="rounded-md border border-border p-4">
+      <h2 id="toc-heading" class="text-xs tracking-wide text-muted-foreground uppercase">
+        {t('post.tableOfContents')}
+      </h2>
+
+      <ol class="mt-3 space-y-2 text-sm">
+        {shown.map((entry) => (
+          <li class={entry.level === 3 ? 'ps-4' : undefined}>
+            <a
+              href={`#${entry.id}`}
+              data-toc-link={entry.id}
+              class="text-muted-foreground transition-colors duration-150 hover:text-foreground aria-[current]:text-foreground"
+            >
+              {entry.text}
+            </a>
+          </li>
+        ))}
+      </ol>
+
+      <TocScrollSpy client:visible ids={shown.map((entry) => entry.id)} />
+    </nav>
+  )
+}

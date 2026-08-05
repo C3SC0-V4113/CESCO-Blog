@@ -1,0 +1,47 @@
+---
+import { formatDate, getTranslations } from '@/i18n/utils';
+
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * Author and publication date (ADR-0012, ADR-0013).
+ *
+ * DESIGN.md requires the date to be *visible*, not merely present in structured
+ * data — a reader deciding whether a games analysis is still current needs it as
+ * much as a crawler does.
+ *
+ * The date is the first publication, never the latest. ADR-0010 keeps
+ * `first_published_at` immutable precisely so this does not move when a post is
+ * unpublished and published again.
+ */
+
+interface Props {
+  locale: Locale;
+  authorName: string | null;
+  publishedAt: string | null;
+}
+
+const { locale, authorName, publishedAt } = Astro.props;
+const t = getTranslations(locale);
+---
+
+<div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+  {
+    authorName && (
+      <span>
+        {t('post.by')} {authorName}
+      </span>
+    )
+  }
+  {authorName && publishedAt && <span aria-hidden="true">·</span>}
+  {
+    publishedAt && (
+      <span>
+        {t('post.publishedOn')}{' '}
+        <time datetime={publishedAt.replace(' ', 'T') + 'Z'}>
+          {formatDate(publishedAt, locale)}
+        </time>
+      </span>
+    )
+  }
+</div>

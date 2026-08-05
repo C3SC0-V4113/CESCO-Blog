@@ -1,31 +1,48 @@
 ---
 import Prose from '@/components/common/prose.astro';
+import AnalysisMetaPanel from '@/components/post/analysis-meta-panel.astro';
 import ArticleBody from '@/components/post/article-body.astro';
+import Byline from '@/components/post/byline.astro';
+import DisclosureNotice from '@/components/post/disclosure-notice.astro';
+import ReadingTime from '@/components/post/reading-time.astro';
+import TableOfContents from '@/components/post/table-of-contents.astro';
 
 import type { PublishedPost } from '@/db/queries/posts';
+import type { Locale } from '@/i18n/locales';
 
 /**
- * The article page composition (ADR-0019).
+ * The article page composition (ADR-0019, DESIGN.md).
  *
- * Kept apart from the routes so the four localized section URLs differ by one
- * constant instead of repeating the whole page. Byline, reading time, and the
- * table of contents are deliberately absent — they arrive with the article
- * metadata work and need `authors` and `toc_json` joined into the query.
+ * Order follows the surface spec: title, byline, reading time, disclosure,
+ * table of contents, body, analysis facts.
+ *
+ * The disclosure sits **above** the article rather than after it. A reader who
+ * abandons the piece halfway should still have seen that the studio supplied
+ * the copy; placing it at the end would make the disclosure conditional on
+ * finishing (ADR-0012).
+ *
+ * Cover image, breadcrumb, tags, series navigation and the copy-link button are
+ * the remaining pieces of this surface. Each needs data this query does not yet
+ * fetch, or media serving that does not exist.
  */
 
 interface Props {
+  locale: Locale;
   post: PublishedPost;
 }
 
-const { post } = Astro.props;
+const { locale, post } = Astro.props;
+
+// The panel is for analysis pieces. An opinion post has no metadata row at all,
+// so this is belt and braces — but the section is the rule, not the row.
+const analysis = post.section === 'analysis' ? post.analysis : null;
 ---
 
 <main class="px-6 pt-12 pb-20">
   <article class="mx-auto max-w-[34rem]">
     <header class="mb-10">
-      <h1 class="font-heading text-3xl leading-tight text-balance text-foreground">
-        {post.title}
-      </h1>
+      <h1 class="text-3xl leading-tight text-balance text-foreground">{post.title}</h1>
+
       {
         post.excerpt && (
           <p class="mt-4 text-lg leading-relaxed text-pretty text-muted-foreground">
@@ -33,10 +50,39 @@ const { post } = Astro.props;
           </p>
         )
       }
+
+      <div class="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <Byline locale={locale} authorName={post.authorName} publishedAt={post.publishedAt} />
+        <ReadingTime locale={locale} minutes={post.readingTimeMinutes} />
+      </div>
+
+      {
+        analysis?.receivedReviewCopy && (
+          <div class="mt-6">
+            <DisclosureNotice locale={locale} provider={analysis.reviewCopyProvider} />
+          </div>
+        )
+      }
     </header>
+
+    {
+      post.toc.length > 0 && (
+        <div class="mb-10">
+          <TableOfContents locale={locale} entries={post.toc} />
+        </div>
+      )
+    }
 
     <Prose>
       <ArticleBody doc={post.content} />
     </Prose>
+
+    {
+      analysis && (
+        <div class="mt-12">
+          <AnalysisMetaPanel locale={locale} analysis={analysis} />
+        </div>
+      )
+    }
   </article>
 </main>
