@@ -48,16 +48,19 @@ export default function globalSetup(): () => void {
     return () => {};
   }
 
-  // Seed before the server starts, so nothing else has the database open. The
-  // suite asserts against real published content, and a seed script that is
-  // idempotent by construction (ADR-0017) makes that safe to repeat.
-  const seed = spawnSync('pnpm', ['run', 'db:seed'], { encoding: 'utf8', shell: true });
+  // Prepare the database before the server starts, so nothing else has the
+  // local SQLite file open. Both steps are idempotent — migrations report
+  // "No migrations to apply" and the seed replaces its own rows (ADR-0017) — so
+  // the suite runs from a clean checkout without a manual setup step. CI has no
+  // database at all, which is the case that makes this non-optional.
+  for (const script of ['db:migrate:local', 'db:seed']) {
+    const result = spawnSync('pnpm', ['run', script], { encoding: 'utf8', shell: true });
 
-  if (seed.status !== 0) {
-    throw new Error(
-      `Could not seed the local database:\n${seed.stdout ?? ''}${seed.stderr ?? ''}\n` +
-        `Run \`pnpm run db:migrate:local\` first if the schema is missing.`
-    );
+    if (result.status !== 0) {
+      throw new Error(
+        `\`pnpm run ${script}\` failed:\n${result.stdout ?? ''}${result.stderr ?? ''}`
+      );
+    }
   }
 
   const startup = astro('dev', '--background', '--host', HOST, '--port', String(PORT));
