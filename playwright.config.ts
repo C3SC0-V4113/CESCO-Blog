@@ -18,10 +18,7 @@ export default defineConfig({
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
-  webServer: {
-    command: 'pnpm run dev -- --hostname 127.0.0.1 --port 3000',
-    url: baseUrl,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  // Not `webServer`: Astro 7's dev command daemonizes and returns immediately,
+  // which Playwright reads as the server having died. See tests/e2e/global-setup.ts.
+  globalSetup: './tests/e2e/global-setup.ts',
 });

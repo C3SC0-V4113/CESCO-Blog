@@ -48,6 +48,14 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // Command-line scripts report progress on stdout; that is their interface,
+    // not stray debugging left behind.
+    files: ['scripts/**/*.{js,mjs,cjs,ts,mts,cts}'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
     files: ['**/*.{ts,tsx,mts,cts}'],
     languageOptions: {
       parserOptions: {
