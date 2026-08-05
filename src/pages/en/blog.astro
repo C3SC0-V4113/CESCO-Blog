@@ -6,22 +6,24 @@ import Layout from '@/layouts/main.astro';
 import { pageCount, readPageWindow } from '@/lib/pagination';
 import { getDb } from '@/lib/runtime';
 
-// See the Spanish home for why the featured slot and section rows are absent.
-
 const locale = resolveLocale(Astro.currentLocale);
 const t = getTranslations(locale);
 
 const { page, offset, limit } = readPageWindow(Astro.url.searchParams.get('page'));
 
-const { posts, total } = await listPublishedPosts(getDb(), { locale, limit, offset });
+const { posts, total } = await listPublishedPosts(getDb(), {
+  locale,
+  limit,
+  offset,
+});
 ---
 
 <Layout>
   <PostList
     locale={locale}
-    heading={t('listing.latest')}
+    heading={t('nav.blog')}
     posts={posts}
-    basePath="/en/"
+    basePath="/en/blog"
     page={page}
     totalPages={pageCount(total)}
   />

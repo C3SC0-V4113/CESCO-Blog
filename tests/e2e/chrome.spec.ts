@@ -50,9 +50,13 @@ test('does not link to a route that does not exist yet', async ({ page }) => {
   // the header with 404s.
   await page.goto(ES_ARTICLE);
 
+  // Series and search still have dictionary entries and no routes. Blog and the
+  // two sections dropped off this list when their pages landed, which is the
+  // list doing its job rather than being relaxed.
+  //
   // `exact` matters: accessible names match as substrings by default, and
   // "Blog" is inside the "Cesco Blog" wordmark.
-  for (const name of ['Análisis', 'Opiniones', 'Series', 'Buscar', 'Blog']) {
+  for (const name of ['Series', 'Buscar']) {
     await expect(page.getByRole('banner').getByRole('link', { name, exact: true })).toHaveCount(0);
   }
 });
@@ -69,4 +73,18 @@ test('applies the stored theme before paint and remembers the choice', async ({ 
   // and correct itself — the flash the script exists to prevent.
   await page.reload();
   await expect(page.locator('html')).toHaveClass(/dark/);
+});
+
+test('now links the section routes it has pages for', async ({ page }) => {
+  // These were absent while they were dictionary entries without routes. They
+  // appear because `navigation.ts` was updated, not because the header was.
+  await page.goto('/es/');
+  const header = page.getByRole('banner');
+
+  for (const name of ['Blog', 'Análisis', 'Opiniones']) {
+    await expect(header.getByRole('link', { name, exact: true })).toBeVisible();
+  }
+
+  // Still no route, so still no link.
+  await expect(header.getByRole('link', { name: 'Buscar', exact: true })).toHaveCount(0);
 });

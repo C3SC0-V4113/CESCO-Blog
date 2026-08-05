@@ -1,0 +1,54 @@
+---
+import { getTranslations } from '@/i18n/utils';
+
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * Previous and next links for a paginated listing.
+ *
+ * Plain links, no island: pagination is navigation, and navigation that needs
+ * JavaScript to work is navigation a crawler cannot follow (ADR-0019).
+ *
+ * The page lives in a query parameter rather than a path segment so the listing
+ * keeps one canonical route. Which page a crawler should treat as canonical is
+ * the SEO work's decision, not this component's.
+ */
+
+interface Props {
+  locale: Locale;
+  basePath: string;
+  page: number;
+  totalPages: number;
+}
+
+const { locale, basePath, page, totalPages } = Astro.props;
+const t = getTranslations(locale);
+
+const hrefFor = (target: number) => (target === 1 ? basePath : `${basePath}?page=${target}`);
+---
+
+{
+  totalPages > 1 && (
+    <nav class="mt-8 flex items-center justify-between border-t border-border pt-6 text-sm">
+      {page > 1 ? (
+        <a href={hrefFor(page - 1)} rel="prev" class="transition-colors hover:text-primary">
+          ← {t('listing.previous')}
+        </a>
+      ) : (
+        <span />
+      )}
+
+      <span class="text-muted-foreground">
+        {page} / {totalPages}
+      </span>
+
+      {page < totalPages ? (
+        <a href={hrefFor(page + 1)} rel="next" class="transition-colors hover:text-primary">
+          {t('listing.next')} →
+        </a>
+      ) : (
+        <span />
+      )}
+    </nav>
+  )
+}

@@ -69,12 +69,23 @@ export function resolveLocalizationUrl(
  * The section segment differs per locale, which is why the path cannot be built
  * by interpolation at the call site.
  */
-const sectionSegment: Record<Locale, Record<PostSection, string>> = {
+export const sectionSegment: Record<Locale, Record<PostSection, string>> = {
   es: { analysis: 'analisis', opinion: 'opinion' },
   en: { analysis: 'analysis', opinion: 'opinion' },
 };
 
 /** Canonical public path for an article. */
 export function articlePath(locale: Locale, section: PostSection, slug: string): string {
-  return `/${locale}/${sectionSegment[locale][section]}/${slug}`;
+  return `${sectionPath(locale, section)}/${slug}`;
+}
+
+/**
+ * The section's own listing page, and the prefix every article in it hangs off.
+ *
+ * Exported rather than inlined at each call site so the navigation, the article
+ * links and the routes cannot disagree about a segment — the kind of drift that
+ * produces a header pointing one place and the articles living in another.
+ */
+export function sectionPath(locale: Locale, section: PostSection): string {
+  return `/${locale}/${sectionSegment[locale][section]}`;
 }
