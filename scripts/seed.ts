@@ -238,6 +238,86 @@ for (const locale of [
   );
 }
 
+/**
+ * Two states the URL lifecycle has to answer for, which a set of happily
+ * published posts can never exercise (ADR-0010).
+ *
+ * Without them the local site can only ever show a `200` and a `404`, and the
+ * `410` and `301` paths — the two the ADR was actually written for — would have
+ * no way to be seen or tested outside a unit test.
+ */
+
+// The Spanish article was published under an earlier name. Its current slug is
+// unchanged; only the retired one is recorded, so the old address redirects.
+push(
+  db.insert(schema.postLocalizationSlugHistory).values({
+    id: '2c7d9e0f-1a3b-45c6-8d7e-9f0a1b2c3d4e',
+    postLocalizationId: ES.localizationId,
+    locale: 'es',
+    oldSlug: 'el-silencio-en-los-videojuegos',
+    retiredAt: PUBLISHED_AT,
+  })
+);
+
+// A post published and then withdrawn. `status` returns to draft and the
+// published revision is cleared, but `first_published_at` survives — that is
+// the single field that makes this URL answer 410 instead of 404.
+const WITHDRAWN = {
+  postId: 'd2e5f8a1-4b3c-4d7e-9f0a-3b6c9d2e5f81',
+  localizationId: '6b0d3e4f-7a81-49b2-8d3e-4f5a6b7c8d9e',
+  revisionId: '9c3d4e5f-6a71-42b3-9c4d-5e6f7a8b9c0d',
+} as const;
+
+const withdrawnContent = parseContentDoc({
+  type: 'doc',
+  content: [
+    {
+      type: 'paragraph',
+      attrs: { blockId: 'b1c2d3e4-f5a6-4081-9b1c-2d3e4f5a6b81' },
+      content: [
+        {
+          type: 'text',
+          text: 'Este texto se publicó y más tarde se retiró. Existe en la base de datos para que la dirección pueda responder que el contenido se fue, en vez de fingir que nunca estuvo.',
+        },
+      ],
+    },
+  ],
+});
+
+push(
+  db.insert(schema.posts).values({
+    id: WITHDRAWN.postId,
+    section: 'opinion',
+    editorialState: 'active',
+    authorId: AUTHOR_ID,
+  })
+);
+
+push(
+  db.insert(schema.postLocalizations).values({
+    id: WITHDRAWN.localizationId,
+    postId: WITHDRAWN.postId,
+    locale: 'es',
+    slug: 'una-opinion-retirada',
+    status: 'draft',
+    publishedRevisionId: null,
+    firstPublishedAt: PUBLISHED_AT,
+    currentPublishedAt: PUBLISHED_AT,
+  })
+);
+
+push(
+  db.insert(schema.postRevisions).values({
+    id: WITHDRAWN.revisionId,
+    postLocalizationId: WITHDRAWN.localizationId,
+    version: 1,
+    title: 'Una opinión retirada',
+    contentJson: withdrawnContent,
+    readingTimeMinutes: deriveReadingTime(withdrawnContent),
+    tocJson: deriveToc(withdrawnContent),
+  })
+);
+
 const outputPath = path.join(process.cwd(), '.wrangler', 'seed.sql');
 
 mkdirSync(path.dirname(outputPath), { recursive: true });

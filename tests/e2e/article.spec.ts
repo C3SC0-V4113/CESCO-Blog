@@ -75,3 +75,47 @@ test('does not serve an analysis from the opinion route', async ({ page }) => {
 
   expect(response?.status()).toBe(404);
 });
+
+test('answers 410 for a withdrawn article, not 404', async ({ page }) => {
+  // The distinction ADR-0010 exists for. This address was public and indexed;
+  // answering 404 would tell crawlers it never named anything.
+  const response = await page.goto('/es/opinion/una-opinion-retirada');
+
+  expect(response?.status()).toBe(410);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Esta publicación ya no está disponible'
+  );
+});
+
+test('gives a retired address different copy from an unknown one', async ({ page }) => {
+  // The same rule as above, from the reader's side rather than the crawler's.
+  // Both strings are pinned rather than compared to each other: a comparison
+  // would still pass if the two pages drifted into some other pair of wrong
+  // messages, as long as they stayed different.
+  await page.goto('/es/opinion/una-opinion-retirada');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Esta publicación ya no está disponible'
+  );
+
+  await page.goto('/es/analisis/no-existe');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Esta página no existe');
+});
+
+test('redirects a retired slug to the current one in a single hop', async ({ page }) => {
+  const response = await page.goto('/es/analisis/el-silencio-en-los-videojuegos');
+
+  expect(response?.status()).toBe(200);
+  expect(new URL(page.url()).pathname).toBe('/es/analisis/el-peso-del-silencio');
+
+  // ADR-0010 forbids redirect chains, so exactly one hop got us here.
+  const hops: string[] = [];
+  for (
+    let previous = response?.request().redirectedFrom();
+    previous;
+    previous = previous.redirectedFrom()
+  ) {
+    hops.push(previous.url());
+  }
+
+  expect(hops).toHaveLength(1);
+});

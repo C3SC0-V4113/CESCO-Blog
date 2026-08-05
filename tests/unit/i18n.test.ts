@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { defaultLocale, isLocale, locales } from '@/i18n/locales';
 import { ui } from '@/i18n/ui';
-import { formatDate, resolveLocale, useTranslations } from '@/i18n/utils';
+import { formatDate, resolveLocale, getTranslations } from '@/i18n/utils';
 
 describe('locales', () => {
   it('mirrors the locales configured for routing', () => {
@@ -21,8 +21,8 @@ describe('locales', () => {
 
 describe('translations', () => {
   it('returns strings for the requested locale', () => {
-    expect(useTranslations('es')('nav.analysis')).toBe('Análisis');
-    expect(useTranslations('en')('nav.analysis')).toBe('Analysis');
+    expect(getTranslations('es')('nav.analysis')).toBe('Análisis');
+    expect(getTranslations('en')('nav.analysis')).toBe('Analysis');
   });
 
   it('keeps both dictionaries at key parity', () => {
@@ -34,7 +34,7 @@ describe('translations', () => {
   it('distinguishes 404 copy from 410 copy', () => {
     // ADR-0010 pays for the distinction in the schema; wording that treats them
     // the same would waste it.
-    const t = useTranslations('es');
+    const t = getTranslations('es');
     expect(t('error.404.title')).not.toBe(t('error.410.title'));
   });
 });

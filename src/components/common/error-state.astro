@@ -1,0 +1,78 @@
+---
+import { getTranslations } from '@/i18n/utils';
+
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * The visible half of ADR-0010.
+ *
+ * The `404` and `410` copy is deliberately different, and that difference is
+ * the point: one address never named anything, the other named something that
+ * was deliberately retired. Telling a reader "this page does not exist" about an
+ * article they bookmarked is both wrong and unhelpful.
+ *
+ * The strings live in the typed dictionary (ADR-0027) rather than here, so a
+ * missing translation is a compile error rather than a silent fallback.
+ */
+
+interface Props {
+  locale: Locale;
+  status: 404 | 410;
+}
+
+const { locale, status } = Astro.props;
+const t = getTranslations(locale);
+
+// Spelled out rather than built by interpolation: written as
+// `error.${status}.title` the key is a template literal that TypeScript cannot
+// check against the dictionary, which is the one guarantee ADR-0027 buys.
+const keys = {
+  404: { title: 'error.404.title', body: 'error.404.body', action: 'error.404.action' },
+  410: { title: 'error.410.title', body: 'error.410.body', action: 'error.410.action' },
+} as const;
+
+const key = keys[status];
+
+// Both actions point at the locale home for now. The 410 copy invites the reader
+// to recent posts, which is a better destination — it gets one once the blog
+// index exists.
+const actionHref = `/${locale}/`;
+---
+
+<main>
+  <h1>{t(key.title)}</h1>
+  <p>{t(key.body)}</p>
+  <a href={actionHref}>{t(key.action)}</a>
+</main>
+
+<style>
+  main {
+    margin-inline: auto;
+    max-width: 34rem;
+    padding-inline: 1.5rem;
+    padding-block: 6rem;
+  }
+
+  h1 {
+    font-family: var(--font-heading);
+    font-size: 1.75rem;
+    line-height: 1.2;
+    text-wrap: balance;
+    color: var(--foreground);
+  }
+
+  p {
+    margin-block: 1rem 2rem;
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+    text-wrap: pretty;
+  }
+
+  a {
+    font-family: var(--font-sans);
+    color: var(--primary);
+    text-underline-offset: 0.25em;
+  }
+</style>
