@@ -1,0 +1,54 @@
+---
+import { fromDbTimestamp } from '@/lib/timestamps';
+
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * `BlogPosting` structured data (ADR-0013).
+ *
+ * Two field sources the ADR calls out as easy to get wrong, both because the
+ * plausible alternative is right there:
+ *
+ * **`dateModified` is the published revision's `created_at`**, never
+ * `post_localizations.updated_at`. A revision is immutable, so its timestamp
+ * moves when — and only when — the published content changes. The localization
+ * row moves for bookkeeping a reader never sees, which would tell search
+ * engines the article was rewritten every time someone touched a flag.
+ *
+ * **`image` is the editorial cover, never `og_image_media_id`.** Per ADR-0015
+ * the social card carries burned-in text and exists for link previews; putting
+ * it in structured data would feed a poster into a field meant for a
+ * photograph. It is absent here because cover images need media serving, and
+ * omitting the field is correct while wrong content would not be.
+ */
+
+interface Props {
+  locale: Locale;
+  headline: string;
+  description: string | null;
+  canonical: string;
+  authorName: string | null;
+  publishedAt: string | null;
+  updatedAt: string | null;
+}
+
+const { locale, headline, description, canonical, authorName, publishedAt, updatedAt } =
+  Astro.props;
+
+/** Stored timestamps are SQLite's format (ADR-0029); JSON-LD wants ISO 8601. */
+const iso = (value: string | null) => (value ? fromDbTimestamp(value).toISOString() : undefined);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline,
+  ...(description ? { description } : {}),
+  mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
+  inLanguage: locale,
+  ...(authorName ? { author: { '@type': 'Person', name: authorName } } : {}),
+  ...(iso(publishedAt) ? { datePublished: iso(publishedAt) } : {}),
+  ...(iso(updatedAt) ? { dateModified: iso(updatedAt) } : {}),
+};
+---
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />

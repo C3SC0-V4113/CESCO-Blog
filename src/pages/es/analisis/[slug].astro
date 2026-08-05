@@ -1,10 +1,13 @@
 ---
 import ErrorState from '@/components/common/error-state.astro';
+import SeoHead from '@/components/common/seo-head.astro';
 import ArticleDetail from '@/components/post/article-detail.astro';
+import ArticleJsonLd from '@/components/post/article-json-ld.astro';
 import { resolveArticleUrl } from '@/db/queries/posts';
 import { resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
 import { getDb } from '@/lib/runtime';
+import { absolute } from '@/lib/seo';
 import { articlePath } from '@/lib/urls';
 
 const locale = resolveLocale(Astro.currentLocale);
@@ -31,6 +34,36 @@ if (resolution.kind === 'not-found') Astro.response.status = 404;
 ---
 
 <Layout>
+  {
+    resolution.kind === 'render' && (
+      <Fragment slot="head">
+        <SeoHead
+          locale={locale}
+          title={resolution.post.title}
+          description={resolution.post.excerpt}
+          path={articlePath(locale, section, slug ?? '')}
+          alternates={resolution.post.alternates.map((alternate) => ({
+            locale: alternate.locale,
+            path: articlePath(alternate.locale, section, alternate.slug),
+          }))}
+          ogType="article"
+        />
+        <ArticleJsonLd
+          locale={locale}
+          headline={resolution.post.title}
+          description={resolution.post.excerpt}
+          canonical={absolute(
+            Astro.site?.toString() ?? Astro.url.origin,
+            articlePath(locale, section, slug ?? '')
+          )}
+          authorName={resolution.post.authorName}
+          publishedAt={resolution.post.publishedAt}
+          updatedAt={resolution.post.updatedAt}
+        />
+      </Fragment>
+    )
+  }
+
   {
     resolution.kind === 'render' ? (
       <ArticleDetail locale={locale} post={resolution.post} />

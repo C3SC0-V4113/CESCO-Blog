@@ -1,5 +1,6 @@
 ---
 import PostList from '@/components/common/post-list.astro';
+import SeoHead from '@/components/common/seo-head.astro';
 import { listPublishedPosts } from '@/db/queries/listings';
 import { getTranslations, resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
@@ -8,6 +9,8 @@ import { getDb } from '@/lib/runtime';
 
 const locale = resolveLocale(Astro.currentLocale);
 const t = getTranslations(locale);
+
+const heading = t('nav.analysis');
 
 const { page, offset, limit } = readPageWindow(Astro.url.searchParams.get('page'));
 
@@ -20,9 +23,21 @@ const { posts, total } = await listPublishedPosts(getDb(), {
 ---
 
 <Layout>
+  <Fragment slot="head">
+    <SeoHead
+      locale={locale}
+      title={heading}
+      path="/en/analysis"
+      alternates={[
+        { locale: 'en', path: '/en/analysis' },
+        { locale: 'es', path: '/es/analisis' },
+      ]}
+    />
+  </Fragment>
+
   <PostList
     locale={locale}
-    heading={t('nav.analysis')}
+    heading={heading}
     posts={posts}
     basePath="/en/analysis"
     page={page}
