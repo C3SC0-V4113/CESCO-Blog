@@ -19,15 +19,19 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # No `version:` here on purpose. `packageManager` in package.json already
       # pins pnpm, and the action refuses to run when both are set.
+      #
+      # This action now points at pnpm/setup as its successor. Not migrated yet:
+      # that project's v2 is days old, and swapping the action that installs the
+      # package manager is not where to take that risk.
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm

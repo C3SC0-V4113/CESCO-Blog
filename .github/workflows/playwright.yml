@@ -24,14 +24,18 @@ jobs:
     timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # No `version:` here on purpose. `packageManager` in package.json already
       # pins pnpm, and the action refuses to run when both are set.
+      #
+      # This action now points at pnpm/setup as its successor. Not migrated yet:
+      # that project's v2 is days old, and swapping the action that installs the
+      # package manager is not where to take that risk.
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -49,7 +53,7 @@ jobs:
 
       - name: Cache Playwright browser
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ matrix.browser }}-${{ steps.playwright-version.outputs.version }}
@@ -67,7 +71,7 @@ jobs:
       - name: Run Playwright tests
         run: pnpm exec playwright test --project=${{ matrix.browser }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           # Matrix jobs cannot share an artifact name.
