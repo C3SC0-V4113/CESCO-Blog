@@ -50,6 +50,18 @@ structured data.
 Page-level rules:
 
 - Canonical points at the current localized URL.
+- Open Graph carries its own locale pair, separate metadata from `hreflang`:
+  `og:locale` is the current locale and `og:locale:alternate` is emitted **only**
+  for published counterparts, under the same rule as the alternate set below.
+
+  The Open Graph protocol requires the form `language_TERRITORY`, so a
+  region-less `es` is not valid there even though that is the site's editorial
+  variant (ADR-0027). Since no territory is correct, `es_ES` is used as the
+  widest-recognized formality and `en_US` for English. **These tags carry no
+  editorial meaning**: they are a translation hint for social platforms and never
+  affect what a reader sees. Nothing else in the project should copy a territory
+  from them.
+
 - `hreflang` declares only published localizations. A locale in `draft` or
   withdrawn is absent from the alternate set.
 - `x-default` points at the Spanish URL when Spanish is published; otherwise at

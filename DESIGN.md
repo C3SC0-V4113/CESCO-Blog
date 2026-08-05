@@ -452,9 +452,15 @@ matching the design system.
 | Admin        | `react-hook-form`, `@hookform/resolvers` | Form state and per-field errors. shadcn's `form` component already assumes this pairing                                                                                                                                   |
 | Shared       | `content_json` Zod schema                | The contract between the editor, the seed script, and `ArticleBody`. Ours to write; lives outside `admin/` so all three can import it                                                                                     |
 | Shared       | Reading time + TOC module                | Derived at publish, per [ADR-0012](docs/adr/0012-extend-editorial-schema-for-authors-series-and-analysis.md) and [ADR-0017](docs/adr/0017-bootstrap-content-with-seed-script.md). Shared by the seed script and the admin |
+| Admin        | Browser canvas APIs                      | Resize and convert to WebP before upload ([ADR-0028](docs/adr/0028-normalize-and-validate-media-uploads-before-storage.md)). Native; no package                                                                           |
+| Shared       | `src/i18n/`                              | Typed string dictionary, no dependency ([ADR-0027](docs/adr/0027-localize-ui-strings-with-a-typed-dictionary.md)). English is typed against Spanish, so a missing key is a compile error                                  |
+| Shared       | `src/lib/ids.ts`                         | `crypto.randomUUID()` wrappers ([ADR-0026](docs/adr/0026-generate-identifiers-with-crypto-randomuuid.md)). Native in Worker, Node, and browser                                                                            |
+| Shared       | `src/lib/timestamps.ts`                  | Canonical date format for text columns ([ADR-0029](docs/adr/0029-store-timestamps-in-sqlite-current-timestamp-format.md)). Deliberately not ISO                                                                           |
+| Shared       | `src/lib/runtime.ts`                     | The only place application code touches `locals.runtime.env`                                                                                                                                                              |
 | Publish-time | Shiki                                    | Code highlighting, run **when publishing**, result stored in the code node. Never at render time                                                                                                                          |
 | Public       | `Intl.DateTimeFormat`                    | Bilingual dates with no dependency. Receives the locale from the URL, not from the browser                                                                                                                                |
-| Public       | —                                        | **Nothing else.** That is the point of [ADR-0019](docs/adr/0019-render-astro-first-with-react-islands-for-behavior.md)                                                                                                    |
+| Public       | —                                        | **No package.** That is the point of [ADR-0019](docs/adr/0019-render-astro-first-with-react-islands-for-behavior.md)                                                                                                      |
+| Tooling      | `@cloudflare/vitest-pool-workers`        | D1 integration tests inside workerd ([ADR-0025](docs/adr/0025-test-d1-through-the-workers-vitest-pool.md)). Dev dependency; never shipped                                                                                 |
 
 Two rules that keep this list from leaking:
 
@@ -550,9 +556,13 @@ still to be set.
 
 ## Debt and open questions
 
-- **`home-hero.tsx` is misplaced.** It is a product component at the root of
-  `src/components/`, and `tests/unit/home.test.tsx` imports it from there. It
-  moves to `common/` or is replaced by the real home page, and the test follows.
+Resolved in the pre-implementation phase: component folders now exist and
+`home-hero.tsx` sits in `common/`; identifiers, UI strings, timestamps, runtime
+access, and the D1 test harness are in place.
+
+- **`--font-heading` is still inert.** Merriweather is installed and tokenized,
+  but no selector consumes it; everything renders in Figtree until the rule lands
+  in `@layer base`.
 - **`chanhdai` registry is unaudited.** Its TOC Minimap and Theme Toggle Effect
   are genuinely useful. Adopting either requires confirming the entry declares no
   `motion`/`framer-motion` dependency and ships no Radix primitive.

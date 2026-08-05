@@ -33,6 +33,12 @@ This directory records durable architecture decisions for Cesco Blog.
 | [0023](0023-treat-the-admin-as-a-client-rendered-application.md) | Treat the admin as a client-rendered application | Accepted | 2026-08-03 |
 | [0024](0024-adopt-tiptap-for-the-editorial-content-pipeline.md) | Adopt Tiptap for the editorial content pipeline | Accepted | 2026-08-03 |
 
+| [0025](0025-test-d1-through-the-workers-vitest-pool.md) | Test D1 through the Workers Vitest pool | Accepted | 2026-08-04 |
+| [0026](0026-generate-identifiers-with-crypto-randomuuid.md) | Generate identifiers with crypto.randomUUID() | Accepted | 2026-08-04 |
+| [0027](0027-localize-ui-strings-with-a-typed-dictionary.md) | Localize UI strings with a typed dictionary | Accepted | 2026-08-04 |
+| [0028](0028-normalize-and-validate-media-uploads-before-storage.md) | Normalize and validate media uploads before storage | Accepted | 2026-08-04 |
+| [0029](0029-store-timestamps-in-sqlite-current-timestamp-format.md) | Store timestamps in SQLite's CURRENT_TIMESTAMP format | Accepted | 2026-08-04 |
+
 ## Status values
 
 - **Accepted**: decision is approved for implementation.

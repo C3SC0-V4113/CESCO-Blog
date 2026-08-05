@@ -2,6 +2,10 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+  # workerd ships the Workers runtime binary used by the D1 integration tests
+  # (ADR-0025). Its install script downloads that binary, so builds must be
+  # allowed or the integration project cannot start.
+  workerd: true
 minimumReleaseAge: 1440
 trustPolicy: no-downgrade
 blockExoticSubdeps: true

@@ -58,6 +58,10 @@ compute, so it barely touches the CPU budget. The same endpoint creates the
 window in which an uploaded object exists without its row. Clipboard paste and
 drag-and-drop both resolve to this handler.
 
+What arrives at that handler — resizing, format conversion, type validation, and
+the `r2_key` convention — is settled by
+[ADR-0028](0028-normalize-and-validate-media-uploads-before-storage.md).
+
 **Validation.** A **Zod schema for `content_json`** is the contract between its
 three producers and consumers: the editor produces it, the seed script of
 ADR-0017 also produces it, and `ArticleBody` consumes it when rendering. Without

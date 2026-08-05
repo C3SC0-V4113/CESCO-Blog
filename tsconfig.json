@@ -8,6 +8,10 @@
       "@/*": ["./src/*"]
     },
     "jsx": "react-jsx",
-    "jsxImportSource": "react"
+    "jsxImportSource": "react",
+    // Provides the `cloudflare:test` module used by the integration project
+    // (ADR-0025). Without it, the augmentation in tests/integration/env.d.ts
+    // shadows the real module instead of extending it.
+    "types": ["@cloudflare/vitest-pool-workers/types"]
   }
 }

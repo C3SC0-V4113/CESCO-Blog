@@ -21,6 +21,16 @@
       "migrations_dir": "drizzle",
     },
   ],
+  "r2_buckets": [
+    {
+      // Editorial media: inline article images, covers, and generated Open
+      // Graph cards. See ADR-0024 and ADR-0028.
+      "binding": "BUCKET",
+      // Local R2 works with this placeholder. Replace it with the real bucket
+      // name before remote deploys.
+      "bucket_name": "cesco-blog-media",
+    },
+  ],
   "kv_namespaces": [
     {
       // Astro's Cloudflare adapter provisions sessions through this binding.
