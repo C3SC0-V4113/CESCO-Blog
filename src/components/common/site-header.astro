@@ -1,0 +1,80 @@
+---
+import ThemeToggle from '@/components/nav/theme-toggle';
+import { getTranslations } from '@/i18n/utils';
+import { mainNavItems } from '@/lib/navigation';
+
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * Global chrome (ADR-0021, DESIGN.md).
+ *
+ * Static markup apart from the theme toggle, which is the one island the public
+ * site ships. Everything else here is a link.
+ *
+ * The navigation renders whatever `mainNavItems` says is live, which today is
+ * nothing: sections, the series index and `/blog` all arrive with the listing
+ * work. The bar is not waiting on markup — it is waiting on routes, and linking
+ * to them early would fill the header with `404`s.
+ *
+ * The locale switch points at the other locale's home rather than at the
+ * equivalent page. Finding that page means resolving the sibling localization's
+ * slug, which is the same lookup `hreflang` needs (ADR-0013), so both arrive
+ * together rather than this one guessing.
+ */
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getTranslations(locale);
+
+const navItems = mainNavItems(locale);
+const otherLocale: Locale = locale === 'es' ? 'en' : 'es';
+---
+
+<a
+  href="#main"
+  class="sr-only bg-background text-foreground focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:px-4 focus:py-2 focus:ring-2 focus:ring-ring"
+>
+  {t('nav.skipToContent')}
+</a>
+
+<header class="border-b border-border">
+  <div class="mx-auto flex h-16 max-w-5xl items-center gap-6 px-6">
+    <a
+      href={`/${locale}/`}
+      class="font-heading text-lg text-foreground transition-colors duration-150 hover:text-primary"
+    >
+      Cesco Blog
+    </a>
+
+    {
+      navItems.length > 0 && (
+        <nav aria-label={t('nav.menu')} class="flex items-center gap-4">
+          {navItems.map((item) => (
+            <a
+              href={item.href}
+              class="text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground"
+            >
+              {t(item.key)}
+            </a>
+          ))}
+        </nav>
+      )
+    }
+
+    <div class="ml-auto flex items-center gap-2">
+      <a
+        href={`/${otherLocale}/`}
+        hreflang={otherLocale}
+        class="text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground"
+        aria-label={t('locale.switch')}
+      >
+        {t(otherLocale === 'es' ? 'locale.es' : 'locale.en')}
+      </a>
+
+      <ThemeToggle client:load label={t('theme.toggle')} />
+    </div>
+  </div>
+</header>

@@ -1,13 +1,44 @@
 ---
+import SiteFooter from '@/components/common/site-footer.astro';
+import SiteHeader from '@/components/common/site-header.astro';
+import { resolveLocale } from '@/i18n/utils';
+
 import '../styles/global.css';
 
-const currentLocale = Astro.currentLocale ?? 'es';
+const locale = resolveLocale(Astro.currentLocale);
 ---
 
-<html lang={currentLocale}>
+<html lang={locale}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
+
+    {
+      /*
+      Applies the stored theme before the first paint.
+
+      This has to be a blocking inline script in the head, and it has to be here
+      rather than in the toggle island: anything that waits for hydration paints
+      the default theme first and then corrects it, which is the flash the
+      toggle exists to avoid. It is the one piece of JavaScript the public site
+      runs that is not an island, and it stays deliberately tiny.
+    */
+    }
+    <script is:inline>
+      try {
+        const stored = localStorage.getItem('theme');
+        const prefersDark =
+          stored === null && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (stored === 'dark' || prefersDark) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch {
+        // Storage can be unavailable in a private or blocked context. Falling
+        // through leaves the light theme, which is the correct default.
+      }
+    </script>
+
     {
       import.meta.env.DEV && (
         <script
@@ -20,7 +51,11 @@ const currentLocale = Astro.currentLocale ?? 'es';
     }
     <slot name="head" />
   </head>
-  <body>
-    <slot />
+  <body class="flex min-h-dvh flex-col">
+    <SiteHeader locale={locale} />
+    <div id="main" class="flex-1">
+      <slot />
+    </div>
+    <SiteFooter locale={locale} />
   </body>
 </html>

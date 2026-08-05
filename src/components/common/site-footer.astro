@@ -1,0 +1,48 @@
+---
+import { getTranslations } from '@/i18n/utils';
+import { footerLinks } from '@/lib/navigation';
+
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * Global chrome (DESIGN.md).
+ *
+ * The footer's stated purpose is the five transparency pages of ADR-0018 and
+ * the per-language RSS feed of ADR-0014 — and neither exists yet, so today it
+ * carries attribution alone. `footerLinks` returns nothing until those routes
+ * land, at which point this renders them without being edited.
+ *
+ * ADR-0018 requires the trust pages to be reachable from the footer on every
+ * page, so this is where they belong once they exist.
+ */
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getTranslations(locale);
+
+const links = footerLinks(locale);
+const year = new Date().getUTCFullYear();
+---
+
+<footer class="mt-auto border-t border-border">
+  <div
+    class="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+  >
+    <p>© {year} Cesco Valle</p>
+
+    {
+      links.length > 0 && (
+        <nav aria-label={t('footer.about')} class="flex flex-wrap items-center gap-4">
+          {links.map((link) => (
+            <a href={link.href} class="transition-colors duration-150 hover:text-foreground">
+              {t(link.key)}
+            </a>
+          ))}
+        </nav>
+      )
+    }
+  </div>
+</footer>

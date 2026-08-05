@@ -112,6 +112,12 @@ const eslintConfig = defineConfig([
       ],
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
+      // A leading underscore marks a parameter kept for its position or for a
+      // signature callers already depend on, but not read yet.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
     },
   },
   {

@@ -32,25 +32,32 @@ test('serves each locale its own localization', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 });
 
-test('ships no JavaScript at all', async ({ page }) => {
-  // The guard for ADR-0019. Because this runs against the built Worker, the
-  // claim can be the literal one — no script was emitted — rather than the
-  // proxy "no island hydrates" that a dev server forces. Under `astro dev` Vite
-  // serves its HMR client and component styles as JS modules, so a page with
-  // zero client code and one with a hydrated island look alike.
-  const scriptRequests: string[] = [];
-  page.on('request', (request) => {
-    if (request.resourceType() === 'script') scriptRequests.push(request.url());
-  });
+test('never hydrates the article body', async ({ page }) => {
+  // The guard for ADR-0019, and the part of it that must never move: whatever
+  // the chrome does, the article content is server-rendered HTML.
+  //
+  // This assertion used to read "the page ships no JavaScript", which held only
+  // while the page was the article alone. Global chrome carries one island by
+  // design — the theme toggle needs `localStorage` — so the page-wide claim
+  // became false the moment the header landed. Narrowing it to the body keeps a
+  // guard that can actually stay true, rather than one that gets deleted the
+  // first time it is inconvenient.
+  await page.goto(ES_ARTICLE);
 
-  const response = await page.goto(ES_ARTICLE);
-  const html = (await response?.text()) ?? '';
+  await expect(page.locator('.prose astro-island')).toHaveCount(0);
+});
 
-  // Three angles on the same property: what the server sent, what the browser
-  // asked for afterwards, and whether Astro marked anything for hydration.
-  expect(html).not.toContain('<script');
-  expect(scriptRequests).toEqual([]);
-  await expect(page.locator('astro-island')).toHaveCount(0);
+test('keeps the article page inside its island budget', async ({ page }) => {
+  // DESIGN.md budgets five islands for the entire public site and states that
+  // everything else ships no JavaScript. The article page spends exactly one of
+  // them today, on the theme toggle.
+  //
+  // The number is the point: this fails when an island is added here, which
+  // forces the addition to be a decision someone made rather than one that
+  // arrived with a component.
+  await page.goto(ES_ARTICLE);
+
+  await expect(page.locator('astro-island')).toHaveCount(1);
 });
 
 test('anchors headings by block id rather than by their text', async ({ page }) => {
