@@ -1,25 +1,37 @@
 name: Quality
 
 on:
+  # Only `main` on push. With `'**'` here, every push to a branch with an open
+  # PR ran this twice — once for the push and once for the pull_request event —
+  # and the two runs were byte-identical.
   push:
-    branches:
-      - '**'
+    branches: [main]
   pull_request:
+
+# Cancel superseded runs of the same branch or PR.
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # No `version:` here on purpose. `packageManager` in package.json already
       # pins pnpm, and the action refuses to run when both are set.
+      #
+      # This action now points at pnpm/setup as its successor. Not migrated yet:
+      # that project's v2 is days old, and swapping the action that installs the
+      # package manager is not where to take that risk.
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
