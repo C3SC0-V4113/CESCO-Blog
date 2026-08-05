@@ -42,8 +42,22 @@ export default function globalSetup(): () => void {
       );
     }
 
-    // Someone else started it, so leave it running when the suite finishes.
+    // Someone else started it, so leave it running when the suite finishes —
+    // and leave its database alone too. Seeding now would write to the same
+    // local SQLite file the running server holds open.
     return () => {};
+  }
+
+  // Seed before the server starts, so nothing else has the database open. The
+  // suite asserts against real published content, and a seed script that is
+  // idempotent by construction (ADR-0017) makes that safe to repeat.
+  const seed = spawnSync('pnpm', ['run', 'db:seed'], { encoding: 'utf8', shell: true });
+
+  if (seed.status !== 0) {
+    throw new Error(
+      `Could not seed the local database:\n${seed.stdout ?? ''}${seed.stderr ?? ''}\n` +
+        `Run \`pnpm run db:migrate:local\` first if the schema is missing.`
+    );
   }
 
   const startup = astro('dev', '--background', '--host', HOST, '--port', String(PORT));

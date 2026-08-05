@@ -1,0 +1,23 @@
+---
+import ArticleDetail from '@/components/post/article-detail.astro';
+import { getPublishedPost } from '@/db/queries/posts';
+import { resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+import { getDb } from '@/lib/runtime';
+
+const locale = resolveLocale(Astro.currentLocale);
+const { slug } = Astro.params;
+
+const post = slug ? await getPublishedPost(getDb(), { locale, section: 'analysis', slug }) : null;
+
+// A miss answers a plain 404 for now. Telling a withdrawn URL apart from one
+// that never existed needs the slug history and `first_published_at`, which is
+// the URL lifecycle work (ADR-0010).
+if (!post) {
+  return new Response(null, { status: 404 });
+}
+---
+
+<Layout>
+  <ArticleDetail post={post} />
+</Layout>

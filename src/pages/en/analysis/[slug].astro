@@ -1,0 +1,21 @@
+---
+import ArticleDetail from '@/components/post/article-detail.astro';
+import { getPublishedPost } from '@/db/queries/posts';
+import { resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+import { getDb } from '@/lib/runtime';
+
+const locale = resolveLocale(Astro.currentLocale);
+const { slug } = Astro.params;
+
+const post = slug ? await getPublishedPost(getDb(), { locale, section: 'analysis', slug }) : null;
+
+// See the Spanish route: the 404/410 distinction arrives with ADR-0010.
+if (!post) {
+  return new Response(null, { status: 404 });
+}
+---
+
+<Layout>
+  <ArticleDetail post={post} />
+</Layout>
