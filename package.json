@@ -14,6 +14,7 @@
     "test": "vitest run --configLoader native --pool=threads",
     "test:watch": "vitest --configLoader native --pool=threads",
     "test:e2e": "playwright test",
+    "e2e:serve": "pnpm run db:migrate:local && pnpm run db:seed && pnpm run build && wrangler dev --local --ip 127.0.0.1 --port 3000",
     "test:e2e:ui": "playwright test --ui",
     "test:all": "pnpm run test && pnpm run test:e2e",
     "lint": "eslint . --no-warn-ignored --max-warnings 0",

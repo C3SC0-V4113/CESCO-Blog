@@ -3,8 +3,9 @@ import { expect, test } from '@playwright/test';
 /**
  * The article page, end to end: D1 through to HTML.
  *
- * Content comes from the seed script, which `global-setup.ts` runs before the
- * server starts (ADR-0017).
+ * These run against the **built Worker**, not `astro dev` — see the `webServer`
+ * note in `playwright.config.ts`. Content comes from the seed script, which the
+ * same command runs before the server boots (ADR-0017).
  */
 
 const ES_ARTICLE = '/es/analisis/el-peso-del-silencio';
@@ -31,22 +32,24 @@ test('serves each locale its own localization', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 });
 
-test('hydrates nothing', async ({ page }) => {
-  // The guard for ADR-0019: the article body is the least interactive surface
-  // on the site and must cost the reader no JavaScript.
-  //
-  // `astro-island` is the element Astro emits for every `client:*` directive,
-  // so zero of them is exactly "no component on this page hydrates", and it
-  // reads the same in dev and in a production build.
-  //
-  // Counting script requests was tried and removed. Under `astro dev` Vite
-  // serves component styles and CSS as JS modules — `/src/…/prose.astro` shows
-  // up as a script — and a genuinely hydrated island would appear under the
-  // same `/src/` prefix. The two are indistinguishable there, so the check
-  // could only be made to pass by excluding what it was meant to catch.
-  // Counting bytes of client JS needs the suite pointed at a production build.
-  await page.goto(ES_ARTICLE);
+test('ships no JavaScript at all', async ({ page }) => {
+  // The guard for ADR-0019. Because this runs against the built Worker, the
+  // claim can be the literal one — no script was emitted — rather than the
+  // proxy "no island hydrates" that a dev server forces. Under `astro dev` Vite
+  // serves its HMR client and component styles as JS modules, so a page with
+  // zero client code and one with a hydrated island look alike.
+  const scriptRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.resourceType() === 'script') scriptRequests.push(request.url());
+  });
 
+  const response = await page.goto(ES_ARTICLE);
+  const html = (await response?.text()) ?? '';
+
+  // Three angles on the same property: what the server sent, what the browser
+  // asked for afterwards, and whether Astro marked anything for hydration.
+  expect(html).not.toContain('<script');
+  expect(scriptRequests).toEqual([]);
   await expect(page.locator('astro-island')).toHaveCount(0);
 });
 

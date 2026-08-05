@@ -7,14 +7,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // Deliberately one worker on CI, even though this suite is read-only and has
-  // no data to collide over. The tests run against `astro dev`, and a Vite dev
-  // server can invalidate modules mid-run when several workers hit it at once.
-  // CI parallelism comes from the workflow instead: one job per browser, run
-  // side by side. Pointing the suite at a production build — `astro build` plus
-  // `wrangler dev` — would remove the hazard and make the zero-JS guard measure
-  // real output, and is the change that would unlock more workers here.
-  workers: process.env.CI ? 1 : undefined,
+  // Safe to parallelise: the suite only reads, and it now runs against the
+  // built Worker rather than a Vite dev server, which was the thing that could
+  // invalidate modules mid-run under concurrent load.
+  workers: process.env.CI ? 2 : undefined,
   reporter: 'html',
   use: {
     baseURL: baseUrl,
@@ -31,7 +27,29 @@ export default defineConfig({
     // already reported green when it fires. CI runs on Linux and is unaffected.
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
-  // Not `webServer`: Astro 7's dev command daemonizes and returns immediately,
-  // which Playwright reads as the server having died. See tests/e2e/global-setup.ts.
-  globalSetup: './tests/e2e/global-setup.ts',
+  webServer: {
+    // The end-to-end suite exercises the **built Worker**, not `astro dev`.
+    //
+    // Three things follow from that. The zero-JS guard can assert on real
+    // output — a dev server injects its own HMR client and serves component
+    // styles as JS modules, so "this page ships no JavaScript" was not
+    // measurable there. Workers can run in parallel, because there is no Vite
+    // optimizer to invalidate modules mid-run. And `astro dev`'s daemonising,
+    // which made `webServer` unusable and needed a whole global-setup file to
+    // work around, stops mattering: `wrangler dev` stays in the foreground.
+    //
+    // The database is prepared by the same command so ordering is guaranteed
+    // and nothing else holds the local SQLite file open. Both steps are
+    // idempotent, so the suite runs from a clean checkout with no manual setup.
+    command: 'pnpm run e2e:serve',
+    url: baseUrl,
+    // Never reuse a server someone left running: it may be an `astro dev` on
+    // this port, serving unbuilt output, and the suite would quietly stop
+    // testing what it claims to test.
+    reuseExistingServer: false,
+    // Covers migrations, seed, a cold `astro build` and the Worker booting, on
+    // a CI runner slower than a dev machine. Overshooting costs nothing on a
+    // run that was going to succeed.
+    timeout: 240_000,
+  },
 });

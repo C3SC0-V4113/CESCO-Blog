@@ -66,8 +66,9 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps ${{ matrix.browser }}
 
-      # The database is prepared by tests/e2e/global-setup.ts rather than here,
-      # so the suite runs the same way from a clean checkout on any machine.
+      # No build, migrate or seed steps here on purpose. Playwright's `webServer`
+      # runs `pnpm run e2e:serve`, which does all three before booting the built
+      # Worker, so the suite runs identically here and on a developer's machine.
       - name: Run Playwright tests
         run: pnpm exec playwright test --project=${{ matrix.browser }}
 
