@@ -38,6 +38,8 @@ This directory records durable architecture decisions for Cesco Blog.
 | [0027](0027-localize-ui-strings-with-a-typed-dictionary.md) | Localize UI strings with a typed dictionary | Accepted | 2026-08-04 |
 | [0028](0028-normalize-and-validate-media-uploads-before-storage.md) | Normalize and validate media uploads before storage | Accepted | 2026-08-04 |
 | [0029](0029-store-timestamps-in-sqlite-current-timestamp-format.md) | Store timestamps in SQLite's CURRENT_TIMESTAMP format | Accepted | 2026-08-04 |
+| [0030](0030-style-components-with-tailwind-utilities.md) | Style components with Tailwind utilities | Accepted | 2026-08-05 |
+| [0031](0031-layer-the-data-path-by-effect-and-testability.md) | Layer the data path by effect and testability | Accepted | 2026-08-05 |
 
 ## Status values
 

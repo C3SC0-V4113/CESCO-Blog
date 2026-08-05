@@ -56,6 +56,46 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // ADR-0031, rule 1: a page routes and shapes a response. Reaching for the
+    // query builder there puts data access somewhere no integration test covers.
+    files: ['src/pages/**/*.{astro,ts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['drizzle-orm', 'drizzle-orm/*'],
+              message:
+                'Pages do not query directly (ADR-0031). Call a function from src/db/queries/ instead.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // ADR-0031, rule 2: a component receives data as props. Naming the shape is
+    // fine — `allowTypeImports` keeps `import type { PublishedPost }` legal —
+    // but importing the module that can fetch it is not.
+    files: ['src/components/**/*.{astro,ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/db', '@/db/*', 'drizzle-orm', 'drizzle-orm/*'],
+              allowTypeImports: true,
+              message:
+                'Components take data as props (ADR-0031). Fetch in the page and pass it down.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.{ts,tsx,mts,cts}'],
     languageOptions: {
       parserOptions: {
