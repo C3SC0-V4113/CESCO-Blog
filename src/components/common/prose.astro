@@ -1,0 +1,71 @@
+---
+/**
+ * Typographic wrapper for long-form content (ADR-0021).
+ *
+ * Merriweather carries the headings and Figtree the body copy: the serif gives
+ * the page the authority of a publication, but it is a heavy serif and reads
+ * worse than Figtree at paragraph length, so it stops at the headings.
+ *
+ * Every value here is a token. No colour and no radius is written literally, so
+ * both themes stay correct without per-component work.
+ *
+ * Scope note: this styles the content it wraps. The site-wide `@layer base`
+ * rule that ADR-0021 also calls for — the one that makes `--font-heading`
+ * non-inert everywhere — belongs with the design system, not here.
+ */
+---
+
+<div class="prose">
+  <slot />
+</div>
+
+<style>
+  .prose {
+    /* Roughly 65 characters: long enough to avoid choppy lines, short enough
+       that the eye finds the next line without effort. */
+    max-width: 34rem;
+    font-family: var(--font-sans);
+    color: var(--foreground);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+  }
+
+  .prose :global(h2),
+  .prose :global(h3) {
+    font-family: var(--font-heading);
+    line-height: 1.3;
+    /* Bound to the heading that follows it, not floating between blocks. */
+    margin-block: 2.5em 0.75em;
+    text-wrap: balance;
+  }
+
+  .prose :global(h2) {
+    font-size: 1.5rem;
+  }
+
+  .prose :global(h3) {
+    font-size: 1.25rem;
+  }
+
+  .prose :global(p) {
+    margin-block: 0 1.25em;
+  }
+
+  .prose :global(p:last-child) {
+    margin-block-end: 0;
+  }
+
+  .prose :global(pre) {
+    margin-block: 0 1.5em;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--muted);
+    overflow-x: auto;
+  }
+
+  .prose :global(code) {
+    font-family: ui-monospace, monospace;
+    font-size: 0.9375em;
+  }
+</style>

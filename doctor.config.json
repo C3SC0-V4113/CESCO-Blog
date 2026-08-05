@@ -7,8 +7,9 @@
         "rules": ["deslop/unused-file", "knip/exports", "exports"]
       },
       {
-        "files": ["src/db/client.ts", "src/db/schema.ts"],
-        "rules": ["deslop/unused-file", "knip/exports", "exports"]
+        "//": "schema.ts declares every table the migrations create; the tables for surfaces not built yet have no importer. client.ts no longer needs an exemption and lost it.",
+        "files": ["src/db/schema.ts"],
+        "rules": ["knip/exports", "exports"]
       }
     ]
   }

@@ -13,10 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # No `version:` here on purpose. `packageManager` in package.json already
+      # pins pnpm, and the action refuses to run when both are set.
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: latest
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -26,6 +26,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # `.astro/` is generated and gitignored, and `typecheck` runs with
+      # `--noSync`, so without this step CI typechecks a smaller file set than a
+      # developer does and misses whatever the generated types cover.
+      - name: Generate Astro types
+        run: pnpm exec astro sync
 
       - name: Run quality checks
         run: pnpm run check

@@ -42,8 +42,25 @@ export default function globalSetup(): () => void {
       );
     }
 
-    // Someone else started it, so leave it running when the suite finishes.
+    // Someone else started it, so leave it running when the suite finishes —
+    // and leave its database alone too. Seeding now would write to the same
+    // local SQLite file the running server holds open.
     return () => {};
+  }
+
+  // Prepare the database before the server starts, so nothing else has the
+  // local SQLite file open. Both steps are idempotent — migrations report
+  // "No migrations to apply" and the seed replaces its own rows (ADR-0017) — so
+  // the suite runs from a clean checkout without a manual setup step. CI has no
+  // database at all, which is the case that makes this non-optional.
+  for (const script of ['db:migrate:local', 'db:seed']) {
+    const result = spawnSync('pnpm', ['run', script], { encoding: 'utf8', shell: true });
+
+    if (result.status !== 0) {
+      throw new Error(
+        `\`pnpm run ${script}\` failed:\n${result.stdout ?? ''}${result.stderr ?? ''}`
+      );
+    }
   }
 
   const startup = astro('dev', '--background', '--host', HOST, '--port', String(PORT));

@@ -1,0 +1,67 @@
+---
+import Prose from '@/components/common/prose.astro';
+import ArticleBody from '@/components/post/article-body.astro';
+
+import type { PublishedPost } from '@/db/queries/posts';
+
+/**
+ * The article page composition (ADR-0019).
+ *
+ * Kept apart from the routes so the four localized section URLs differ by one
+ * constant instead of repeating the whole page. Byline, reading time, and the
+ * table of contents are deliberately absent — they arrive with the article
+ * metadata work and need `authors` and `toc_json` joined into the query.
+ */
+
+interface Props {
+  post: PublishedPost;
+}
+
+const { post } = Astro.props;
+---
+
+<main>
+  <article>
+    <header>
+      <h1>{post.title}</h1>
+      {post.excerpt && <p class="excerpt">{post.excerpt}</p>}
+    </header>
+
+    <Prose>
+      <ArticleBody doc={post.content} />
+    </Prose>
+  </article>
+</main>
+
+<style>
+  main {
+    padding-inline: 1.5rem;
+    padding-block: 3rem 5rem;
+  }
+
+  article {
+    margin-inline: auto;
+    max-width: 34rem;
+  }
+
+  header {
+    margin-block-end: 2.5rem;
+  }
+
+  h1 {
+    font-family: var(--font-heading);
+    font-size: 2rem;
+    line-height: 1.2;
+    text-wrap: balance;
+    color: var(--foreground);
+  }
+
+  .excerpt {
+    margin-block-start: 1rem;
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+    text-wrap: pretty;
+  }
+</style>

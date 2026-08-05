@@ -1,0 +1,61 @@
+---
+import type { ContentDoc } from '@/lib/content/schema';
+
+/**
+ * Renders a validated `content_json` document as markup (ADR-0019).
+ *
+ * No island. The article body is the least interactive surface on the site, so
+ * it ships as server-rendered HTML and costs the reader no JavaScript at all.
+ *
+ * Every block carries its `blockId` as the element `id`. Those are the same
+ * identifiers the table of contents anchors to and that `post_revision_media`
+ * keys placements by, so a deep link survives a heading being reworded
+ * (ADR-0012).
+ */
+
+interface Props {
+  doc: ContentDoc;
+}
+
+const { doc } = Astro.props;
+
+// Images need the `media_assets` row behind `mediaAssetId` and a route that
+// serves R2 objects, neither of which exists yet (ADR-0028). Failing here is
+// deliberate: rendering the document without them would drop content silently,
+// and a missing image in a published article is worth an error rather than a
+// gap nobody notices. Nothing can currently produce one — the seed script is
+// the only writer (ADR-0017) and it emits no image nodes.
+const unsupported = doc.content.find((block) => block.type === 'image');
+
+if (unsupported) {
+  throw new Error(
+    `Cannot render an image node yet (blockId ${unsupported.attrs.blockId}). ` +
+      `Inline media rendering arrives with the media upload pipeline.`
+  );
+}
+---
+
+{
+  doc.content.map((block) => {
+    if (block.type === 'heading') {
+      const Heading = `h${block.attrs.level}` as 'h1';
+      return <Heading id={block.attrs.blockId}>{block.content.map((node) => node.text)}</Heading>;
+    }
+
+    if (block.type === 'codeBlock') {
+      return (
+        <pre id={block.attrs.blockId}>
+          <code class={block.attrs.language ? `language-${block.attrs.language}` : undefined}>
+            {block.content.map((node) => node.text)}
+          </code>
+        </pre>
+      );
+    }
+
+    if (block.type === 'paragraph') {
+      return <p id={block.attrs.blockId}>{block.content.map((node) => node.text)}</p>;
+    }
+
+    return null;
+  })
+}
