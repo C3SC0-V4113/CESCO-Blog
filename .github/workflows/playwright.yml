@@ -1,34 +1,76 @@
 name: Playwright Tests
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+
+# Cancel superseded runs of the same branch or PR. Pushing twice in a minute
+# used to leave the first, now-pointless run occupying a runner to completion.
+concurrency:
+  group: playwright-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    timeout-minutes: 60
+    # One job per browser, run in parallel, so wall time is the slowest browser
+    # rather than the sum of all three. Each job also installs only the browser
+    # it needs instead of all three.
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    name: test (${{ matrix.browser }})
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # No `version:` here on purpose. `packageManager` in package.json already
       # pins pnpm, and the action refuses to run when both are set.
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Install Playwright Browsers
-        run: pnpm exec playwright install --with-deps
+
+      # Browser binaries are cached per browser, keyed by the installed
+      # @playwright/test version so a bump invalidates the cache on its own.
+      # OS-level packages are not cacheable, so a cache hit still needs
+      # `install-deps`.
+      - name: Resolve Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ matrix.browser }}-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Install Playwright OS dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps ${{ matrix.browser }}
+
+      # The database is prepared by tests/e2e/global-setup.ts rather than here,
+      # so the suite runs the same way from a clean checkout on any machine.
       - name: Run Playwright tests
-        run: pnpm exec playwright test
+        run: pnpm exec playwright test --project=${{ matrix.browser }}
+
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
+          # Matrix jobs cannot share an artifact name.
+          name: playwright-report-${{ matrix.browser }}
           path: playwright-report/
-          retention-days: 30
+          retention-days: 7
