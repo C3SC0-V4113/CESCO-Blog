@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { schema } from '@/db/client';
 import { getBucket, getDb, runAfterResponse } from '@/lib/runtime';
 
+import type { Runtime } from '@astrojs/cloudflare';
+
 /**
  * This module is the single seam between pages and Cloudflare bindings, so if
  * it stops resolving them every data-backed page breaks at once.
@@ -29,9 +31,9 @@ describe('runtime accessors', () => {
 
   it('defers work past the response through the execution context', () => {
     const waitUntil = vi.fn();
-    // Typed as the adapter's own `App.Locals`, so if `cfContext` moves again the
+    // Typed as the adapter's own `Runtime`, so if `cfContext` moves again the
     // compiler says so instead of a test passing against a stale shape.
-    const locals = { cfContext: { waitUntil } } as unknown as App.Locals;
+    const locals = { cfContext: { waitUntil } } as unknown as Runtime;
 
     const work = Promise.resolve();
     runAfterResponse(locals, work);

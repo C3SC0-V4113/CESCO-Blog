@@ -27,5 +27,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # `.astro/` is generated and gitignored, and `typecheck` runs with
+      # `--noSync`, so without this step CI typechecks a smaller file set than a
+      # developer does and misses whatever the generated types cover.
+      - name: Generate Astro types
+        run: pnpm exec astro sync
+
       - name: Run quality checks
         run: pnpm run check
