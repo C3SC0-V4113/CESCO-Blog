@@ -58,13 +58,36 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ matrix.browser }}-${{ steps.playwright-version.outputs.version }}
 
+      # Both of these reach an Ubuntu apt mirror, which occasionally crawls: a
+      # firefox run once spent twenty minutes fetching a handful of codec
+      # packages and was killed by the job timeout, with the suite never
+      # starting. Bounding each attempt makes a bad mirror fail in minutes
+      # instead of eating the whole budget, and the retry usually lands on a
+      # healthy one. Slowness, not failure, is the mode to defend against here —
+      # a bare retry without the timeout would never fire.
       - name: Install Playwright browser
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 300 pnpm exec playwright install --with-deps ${{ matrix.browser }}; then
+              exit 0
+            fi
+            echo "::warning::playwright install attempt $attempt failed or timed out; retrying"
+            sleep 5
+          done
+          exit 1
 
       - name: Install Playwright OS dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm exec playwright install-deps ${{ matrix.browser }}
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 300 pnpm exec playwright install-deps ${{ matrix.browser }}; then
+              exit 0
+            fi
+            echo "::warning::install-deps attempt $attempt failed or timed out; retrying"
+            sleep 5
+          done
+          exit 1
 
       # No build, migrate or seed steps here on purpose. Playwright's `webServer`
       # runs `pnpm run e2e:serve`, which does all three before booting the built
