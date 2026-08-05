@@ -1,0 +1,21 @@
+---
+import ErrorState from '@/components/common/error-state.astro';
+import { resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+
+/**
+ * Astro's fallback for a URL that matches no route at all.
+ *
+ * Only ever a 404: reaching here means no route claimed the address, so there
+ * is no localization behind it and nothing that could have been public. The
+ * 410 answer belongs to the article routes, which can look up whether the
+ * address once named something (ADR-0010).
+ *
+ * An unrouted URL carries no locale prefix, so this falls back to the default.
+ */
+const locale = resolveLocale(Astro.currentLocale);
+---
+
+<Layout>
+  <ErrorState locale={locale} status={404} />
+</Layout>

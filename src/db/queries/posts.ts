@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { schema, type Db } from '@/db/client';
 import { parseContentDoc, type ContentDoc } from '@/lib/content/schema';
+import { resolveLocalizationUrl } from '@/lib/urls';
 
 import type { Post } from '@/db/schema';
 import type { Locale } from '@/i18n/locales';
@@ -15,43 +16,48 @@ export type PublishedPost = {
   content: ContentDoc;
 };
 
+export type ArticleUrlResolution =
+  | { kind: 'render'; post: PublishedPost }
+  | { kind: 'redirect'; slug: string }
+  | { kind: 'gone' }
+  | { kind: 'not-found' };
+
+type UrlCriteria = { locale: Locale; section: PostSection; slug: string };
+
 /**
- * Resolves a public article URL to the revision that should be rendered.
+ * Resolves a public article URL to the response it should receive (ADR-0010).
  *
- * **One query.** A Worker invocation may issue at most 50 queries (ADR-0016),
- * and page composition is the thing most likely to spend them carelessly, so
- * the localization, its post, and its published revision are joined rather than
- * fetched in sequence.
+ * The live localization is fetched **without** filtering on status or editorial
+ * state. That is deliberate: filtering them out in SQL would make a withdrawn
+ * post indistinguishable from one that never existed, which is exactly the
+ * distinction this ADR exists to preserve. The row comes back whatever its
+ * state, and the policy decides.
  *
- * Three conditions each make a URL non-servable, and all three are enforced
- * here rather than by the caller:
+ * One query answers the common case. The slug history is only consulted when no
+ * live slug matched, so a served article costs a single query against the 50 a
+ * Worker invocation may issue (ADR-0016).
  *
- * - the localization is not `published` — a draft, or one that was withdrawn
- * - the post is `archived` — the aggregate switch of ADR-0009 overrides a
- *   published localization
- * - the join through `published_revision_id` finds nothing, which is what a
- *   withdrawn localization leaves behind
- *
- * Returning `null` says only "nothing to render". Whether that becomes a `404`
- * or a `410` is the URL lifecycle resolver's decision (ADR-0010), because the
- * answer depends on `first_published_at` rather than on the current state.
- *
- * The revision is reached through `published_revision_id`, never through the
- * highest `version`: a newer draft revision must not reach readers.
+ * The published revision is reached through `published_revision_id`, never
+ * through the highest `version`, so a newer draft revision cannot reach readers.
  */
-export async function getPublishedPost(
+export async function resolveArticleUrl(
   db: Db,
-  criteria: { locale: Locale; section: PostSection; slug: string }
-): Promise<PublishedPost | null> {
-  const rows = await db
+  criteria: UrlCriteria
+): Promise<ArticleUrlResolution> {
+  const [live] = await db
     .select({
+      status: schema.postLocalizations.status,
+      firstPublishedAt: schema.postLocalizations.firstPublishedAt,
+      editorialState: schema.posts.editorialState,
       title: schema.postRevisions.title,
       excerpt: schema.postRevisions.excerpt,
       contentJson: schema.postRevisions.contentJson,
     })
     .from(schema.postLocalizations)
     .innerJoin(schema.posts, eq(schema.posts.id, schema.postLocalizations.postId))
-    .innerJoin(
+    // Left, not inner: a withdrawn localization has no published revision, and
+    // it still has to answer 410 rather than fall out of the result set.
+    .leftJoin(
       schema.postRevisions,
       eq(schema.postRevisions.id, schema.postLocalizations.publishedRevisionId)
     )
@@ -59,24 +65,71 @@ export async function getPublishedPost(
       and(
         eq(schema.postLocalizations.locale, criteria.locale),
         eq(schema.postLocalizations.slug, criteria.slug),
-        eq(schema.postLocalizations.status, 'published'),
-        eq(schema.posts.section, criteria.section),
-        eq(schema.posts.editorialState, 'active')
+        eq(schema.posts.section, criteria.section)
       )
     )
     .limit(1);
 
-  const row = rows[0];
+  const retiredSlugTarget = live ? null : await findCurrentSlugFor(db, criteria);
 
-  if (!row) return null;
+  const resolution = resolveLocalizationUrl(
+    live
+      ? {
+          servable:
+            live.status === 'published' && live.editorialState === 'active' && live.title !== null,
+          firstPublishedAt: live.firstPublishedAt,
+        }
+      : null,
+    retiredSlugTarget
+  );
+
+  if (resolution.kind !== 'render') return resolution;
+
+  // Unreachable: `servable` already required a joined revision. Written as a
+  // narrowing guard rather than an assertion so the compiler proves it.
+  if (!live || live.title === null) return { kind: 'not-found' };
 
   return {
-    title: row.title,
-    excerpt: row.excerpt,
-    // Validated on the way out, not trusted. A malformed revision raises here
-    // instead of reaching the renderer and producing a silently broken article
-    // (ADR-0024). Everything that writes `content_json` validates on the way in,
-    // so this firing means the two contracts have diverged.
-    content: parseContentDoc(row.contentJson),
+    kind: 'render',
+    post: {
+      title: live.title,
+      excerpt: live.excerpt,
+      // Validated on the way out, not trusted, and only once the response is
+      // known to be a render — a malformed revision must not turn a 410 into a
+      // crash (ADR-0024).
+      content: parseContentDoc(live.contentJson),
+    },
   };
+}
+
+/**
+ * Current slug of the localization a retired slug used to name.
+ *
+ * Returns the destination directly rather than the previous name, so a slug
+ * renamed A→B→C sends A straight to C. ADR-0010 forbids redirect chains, and
+ * the rename path keeps that true by rewriting history rows instead of
+ * appending to them.
+ *
+ * Filtered by section: a slug retired under `analysis` must not redirect from
+ * an `opinion` URL that never carried it.
+ */
+async function findCurrentSlugFor(db: Db, criteria: UrlCriteria): Promise<string | null> {
+  const [retired] = await db
+    .select({ slug: schema.postLocalizations.slug })
+    .from(schema.postLocalizationSlugHistory)
+    .innerJoin(
+      schema.postLocalizations,
+      eq(schema.postLocalizations.id, schema.postLocalizationSlugHistory.postLocalizationId)
+    )
+    .innerJoin(schema.posts, eq(schema.posts.id, schema.postLocalizations.postId))
+    .where(
+      and(
+        eq(schema.postLocalizationSlugHistory.locale, criteria.locale),
+        eq(schema.postLocalizationSlugHistory.oldSlug, criteria.slug),
+        eq(schema.posts.section, criteria.section)
+      )
+    )
+    .limit(1);
+
+  return retired?.slug ?? null;
 }

@@ -30,7 +30,7 @@ A typed dictionary in `src/i18n/`, with no dependency.
   Separate from the dictionaries so runtime code can import the type without
   pulling every string into its bundle.
 - `ui.ts` — one object per locale.
-- `utils.ts` — `useTranslations(locale)`, locale narrowing, and date formatting
+- `utils.ts` — `getTranslations(locale)`, locale narrowing, and date formatting
   through native `Intl`.
 
 **Spanish is the reference locale, and English is typed against it** with
