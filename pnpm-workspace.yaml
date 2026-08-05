@@ -6,9 +6,21 @@ allowBuilds:
   # (ADR-0025). Its install script downloads that binary, so builds must be
   # allowed or the integration project cannot start.
   workerd: true
-minimumReleaseAge: 1440
-trustPolicy: no-downgrade
+
 blockExoticSubdeps: true
+
+minimumReleaseAge: 1440
+
+# Written by `pnpm audit --fix`. Both advisories reach the project only through
+# development tooling — esbuild through drizzle-kit, undici through the Workers
+# test pool — so neither ever shipped in the deployed Worker. Drop an entry once
+# the package that pulls it in has moved past the patched version on its own.
+overrides:
+  esbuild@<=0.24.2: '>=0.25.0'
+  undici@>=7.0.0 <7.29.0: '>=7.29.0'
+
+trustPolicy: no-downgrade
+
 trustPolicyExclude:
-  - 'chokidar@4.0.3'
-  - 'semver@6.3.1'
+  - chokidar@4.0.3
+  - semver@6.3.1
