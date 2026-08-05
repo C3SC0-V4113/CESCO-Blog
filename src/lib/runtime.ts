@@ -1,37 +1,38 @@
 /// <reference types="@cloudflare/workers-types" />
+import { env } from 'cloudflare:workers';
+
 import { createDb, type Db } from '@/db/client';
 
 /**
  * The single place application code reaches Cloudflare bindings (ADR-0025).
  *
- * The Astro Cloudflare adapter exposes bindings at `Astro.locals.runtime.env`.
- * Reading that path directly from a page spreads runtime knowledge across the
- * codebase and makes bindings hard to stub, so pages call these helpers instead.
+ * Bindings come from the `cloudflare:workers` module, not from
+ * `Astro.locals.runtime.env`. That path was removed in Astro v6 — the adapter
+ * now installs a getter there that throws with exactly this instruction — so
+ * anything still reading it fails on the first request rather than at build
+ * time. The same import is what the integration tests already use, which means
+ * tests and pages resolve bindings through one mechanism instead of two.
+ *
+ * Pages call these helpers rather than importing `env` directly, so the set of
+ * bindings a page may touch stays enumerable in one file.
  */
 
-type RuntimeLocals = {
-  runtime: {
-    env: Env;
-    ctx: ExecutionContext;
-  };
-};
-
-export function getEnv(locals: RuntimeLocals): Env {
-  return locals.runtime.env;
+export function getDb(): Db {
+  return createDb(env.DB);
 }
 
-export function getDb(locals: RuntimeLocals): Db {
-  return createDb(locals.runtime.env.DB);
-}
-
-export function getBucket(locals: RuntimeLocals): R2Bucket {
-  return locals.runtime.env.BUCKET;
+export function getBucket(): R2Bucket {
+  return env.BUCKET;
 }
 
 /**
- * Work that should outlive the response — cache purges, analytics writes.
- * Without this the Worker may be torn down before the promise settles.
+ * Work that should outlive the response — cache purges (ADR-0011), analytics
+ * writes. Without it the Worker may be torn down before the promise settles.
+ *
+ * The execution context lives at `Astro.locals.cfContext`; it is the one piece
+ * of runtime state that is still per-request and therefore cannot come from the
+ * module-level import above.
  */
-export function runAfterResponse(locals: RuntimeLocals, work: Promise<unknown>): void {
-  locals.runtime.ctx.waitUntil(work);
+export function runAfterResponse(locals: App.Locals, work: Promise<unknown>): void {
+  locals.cfContext.waitUntil(work);
 }
