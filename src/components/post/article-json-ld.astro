@@ -2,6 +2,7 @@
 import { fromDbTimestamp } from '@/lib/timestamps';
 
 import type { Locale } from '@/i18n/locales';
+import type { BlogPosting, WithContext } from 'schema-dts';
 
 /**
  * `BlogPosting` structured data (ADR-0013).
@@ -20,6 +21,13 @@ import type { Locale } from '@/i18n/locales';
  * it in structured data would feed a poster into a field meant for a
  * photograph. It is absent here because cover images need media serving, and
  * omitting the field is correct while wrong content would not be.
+ *
+ * The object is typed against `schema-dts` rather than written free-hand. This
+ * is the one file where a typo costs nothing at build and everything in
+ * production: `datePublised` compiles, ships, and is silently dropped by every
+ * consumer, so the page loses a field nobody notices is missing. Only the types
+ * are taken — the rendering below is a single line, so wrapping it in an
+ * integration would add a dependency to the bundle to save nothing.
  */
 
 interface Props {
@@ -38,16 +46,23 @@ const { locale, headline, description, canonical, authorName, publishedAt, updat
 /** Stored timestamps are SQLite's format (ADR-0029); JSON-LD wants ISO 8601. */
 const iso = (value: string | null) => (value ? fromDbTimestamp(value).toISOString() : undefined);
 
-const jsonLd = {
+// Written as plain properties holding `undefined` rather than as conditional
+// spreads, and that is the whole point of the annotation above. TypeScript does
+// not apply excess-property checking to a spread, so `...(x ? { datePublised: x }
+// : {})` type-checks clean with the field misspelled — which was four of these
+// six fields until this was measured rather than assumed. `JSON.stringify` drops
+// `undefined` keys, so the emitted JSON is byte-identical either way; the only
+// difference is that this version is actually checked.
+const jsonLd: WithContext<BlogPosting> = {
   '@context': 'https://schema.org',
   '@type': 'BlogPosting',
   headline,
-  ...(description ? { description } : {}),
+  description: description ?? undefined,
   mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
   inLanguage: locale,
-  ...(authorName ? { author: { '@type': 'Person', name: authorName } } : {}),
-  ...(iso(publishedAt) ? { datePublished: iso(publishedAt) } : {}),
-  ...(iso(updatedAt) ? { dateModified: iso(updatedAt) } : {}),
+  author: authorName ? { '@type': 'Person', name: authorName } : undefined,
+  datePublished: iso(publishedAt),
+  dateModified: iso(updatedAt),
 };
 ---
 
