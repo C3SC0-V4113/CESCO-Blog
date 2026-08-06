@@ -40,6 +40,13 @@ import type { TocEntry } from '@/lib/content/schema';
  * and a landmark whose label depends on which breakpoint you are at is a
  * landmark that loses its name at one of them.
  *
+ * `lg:h-full` on the landmark is what makes the desktop sidebar actually stick.
+ * A sticky element is constrained by its **containing block**, which is its
+ * parent — not the column it appears to live in. Without it the `<nav>` shrank
+ * to the height of the outline itself, giving the sticky panel inside it zero
+ * room to travel, so it scrolled away with the article while `position: sticky`
+ * sat there computing correctly. Measured: parent 76px, child 76px, travel nil.
+ *
  * Server-rendered throughout. The scroll spy beside it is an island that only
  * adds the highlight, so with JavaScript disabled this stays a working list of
  * links that still opens and closes.
@@ -61,7 +68,7 @@ const shown = entries.filter((entry) => entry.level <= 3);
 
 {
   shown.length > 0 && (
-    <nav aria-label={t('post.tableOfContents')}>
+    <nav aria-label={t('post.tableOfContents')} class="lg:h-full">
       <details class="group rounded-md border border-border bg-background lg:hidden">
         <summary class="flex cursor-pointer items-center justify-between gap-2 p-4 text-xs tracking-wide text-muted-foreground uppercase marker:content-none [&::-webkit-details-marker]:hidden">
           {t('post.tableOfContents')}
