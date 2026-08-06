@@ -38,51 +38,71 @@ const { locale, post } = Astro.props;
 const analysis = post.section === 'analysis' ? post.analysis : null;
 ---
 
+{
+  /*
+  Block below `lg`, two columns from it. The article keeps its own measure — the
+  reading column is a typographic decision, not a leftover of the page width —
+  and the outline takes a track beside it rather than eating into it.
+
+  Deliberately **not** a grid on narrow screens, and that is what makes the
+  sticky outline work: a sticky grid item only sticks inside its own grid area,
+  which on one column is a short row above the article, so it would unpin almost
+  immediately. As a plain block child it sticks across the whole container.
+
+  The outline comes first in source order so it lands above the article on
+  narrow screens, the order DESIGN.md asks for, with no second copy in the
+  markup. `lg:order-*` moves it to the right-hand track once there is one.
+*/
+}
 <main class="px-6 pt-12 pb-20">
-  <article class="mx-auto max-w-[34rem]">
-    <header class="mb-10">
-      <h1 class="text-3xl leading-tight text-balance text-foreground">{post.title}</h1>
+  <div
+    class="mx-auto max-w-[34rem] lg:grid lg:max-w-[52rem] lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:items-start lg:gap-10"
+  >
+    {
+      post.toc.length > 0 && (
+        <aside class="sticky top-0 z-10 -mx-6 mb-10 bg-background px-6 py-2 lg:relative lg:top-auto lg:order-2 lg:mx-0 lg:mb-0 lg:px-0 lg:py-0">
+          <TableOfContents locale={locale} entries={post.toc} />
+        </aside>
+      )
+    }
+
+    <article class="max-w-[34rem] lg:order-1">
+      <header class="mb-10">
+        <h1 class="text-3xl leading-tight text-balance text-foreground">{post.title}</h1>
+
+        {
+          post.excerpt && (
+            <p class="mt-4 text-lg leading-relaxed text-pretty text-muted-foreground">
+              {post.excerpt}
+            </p>
+          )
+        }
+
+        <div class="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Byline locale={locale} authorName={post.authorName} publishedAt={post.publishedAt} />
+          <ReadingTime locale={locale} minutes={post.readingTimeMinutes} />
+        </div>
+
+        {
+          analysis?.receivedReviewCopy && (
+            <div class="mt-6">
+              <DisclosureNotice locale={locale} provider={analysis.reviewCopyProvider} />
+            </div>
+          )
+        }
+      </header>
+
+      <Prose>
+        <ArticleBody doc={post.content} />
+      </Prose>
 
       {
-        post.excerpt && (
-          <p class="mt-4 text-lg leading-relaxed text-pretty text-muted-foreground">
-            {post.excerpt}
-          </p>
-        )
-      }
-
-      <div class="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <Byline locale={locale} authorName={post.authorName} publishedAt={post.publishedAt} />
-        <ReadingTime locale={locale} minutes={post.readingTimeMinutes} />
-      </div>
-
-      {
-        analysis?.receivedReviewCopy && (
-          <div class="mt-6">
-            <DisclosureNotice locale={locale} provider={analysis.reviewCopyProvider} />
+        analysis && (
+          <div class="mt-12">
+            <AnalysisMetaPanel locale={locale} analysis={analysis} game={post.game} />
           </div>
         )
       }
-    </header>
-
-    {
-      post.toc.length > 0 && (
-        <div class="mb-10">
-          <TableOfContents locale={locale} entries={post.toc} />
-        </div>
-      )
-    }
-
-    <Prose>
-      <ArticleBody doc={post.content} />
-    </Prose>
-
-    {
-      analysis && (
-        <div class="mt-12">
-          <AnalysisMetaPanel locale={locale} analysis={analysis} game={post.game} />
-        </div>
-      )
-    }
-  </article>
+    </article>
+  </div>
 </main>
