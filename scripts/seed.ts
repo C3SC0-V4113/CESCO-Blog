@@ -348,6 +348,42 @@ push(
   })
 );
 
+/**
+ * A published series with the analysis in it.
+ *
+ * Seeded so the local site can show the surface at all, and so the end-to-end
+ * suite has a real collection URL to exercise the ADR-0010 lifecycle against.
+ */
+const COLLECTION_ID = '7e1a4b2c-9d3f-4058-8a1b-6c7d8e9f0a1b';
+
+push(
+  db.insert(schema.collections).values({
+    id: COLLECTION_ID,
+    editorialState: 'active',
+  })
+);
+
+push(
+  db.insert(schema.collectionLocalizations).values({
+    id: '8f2b5c3d-0e4a-4169-9b2c-7d8e9f0a1b2c',
+    collectionId: COLLECTION_ID,
+    locale: 'es',
+    slug: 'el-sonido-en-los-juegos',
+    title: 'El sonido en los juegos',
+    description: 'Una serie sobre cómo suenan —y cómo callan— los mundos que jugamos.',
+    status: 'published',
+    firstPublishedAt: PUBLISHED_AT,
+  })
+);
+
+push(
+  db.insert(schema.collectionPosts).values({
+    collectionId: COLLECTION_ID,
+    postId: POST_ID,
+    position: 0,
+  })
+);
+
 const outputPath = path.join(process.cwd(), '.wrangler', 'seed.sql');
 
 mkdirSync(path.dirname(outputPath), { recursive: true });

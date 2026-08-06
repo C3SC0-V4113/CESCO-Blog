@@ -1,0 +1,27 @@
+---
+import SeoHead from '@/components/common/seo-head.astro';
+import { getTranslations, resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+
+/**
+ * Series index.
+ *
+ * A placeholder rather than an omission: `nav.series` now links here, and the
+ * header only ever links to routes that exist. Listing the published series
+ * needs a query this PR does not add — the individual series pages were the
+ * work that mattered, because they carry the URL lifecycle.
+ */
+const locale = resolveLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+---
+
+<Layout>
+  <Fragment slot="head">
+    <SeoHead locale={locale} title={t('nav.series')} path="/es/series" />
+  </Fragment>
+
+  <main class="mx-auto max-w-3xl px-6 pt-12 pb-20">
+    <h1 class="text-3xl leading-tight text-balance">{t('nav.series')}</h1>
+    <p class="mt-3 text-muted-foreground">{t('listing.empty')}</p>
+  </main>
+</Layout>
