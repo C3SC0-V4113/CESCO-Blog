@@ -1,13 +1,34 @@
 ---
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import { getTranslations } from '@/i18n/utils';
+import { paginationItems } from '@/lib/pagination';
 
 import type { Locale } from '@/i18n/locales';
 
 /**
- * Previous and next links for a paginated listing.
+ * Page links for a paginated listing.
  *
- * Plain links, no island: pagination is navigation, and navigation that needs
- * JavaScript to work is navigation a crawler cannot follow (ADR-0019).
+ * Built from the registry pagination primitives (ADR-0020, ADR-0021) and
+ * imported here **without a `client:*` directive**. That distinction is the
+ * whole design: a framework component with no directive is not an island. Astro
+ * renders it to HTML on the server and stops there, so this ships the same zero
+ * bytes of JavaScript the hand-written links did, while the markup, the focus
+ * rings and `aria-current` come from the registry instead of from us.
+ *
+ * `tests/e2e/listings.spec.ts` guards that property directly, because getting it
+ * wrong is invisible: adding a directive here would quietly spend one of the
+ * five islands DESIGN.md budgets on a row of anchors.
+ *
+ * Navigation that needs JavaScript is navigation a crawler cannot follow
+ * (ADR-0019), so every page stays a plain `href`.
  *
  * The page lives in a query parameter rather than a path segment so the listing
  * keeps one canonical route. Which page a crawler should treat as canonical is
@@ -24,31 +45,60 @@ interface Props {
 const { locale, basePath, page, totalPages } = Astro.props;
 const t = getTranslations(locale);
 
+// Page one is the bare path. `?page=1` would be a second address for a page that
+// already has one, and the canonical would then have to choose between them.
 const hrefFor = (target: number) => (target === 1 ? basePath : `${basePath}?page=${target}`);
+
+const items = paginationItems(page, totalPages);
 ---
 
 {
   totalPages > 1 && (
-    <nav class="mt-8 flex items-center justify-between border-t border-border pt-6 text-sm">
-      {page > 1 ? (
-        <a href={hrefFor(page - 1)} rel="prev" class="transition-colors hover:text-primary">
-          ← {t('listing.previous')}
-        </a>
-      ) : (
-        <span />
-      )}
+    <Pagination
+      aria-label={t('listing.pagination')}
+      className="mt-8 justify-center border-t border-border pt-6"
+    >
+      <PaginationContent>
+        {page > 1 && (
+          <PaginationItem>
+            <PaginationPrevious
+              href={hrefFor(page - 1)}
+              rel="prev"
+              text={t('listing.previous')}
+              aria-label={t('listing.previous')}
+            />
+          </PaginationItem>
+        )}
 
-      <span class="text-muted-foreground">
-        {page} / {totalPages}
-      </span>
+        {items.map((item) =>
+          item === 'ellipsis' ? (
+            <PaginationItem>
+              <PaginationEllipsis srLabel={t('listing.morePages')} />
+            </PaginationItem>
+          ) : (
+            <PaginationItem>
+              <PaginationLink
+                href={hrefFor(item)}
+                isActive={item === page}
+                aria-label={`${t('listing.goToPage')} ${item}`}
+              >
+                {item}
+              </PaginationLink>
+            </PaginationItem>
+          )
+        )}
 
-      {page < totalPages ? (
-        <a href={hrefFor(page + 1)} rel="next" class="transition-colors hover:text-primary">
-          {t('listing.next')} →
-        </a>
-      ) : (
-        <span />
-      )}
-    </nav>
+        {page < totalPages && (
+          <PaginationItem>
+            <PaginationNext
+              href={hrefFor(page + 1)}
+              rel="next"
+              text={t('listing.next')}
+              aria-label={t('listing.next')}
+            />
+          </PaginationItem>
+        )}
+      </PaginationContent>
+    </Pagination>
   )
 }
