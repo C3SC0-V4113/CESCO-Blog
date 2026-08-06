@@ -95,3 +95,38 @@ test('now links the section routes it has pages for', async ({ page }) => {
   // Still no route, so still no link.
   await expect(header.getByRole('link', { name: 'Buscar', exact: true })).toHaveCount(0);
 });
+
+test.describe('narrow screens', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test('reaches the sections through a sheet when the row cannot hold them', async ({ page }) => {
+    // The links are hidden below `sm` so the header does not overflow. Without
+    // the sheet they would simply be unreachable on a phone.
+    await page.goto('/es/');
+
+    await expect(
+      page.getByRole('banner').getByRole('link', { name: 'Análisis', exact: true })
+    ).toBeHidden();
+
+    await page.getByRole('button', { name: 'Menú' }).click();
+
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('link', { name: 'Análisis', exact: true })).toBeVisible();
+    await expect(sheet.getByRole('link', { name: 'Series', exact: true })).toBeVisible();
+  });
+
+  test('dismisses on Escape and returns focus to the trigger', async ({ page }) => {
+    // The half of a sheet that hand-rolled versions get wrong, and that nobody
+    // notices with a mouse.
+    await page.goto('/es/');
+
+    const trigger = page.getByRole('button', { name: 'Menú' });
+    await trigger.click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+});
