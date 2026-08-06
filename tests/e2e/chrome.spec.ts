@@ -123,9 +123,16 @@ test.describe('narrow screens', () => {
       page.getByRole('banner').getByRole('link', { name: 'Análisis', exact: true })
     ).toBeHidden();
 
-    await page.getByRole('button', { name: 'Menú' }).click();
-
+    // Opening is retried as a unit, the same as the language picker and the
+    // theme toggle: the sheet hydrates on `client:idle` and a click that lands
+    // first does nothing. Opening is idempotent, so a retry costs an extra
+    // click and never a wrong state.
     const sheet = page.getByRole('dialog');
+    await expect(async () => {
+      await page.getByRole('button', { name: 'Menú' }).click();
+      await expect(sheet).toBeVisible({ timeout: 1_000 });
+    }).toPass();
+
     await expect(sheet.getByRole('link', { name: 'Análisis', exact: true })).toBeVisible();
     await expect(sheet.getByRole('link', { name: 'Series', exact: true })).toBeVisible();
   });
@@ -136,8 +143,15 @@ test.describe('narrow screens', () => {
     await page.goto('/es/');
 
     const trigger = page.getByRole('button', { name: 'Menú' });
-    await trigger.click();
-    await expect(page.getByRole('dialog')).toBeVisible();
+
+    // Same hydration retry as above. This is the test that caught it on WebKit:
+    // the click landed before `client:idle` fired, the sheet never opened, and
+    // the Escape assertion below was left describing a dialog that was never
+    // there.
+    await expect(async () => {
+      await trigger.click();
+      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 1_000 });
+    }).toPass();
 
     await page.keyboard.press('Escape');
 
