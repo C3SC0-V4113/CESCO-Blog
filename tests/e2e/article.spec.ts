@@ -193,6 +193,41 @@ test.describe('table of contents', () => {
     await expect(page.locator('summary')).toBeHidden();
   });
 
+  test('holds the outline in place while the article scrolls past it', async ({ page }) => {
+    // The guard the screenshots earned. Everything else about the sidebar can be
+    // true — rendered, visible, labelled, highlighting — while it quietly
+    // scrolls away with the article, because `position: sticky` fails silently.
+    //
+    // It failed twice for different reasons: a start-aligned grid shrank the
+    // column to its content, and then the landmark itself was the same height as
+    // the panel inside it. A sticky element can only travel inside its
+    // containing block, so both left it nowhere to go.
+    //
+    // Asserted as a position that stops changing, which is what "sticky" means
+    // to a reader. Comparing against the scroll delta instead would pass for an
+    // element that merely moved slower.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(ES_ARTICLE);
+
+    const panel = page.locator('nav[aria-label="Contenido"] > div').last();
+    const top = async () => (await panel.boundingBox())?.y ?? null;
+
+    const before = await top();
+    expect(before).not.toBeNull();
+
+    await page.evaluate(() => window.scrollTo(0, 300));
+
+    // Polled rather than slept on: the position settles when the browser has
+    // finished scrolling, and a fixed wait would either be slower than that or
+    // occasionally shorter.
+    await expect.poll(top).toBeLessThan(before!);
+
+    // Pinned near the top of the viewport rather than carried off it.
+    const after = await top();
+    expect(after).toBeGreaterThanOrEqual(0);
+    expect(after).toBeLessThanOrEqual(64);
+  });
+
   test.describe('narrow screens', () => {
     test.use({ viewport: { width: 375, height: 812 } });
 
