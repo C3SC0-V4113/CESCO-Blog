@@ -10,7 +10,21 @@ export default defineConfig({
   // Safe to parallelise: the suite only reads, and it now runs against the
   // built Worker rather than a Vite dev server, which was the thing that could
   // invalidate modules mid-run under concurrent load.
-  workers: process.env.CI ? 2 : undefined,
+  //
+  // Locally the number is a cap rather than a default. CI runs one browser per
+  // job (`--project=<browser>` in the matrix), so it only ever points one worker
+  // at one `wrangler dev`. Running `test:e2e` locally instead starts all three
+  // projects against a *single* server, and left unbounded Playwright sizes the
+  // pool from the CPU count — the browser matrix multiplies clients, not
+  // servers. Past roughly 140 tests that server stops answering mid-run and
+  // whole files fail on `page.goto` timeouts.
+  //
+  // Two is not a guess. On the taxonomy branch each project passed alone (49,
+  // 49 and 49) while the combined unbounded run took 6.5 minutes and finished
+  // either with 38 timeouts or with a worker that never exited. The same 147
+  // tests at two workers pass in 82 seconds. The cap is five times faster *and*
+  // correct, which is the tell that contention was the cost all along.
+  workers: 2,
   reporter: 'html',
   use: {
     baseURL: baseUrl,
