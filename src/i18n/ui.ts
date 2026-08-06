@@ -44,6 +44,7 @@ const es = {
   'post.previousInSeries': 'Anterior en la serie',
   'post.nextInSeries': 'Siguiente en la serie',
 
+  'analysis.game': 'Juego',
   'analysis.platform': 'Plataforma',
   'analysis.playtime': 'Tiempo jugado',
   'analysis.playtimeHours': 'horas',
@@ -120,6 +121,7 @@ const en = {
   'post.previousInSeries': 'Previous in series',
   'post.nextInSeries': 'Next in series',
 
+  'analysis.game': 'Game',
   'analysis.platform': 'Platform',
   'analysis.playtime': 'Time played',
   'analysis.playtimeHours': 'hours',
