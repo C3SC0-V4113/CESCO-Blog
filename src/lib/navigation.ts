@@ -44,12 +44,34 @@ export function mainNavItems(locale: Locale): NavItem[] {
 }
 
 /**
- * Footer links.
+ * Footer links: the five transparency pages of ADR-0018.
  *
- * Still empty. The five trust pages of ADR-0018 and the per-language RSS feed
- * of ADR-0014 are the footer's whole purpose, and neither exists yet, so the
- * footer carries attribution alone until they land.
+ * ADR-0018 requires these to be reachable from the footer on **every** page,
+ * which is what makes the footer worth having at all.
+ *
+ * The per-language RSS feed is not here yet — the route exists, but a feed link
+ * belongs beside the other syndication affordances rather than in this list.
  */
-export function footerLinks(_locale: Locale): NavItem[] {
-  return [];
+const trustPaths: Record<Locale, Record<string, string>> = {
+  es: {
+    'footer.about': '/es/acerca-de',
+    'footer.contact': '/es/contacto',
+    'footer.privacy': '/es/privacidad',
+    'footer.editorialPolicy': '/es/politica-editorial',
+    'footer.disclosures': '/es/divulgaciones',
+  },
+  en: {
+    'footer.about': '/en/about',
+    'footer.contact': '/en/contact',
+    'footer.privacy': '/en/privacy',
+    'footer.editorialPolicy': '/en/editorial-policy',
+    'footer.disclosures': '/en/disclosures',
+  },
+};
+
+export function footerLinks(locale: Locale): NavItem[] {
+  return Object.entries(trustPaths[locale]).map(([key, href]) => ({
+    key: key as UiKey,
+    href,
+  }));
 }

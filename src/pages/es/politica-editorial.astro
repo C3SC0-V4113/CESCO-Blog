@@ -1,0 +1,57 @@
+---
+import Prose from '@/components/common/prose.astro';
+import SeoHead from '@/components/common/seo-head.astro';
+import { resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+
+/**
+ * A transparency page (ADR-0018).
+ *
+ * Static content, not a database row: these describe how the site operates
+ * rather than being editorial output, so they live in the repository where a
+ * change to them is a reviewed commit.
+ *
+ * ADR-0018 is explicit that these are reasonable transparency statements from
+ * the site owner and not legal advice, and claims no regulatory compliance.
+ */
+
+const locale = resolveLocale(Astro.currentLocale);
+---
+
+<Layout>
+  <Fragment slot="head">
+    <SeoHead
+      locale={locale}
+      title="Política editorial"
+      path="/es/politica-editorial"
+      alternates={[
+        { locale: 'es', path: '/es/politica-editorial' },
+        { locale: 'en', path: '/en/editorial-policy' },
+      ]}
+    />
+  </Fragment>
+
+  <main class="mx-auto max-w-[34rem] px-6 pt-12 pb-20">
+    <h1 class="mb-8 text-3xl leading-tight text-balance">Política editorial</h1>
+
+    <Prose>
+      <p>
+        No hay puntajes. Un número resume mal un juego y se cita todavía peor, así que los análisis
+        se leen enteros o no se leen.
+      </p>
+      <p>
+        Cada análisis dice en qué plataforma se jugó, cuánto tiempo y en qué estado quedó la
+        partida. Un juego abandonado a las tres horas y uno terminado al cien por ciento no
+        sostienen el mismo tipo de afirmación.
+      </p>
+      <p>
+        Las correcciones de hechos se hacen sobre el texto publicado y quedan indicadas. No se borra
+        ni se reescribe en silencio.
+      </p>
+      <p>
+        Cuando una publicación se retira, su dirección lo dice explícitamente en vez de fingir que
+        nunca existió.
+      </p>
+    </Prose>
+  </main>
+</Layout>

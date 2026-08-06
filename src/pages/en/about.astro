@@ -1,0 +1,53 @@
+---
+import Prose from '@/components/common/prose.astro';
+import SeoHead from '@/components/common/seo-head.astro';
+import { resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+
+/**
+ * A transparency page (ADR-0018).
+ *
+ * Static content, not a database row: these describe how the site operates
+ * rather than being editorial output, so they live in the repository where a
+ * change to them is a reviewed commit.
+ *
+ * ADR-0018 is explicit that these are reasonable transparency statements from
+ * the site owner and not legal advice, and claims no regulatory compliance.
+ */
+
+const locale = resolveLocale(Astro.currentLocale);
+---
+
+<Layout>
+  <Fragment slot="head">
+    <SeoHead
+      locale={locale}
+      title="About"
+      path="/en/about"
+      alternates={[
+        { locale: 'en', path: '/en/about' },
+        { locale: 'es', path: '/es/acerca-de' },
+      ]}
+    />
+  </Fragment>
+
+  <main class="mx-auto max-w-[34rem] px-6 pt-12 pb-20">
+    <h1 class="mb-8 text-3xl leading-tight text-balance">About</h1>
+
+    <Prose>
+      <p>
+        Checkpoint is a games analysis and opinion site written by one person. There is no newsroom,
+        no release calendar to keep up with, and nothing is published out of obligation.
+      </p>
+      <p>
+        Analysis pieces appear when the game is finished, or when it has been played enough to say
+        something grounded. Each one states which platform it was played on, for how many hours, and
+        how far the writer got, so the weight of what you are reading can be judged.
+      </p>
+      <p>
+        The site publishes in Spanish and English. Each language is edited separately, so a piece
+        may exist in one and not yet in the other.
+      </p>
+    </Prose>
+  </main>
+</Layout>

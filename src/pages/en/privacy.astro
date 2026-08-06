@@ -1,0 +1,50 @@
+---
+import Prose from '@/components/common/prose.astro';
+import SeoHead from '@/components/common/seo-head.astro';
+import { resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+
+/**
+ * A transparency page (ADR-0018).
+ *
+ * Static content, not a database row: these describe how the site operates
+ * rather than being editorial output, so they live in the repository where a
+ * change to them is a reviewed commit.
+ *
+ * ADR-0018 is explicit that these are reasonable transparency statements from
+ * the site owner and not legal advice, and claims no regulatory compliance.
+ */
+
+const locale = resolveLocale(Astro.currentLocale);
+---
+
+<Layout>
+  <Fragment slot="head">
+    <SeoHead
+      locale={locale}
+      title="Privacy"
+      path="/en/privacy"
+      alternates={[
+        { locale: 'en', path: '/en/privacy' },
+        { locale: 'es', path: '/es/privacidad' },
+      ]}
+    />
+  </Fragment>
+
+  <main class="mx-auto max-w-[34rem] px-6 pt-12 pb-20">
+    <h1 class="mb-8 text-3xl leading-tight text-balance">Privacy</h1>
+
+    <Prose>
+      <p>
+        This site sets no cookies, builds no visitor profiles, and shares no data with third parties
+        for advertising.
+      </p>
+      <p>
+        Audience figures come from Cloudflare Web Analytics, which uses no cookies and no persistent
+        identifiers and does not follow anyone between sites. It shows what gets read, not who reads
+        it.
+      </p>
+      <p>There are no user accounts on the public site, so there is nothing to record about you.</p>
+    </Prose>
+  </main>
+</Layout>
