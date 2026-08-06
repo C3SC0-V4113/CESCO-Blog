@@ -52,11 +52,17 @@ const analysis = post.section === 'analysis' ? post.analysis : null;
   The outline comes first in source order so it lands above the article on
   narrow screens, the order DESIGN.md asks for, with no second copy in the
   markup. `lg:order-*` moves it to the right-hand track once there is one.
+
+  No `items-start` on the grid, and that omission is load-bearing. Start-aligned
+  items shrink to their content, which leaves the sidebar a box a few hundred
+  pixels tall — and a sticky element can only travel inside its own container,
+  so the outline unpinned and scrolled away almost immediately. Stretched, the
+  column spans the article and the outline stays beside it the whole way down.
 */
 }
 <main class="px-6 pt-12 pb-20">
   <div
-    class="mx-auto max-w-[34rem] lg:grid lg:max-w-[52rem] lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:items-start lg:gap-10"
+    class="mx-auto max-w-[34rem] lg:grid lg:max-w-[52rem] lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:gap-10"
   >
     {
       post.toc.length > 0 && (
