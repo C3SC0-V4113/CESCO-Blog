@@ -1,4 +1,6 @@
 ---
+import { ChevronDown } from 'lucide-react';
+
 import TocList from '@/components/post/toc-list.astro';
 import TocScrollSpy from '@/components/post/toc-scroll-spy';
 import { getTranslations } from '@/i18n/utils';
@@ -40,6 +42,13 @@ import type { TocEntry } from '@/lib/content/schema';
  * and a landmark whose label depends on which breakpoint you are at is a
  * landmark that loses its name at one of them.
  *
+ * `lg:h-full` on the landmark is what makes the desktop sidebar actually stick.
+ * A sticky element is constrained by its **containing block**, which is its
+ * parent — not the column it appears to live in. Without it the `<nav>` shrank
+ * to the height of the outline itself, giving the sticky panel inside it zero
+ * room to travel, so it scrolled away with the article while `position: sticky`
+ * sat there computing correctly. Measured: parent 76px, child 76px, travel nil.
+ *
  * Server-rendered throughout. The scroll spy beside it is an island that only
  * adds the highlight, so with JavaScript disabled this stays a working list of
  * links that still opens and closes.
@@ -61,27 +70,26 @@ const shown = entries.filter((entry) => entry.level <= 3);
 
 {
   shown.length > 0 && (
-    <nav aria-label={t('post.tableOfContents')}>
+    <nav aria-label={t('post.tableOfContents')} class="lg:h-full">
       <details class="group rounded-md border border-border bg-background lg:hidden">
         <summary class="flex cursor-pointer items-center justify-between gap-2 p-4 text-xs tracking-wide text-muted-foreground uppercase marker:content-none [&::-webkit-details-marker]:hidden">
           {t('post.tableOfContents')}
 
           {/*
-            Rotates with the disclosure rather than swapping glyphs, which keeps
-            it to `transform` under ADR-0022.
+            Lucide, like every other icon here — `components.json` names it as
+            the icon library and a hand-rolled path would be the only one in the
+            tree, drifting in stroke weight and size the moment anything around
+            it changed.
+
+            Imported into `.astro` with **no client directive**, so Astro renders
+            it to markup on the server and it costs nothing at runtime. The
+            rotation is `transform` only, under ADR-0022, and it turns rather
+            than swapping glyphs so there is one element to animate.
           */}
-          <svg
+          <ChevronDown
             aria-hidden="true"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-4 shrink-0 transition-transform duration-150 ease-[var(--ease-out-quad)] group-open:rotate-180 motion-reduce:transition-none"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M5.22 7.22a.75.75 0 0 1 1.06 0L10 10.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.28a.75.75 0 0 1 0-1.06Z"
-              clip-rule="evenodd"
-            />
-          </svg>
+            className="size-4 shrink-0 transition-transform duration-150 ease-[var(--ease-out-quad)] group-open:rotate-180 motion-reduce:transition-none"
+          />
         </summary>
 
         <div class="px-4 pb-4">
