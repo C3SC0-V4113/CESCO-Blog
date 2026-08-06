@@ -4,6 +4,7 @@ import SeoHead from '@/components/common/seo-head.astro';
 import { listPublishedPosts } from '@/db/queries/listings';
 import { getTranslations, resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
+import { cacheTagHeader, sectionListingTags } from '@/lib/cache-tags';
 import { pageCount, readPageWindow } from '@/lib/pagination';
 import { getDb } from '@/lib/runtime';
 
@@ -20,6 +21,8 @@ const { posts, total } = await listPublishedPosts(getDb(), {
   limit,
   offset,
 });
+
+Astro.response.headers.set('Cache-Tag', cacheTagHeader(sectionListingTags(locale, 'opinion')));
 ---
 
 <Layout>

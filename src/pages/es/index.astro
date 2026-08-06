@@ -4,6 +4,7 @@ import SeoHead from '@/components/common/seo-head.astro';
 import { listPublishedPosts } from '@/db/queries/listings';
 import { getTranslations, resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
+import { cacheTagHeader, homeTags } from '@/lib/cache-tags';
 import { pageCount, readPageWindow } from '@/lib/pagination';
 import { getDb } from '@/lib/runtime';
 
@@ -25,6 +26,8 @@ const heading = t('listing.latest');
 const { page, offset, limit } = readPageWindow(Astro.url.searchParams.get('page'));
 
 const { posts, total } = await listPublishedPosts(getDb(), { locale, limit, offset });
+
+Astro.response.headers.set('Cache-Tag', cacheTagHeader(homeTags(locale)));
 ---
 
 <Layout>
