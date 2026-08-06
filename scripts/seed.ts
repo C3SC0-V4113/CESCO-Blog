@@ -260,6 +260,89 @@ for (const locale of [
 }
 
 /**
+ * Filler analyses, so a listing has more than one page.
+ *
+ * `POSTS_PER_PAGE` is ten, and until these existed every listing fitted on page
+ * one — which meant the pagination component rendered nowhere and no test could
+ * reach it. A component the suite cannot see is a component nobody is checking.
+ *
+ * Three deliberate choices keep them from disturbing what is already asserted:
+ *
+ * - **Spanish only.** The English listing stays a single page, so "keeps each
+ *   locale to its own listing" still reads what it meant to read.
+ * - **`analysis` only.** One test requires `/es/opinion` to be *empty* so the
+ *   empty state renders; filling that section would delete that guarantee.
+ * - **Older than `PUBLISHED_AT`.** Listings order by `first_published_at`
+ *   descending, so these sort underneath. Every assertion that expects a named
+ *   post finds it on page one exactly where it was.
+ *
+ * They carry no analysis metadata and no author. They exist to be counted.
+ */
+const FILLER_COUNT = 12;
+
+for (let index = 0; index < FILLER_COUNT; index += 1) {
+  // Derived rather than random: the seed is idempotent through
+  // `INSERT OR REPLACE`, which only works if a row keeps its identifier across
+  // runs. The suffix is padded so the ids stay a fixed width.
+  const suffix = String(index).padStart(2, '0');
+  const fillerPostId = `f0000000-0000-4000-8000-0000000000${suffix}`;
+  const fillerLocalizationId = `f1000000-0000-4000-8000-0000000000${suffix}`;
+  const fillerRevisionId = `f2000000-0000-4000-8000-0000000000${suffix}`;
+
+  // One day apart, walking backwards from the day before the named posts.
+  const publishedAt = toDbTimestamp(new Date(Date.UTC(2026, 6, 20 - index, 12, 0, 0)));
+
+  const content = parseContentDoc({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        attrs: { blockId: `f3000000-0000-4000-8000-0000000000${suffix}` },
+        content: [
+          {
+            type: 'text',
+            text: 'Una entrada de relleno. Existe para que los listados tengan una segunda página que probar.',
+          },
+        ],
+      },
+    ],
+  });
+
+  push(
+    db.insert(schema.posts).values({
+      id: fillerPostId,
+      section: 'analysis',
+      editorialState: 'active',
+    })
+  );
+
+  push(
+    db.insert(schema.postLocalizations).values({
+      id: fillerLocalizationId,
+      postId: fillerPostId,
+      locale: 'es',
+      slug: `relleno-${suffix}`,
+      status: 'published',
+      publishedRevisionId: fillerRevisionId,
+      firstPublishedAt: publishedAt,
+      currentPublishedAt: publishedAt,
+    })
+  );
+
+  push(
+    db.insert(schema.postRevisions).values({
+      id: fillerRevisionId,
+      postLocalizationId: fillerLocalizationId,
+      version: 1,
+      title: `Entrada de relleno ${suffix}`,
+      contentJson: content,
+      readingTimeMinutes: deriveReadingTime(content),
+      tocJson: deriveToc(content),
+    })
+  );
+}
+
+/**
  * The structured facts behind the analysis (ADR-0012).
  *
  * The platform is a reference rather than free text, so the same console cannot
