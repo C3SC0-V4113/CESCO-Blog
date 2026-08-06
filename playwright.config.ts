@@ -11,19 +11,20 @@ export default defineConfig({
   // built Worker rather than a Vite dev server, which was the thing that could
   // invalidate modules mid-run under concurrent load.
   //
-  // Locally the number is a cap rather than a default. CI runs one browser per
-  // job (`--project=<browser>` in the matrix), so it only ever points one worker
-  // at one `wrangler dev`. Running `test:e2e` locally instead starts all three
-  // projects against a *single* server, and left unbounded Playwright sizes the
-  // pool from the CPU count — the browser matrix multiplies clients, not
-  // servers. Past roughly 140 tests that server stops answering mid-run and
-  // whole files fail on `page.goto` timeouts.
+  // Locally the number is a cap rather than a default, and the thing being
+  // capped is clients per server. CI runs one browser per job
+  // (`--project=<browser>` in the matrix), so it only ever points one worker at
+  // one `wrangler dev`. Running `test:e2e` locally starts all three projects
+  // against a *single* server, and left unbounded Playwright sizes the pool
+  // from the CPU count — a number that describes this machine and not what one
+  // workerd process can absorb.
   //
-  // Two is not a guess. On the taxonomy branch each project passed alone (49,
-  // 49 and 49) while the combined unbounded run took 6.5 minutes and finished
-  // either with 38 timeouts or with a worker that never exited. The same 147
-  // tests at two workers pass in 82 seconds. The cap is five times faster *and*
-  // correct, which is the tell that contention was the cost all along.
+  // Two carried 147 tests in 82 seconds, so the bound costs nothing worth
+  // having. It is deliberately not claimed as a fix for anything: one local run
+  // did fail 38 tests on `page.goto` timeouts, but that run turned out to have
+  // two stray `wrangler dev` processes fighting over the port, so it is not
+  // evidence of contention. The bound is here because unbounded clients against
+  // one server is the wrong default, not because it repaired a measured fault.
   workers: 2,
   reporter: 'html',
   use: {
