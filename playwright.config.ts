@@ -7,14 +7,30 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // One worker on CI, two would be safe on paper: the suite only reads, and it
-  // runs against the built Worker rather than a Vite dev server. In practice a
+  // Both numbers are caps, and they cap different things.
+  //
+  // On CI, one. Two would be safe on paper: the suite only reads, and it runs
+  // against the built Worker rather than a Vite dev server. In practice a
   // WebKit job reproducibly killed its own server — every request after the
   // first few answered "connection refused", with wrangler logging an empty
   // error before dying. Two WebKit instances plus node plus workerd on a 4 GB
   // runner is the likeliest cause, though that is a mitigation rather than a
   // diagnosis. Parallelism comes from the browser matrix, which is unaffected.
-  workers: process.env.CI ? 1 : undefined,
+  //
+  // Locally, two — and the constraint is the server, not the runner. CI runs
+  // one browser per job (`--project=<browser>` in the matrix), so it only ever
+  // points one worker at one `wrangler dev`. Running `test:e2e` locally instead
+  // starts all three projects against a *single* server, and left unbounded
+  // Playwright sizes the pool from the CPU count: the browser matrix multiplies
+  // clients, not servers. Past roughly 140 tests that server stops answering
+  // mid-run and whole files fail on `page.goto` timeouts.
+  //
+  // Two is not a guess. On the taxonomy branch each project passed alone (49,
+  // 49 and 49) while the combined unbounded run took 6.5 minutes and finished
+  // either with 38 timeouts or with a worker that never exited. The same 147
+  // tests at two workers pass in 82 seconds. The cap is five times faster *and*
+  // correct, which is the tell that contention was the cost all along.
+  workers: process.env.CI ? 1 : 2,
   reporter: 'html',
   use: {
     baseURL: baseUrl,
