@@ -59,3 +59,57 @@ test('survives a nonsense page parameter', async ({ page }) => {
 
   expect(response?.status()).toBe(200);
 });
+
+test('offers the pages by number, not just the next one', async ({ page }) => {
+  // The seed carries filler analyses precisely so this renders at all. Before
+  // they existed every listing fitted on one page and this component was
+  // unreachable from any test.
+  await page.goto('/es/blog');
+
+  // Located by accessible name rather than by the visible digit: the links
+  // carry `aria-label="Ir a la página 2"`, so "2" alone is what a sighted
+  // reader sees and not what the control is called.
+  const pagination = page.getByRole('navigation', { name: 'Paginación' });
+  await expect(pagination.getByRole('link', { name: 'Ir a la página 1' })).toBeVisible();
+  await expect(pagination.getByRole('link', { name: 'Ir a la página 2' })).toHaveAttribute(
+    'href',
+    '/es/blog?page=2'
+  );
+});
+
+test('marks the page you are on for a screen reader, not just visually', async ({ page }) => {
+  // `aria-current` is the difference between "this one looks different" and
+  // "this one is announced as where you are".
+  await page.goto('/es/blog?page=2');
+
+  const current = page
+    .getByRole('navigation', { name: 'Paginación' })
+    .getByRole('link', { name: 'Ir a la página 2' });
+
+  await expect(current).toHaveAttribute('aria-current', 'page');
+});
+
+test('ships the pagination without hydrating it', async ({ page }) => {
+  // The component is built from React primitives, and that is *not* the same as
+  // shipping React: with no `client:*` directive Astro renders it to HTML on the
+  // server and stops there. This test is the guard on that distinction — it is
+  // what stops someone adding a directive later and quietly spending an island
+  // on a row of links (ADR-0019).
+  await page.goto('/es/blog');
+
+  const pagination = page.getByRole('navigation', { name: 'Paginación' });
+  await expect(pagination).toBeVisible();
+  await expect(pagination.locator('astro-island')).toHaveCount(0);
+});
+
+test('walks to the second page and back through the links alone', async ({ page }) => {
+  // No JavaScript is involved, so this is the whole contract: the hrefs work.
+  await page.goto('/es/blog');
+  await page
+    .getByRole('navigation', { name: 'Paginación' })
+    .getByRole('link', { name: 'Ir a la página 2' })
+    .click();
+
+  await expect(page).toHaveURL(/\?page=2$/);
+  await expect(page.getByRole('link', { name: 'Entrada de relleno 11' })).toBeVisible();
+});

@@ -184,3 +184,28 @@ test('shows the analysis facts', async ({ page }) => {
   await expect(page.getByText('PC', { exact: true })).toBeVisible();
   await expect(page.getByText('Completado')).toBeVisible();
 });
+
+test('names the game the analysis is about', async ({ page }) => {
+  // The panel holds the structured facts a reader weighs the piece by, and
+  // which game it covers is the first of them. It lives on `posts`, not on the
+  // analysis metadata row — an opinion piece can name a game too — so it is
+  // passed to the panel separately rather than folded into the metadata.
+  await page.goto(ES_ARTICLE);
+
+  const article = page.getByRole('article');
+  await expect(article.getByText('Juego', { exact: true })).toBeVisible();
+  await expect(article.getByRole('link', { name: 'Un juego de ejemplo' })).toHaveAttribute(
+    'href',
+    '/es/juegos/un-juego-de-ejemplo'
+  );
+});
+
+test('sends the game link to a page that exists', async ({ page }) => {
+  // The project links only live routes, and this one became live in the same
+  // change that added the link. Following it is the cheapest proof of that.
+  await page.goto(ES_ARTICLE);
+  await page.getByRole('article').getByRole('link', { name: 'Un juego de ejemplo' }).click();
+
+  await expect(page).toHaveURL(/\/es\/juegos\/un-juego-de-ejemplo$/);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Un juego de ejemplo');
+});

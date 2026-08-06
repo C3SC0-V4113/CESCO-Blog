@@ -22,6 +22,19 @@ export type AnalysisMetadata = {
   reviewCopyProvider: string | null;
 };
 
+/**
+ * The game a post is about.
+ *
+ * Deliberately **not** folded into `AnalysisMetadata`: `game_id` lives on
+ * `posts`, so an opinion piece can name one exactly as an analysis can. Putting
+ * it on the metadata row would model a relationship the schema does not have,
+ * and would strand the game the day an opinion piece wants to show it.
+ */
+export type PostGame = {
+  slug: string;
+  title: string;
+};
+
 export type PublishedPost = {
   /** Locale-neutral aggregate id, used to tag both localizations alike (ADR-0011). */
   postId: string;
@@ -54,6 +67,8 @@ export type PublishedPost = {
   alternates: { locale: Locale; slug: string }[];
   /** Present only for analysis posts that have a metadata row (ADR-0012). */
   analysis: AnalysisMetadata | null;
+  /** The game the piece covers, when it names one. */
+  game: PostGame | null;
 };
 
 export type ArticleUrlResolution =
@@ -110,6 +125,8 @@ export async function resolveArticleUrl(
         completionState: schema.postAnalysisMetadata.completionState,
         receivedReviewCopy: schema.postAnalysisMetadata.receivedReviewCopy,
         reviewCopyProvider: schema.postAnalysisMetadata.reviewCopyProvider,
+        gameSlug: schema.games.slug,
+        gameTitle: schema.games.title,
       })
       .from(schema.postLocalizations)
       .innerJoin(schema.posts, eq(schema.posts.id, schema.postLocalizations.postId))
@@ -131,6 +148,11 @@ export async function resolveArticleUrl(
         schema.platforms,
         eq(schema.platforms.id, schema.postAnalysisMetadata.playedPlatformId)
       )
+      // Joined from `posts` rather than from the analysis row, because that is
+      // where `game_id` lives — an opinion piece can name a game too. Still one
+      // query: a seventh join costs nothing against the 50 a Worker invocation
+      // is allowed, while a second round trip would (ADR-0016).
+      .leftJoin(schema.games, eq(schema.games.id, schema.posts.gameId))
       .where(
         and(
           eq(schema.postLocalizations.locale, criteria.locale),
@@ -192,6 +214,13 @@ export async function resolveArticleUrl(
               receivedReviewCopy: live.receivedReviewCopy,
               reviewCopyProvider: live.reviewCopyProvider,
             },
+      // Both columns are `NOT NULL` on `games`, so either the join found a row
+      // and they are both present, or the post names no game at all. Checking
+      // one of them would leave the other's type merely asserted.
+      game:
+        live.gameSlug !== null && live.gameTitle !== null
+          ? { slug: live.gameSlug, title: live.gameTitle }
+          : null,
     },
   };
 }
