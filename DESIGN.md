@@ -161,7 +161,7 @@ This project uses **Base UI**, not Radix.
 | `@shadcn`                        | Configured                        |
 | [Coss UI](https://coss.com/ui)   | To add — built on Base UI         |
 | [ReUI](https://reui.io)          | To add — **Base UI variant only** |
-| [chanhdai](https://chanhdai.com) | Rejected pending audit            |
+| [chanhdai](https://chanhdai.com) | Rejected — audited, see below     |
 
 **No component that pulls in `@radix-ui/*` enters this project.**
 
@@ -229,8 +229,15 @@ the post belongs to a collection)_ → `CopyLinkButton` → `SiteFooter`
 
 - **Primitives:** `breadcrumb` (cva), `badge` (cva), `separator` (cva), `avatar`
   (cva), `scroll-area` (React, only when the TOC is long)
-- **Islands:** `TocScrollSpy` (`client:visible`), `CopyLinkButton`
+- **Islands:** `TocScrollSpy` (`client:idle`), `CopyLinkButton`
   (`client:visible`)
+- **Table of contents:** the two presentations are **separate markup**, not one
+  tree restyled at a breakpoint. A single `<details>` forced open on desktop
+  renders correctly and still never enters WebKit's accessibility tree, so the
+  outline would be on screen and invisible to a screen reader at once. Each
+  viewport gets the markup that is honest for it and `display: none` removes the
+  other. The mobile collapse is a native `<details>`, so it works with no
+  JavaScript at all.
 - **Data:** `post_localizations`, the published `post_revisions` row,
   `posts.cover_media_id`, `authors`, `post_analysis_metadata`,
   `post_revision_media` for inline placements, `post_tags`, `collection_posts`
@@ -351,13 +358,20 @@ an oversight.
 | `GameFactsPanel`           | `game/`       | `.astro`   | Developer, publisher, release date, platforms, genres                              |
 | `CollectionHeader`         | `collection/` | `.astro`   | Series title, description, post count                                              |
 | `SeriesNav`                | `collection/` | `.astro`   | Previous/next within the series                                                    |
-| `TocScrollSpy`             | `post/`       | **island** | `IntersectionObserver` over headings — `client:visible`                            |
+| `TocScrollSpy`             | `post/`       | **island** | `IntersectionObserver` over headings — `client:idle`, see the note below           |
 | `CopyLinkButton`           | `post/`       | **island** | `navigator.clipboard` — `client:visible`                                           |
 | `ThemeToggle`              | `nav/`        | **island** | `localStorage` — `client:load`                                                     |
 | `MobileNav`                | `nav/`        | **island** | Focus trap, keyboard dismissal — `client:idle`                                     |
 | `LocaleSwitcher`           | `nav/`        | **island** | `client:idle`; stays `.astro` if it is only a link                                 |
 
 Five islands. Everything else ships no JavaScript.
+
+**An island that renders `null` cannot use `client:visible`.** The directive
+observes the island's own placeholder, and a component returning nothing leaves
+one with no box — so the observer never fires and the island never hydrates.
+Nothing errors; the behaviour is simply absent. `TocScrollSpy` shipped this way
+and its highlight never worked once. Islands that decorate other elements rather
+than render their own take `client:idle`.
 
 This table covers **public** components only. Admin components live in
 `src/components/admin/`, are always `.tsx`, and are listed under
@@ -563,9 +577,12 @@ access, and the D1 test harness are in place.
 - **`--font-heading` is still inert.** Merriweather is installed and tokenized,
   but no selector consumes it; everything renders in Figtree until the rule lands
   in `@layer base`.
-- **`chanhdai` registry is unaudited.** Its TOC Minimap and Theme Toggle Effect
-  are genuinely useful. Adopting either requires confirming the entry declares no
-  `motion`/`framer-motion` dependency and ships no Radix primitive.
+- **`chanhdai` TOC Minimap: audited and rejected.** Its registry entry declares
+  `registryDependencies: ["hover-card", "@soundcn/u-mini-map-open"]` — the second
+  is a **sound**, played through `useSound` when the card opens. Independently of
+  that, it is built on hover, which does not exist on touch, so it cannot answer
+  the mobile problem it was suggested for. The Theme Toggle Effect from the same
+  registry is still unaudited and needs the same check before use.
 - **Search is unspecified.** `/es/buscar` and `/en/search` depend on indexing
   decisions that have not been made.
 - **No LCP target.** The budget above names the metric but not the number.
