@@ -7,10 +7,14 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // Safe to parallelise: the suite only reads, and it now runs against the
-  // built Worker rather than a Vite dev server, which was the thing that could
-  // invalidate modules mid-run under concurrent load.
-  workers: process.env.CI ? 2 : undefined,
+  // One worker on CI, two would be safe on paper: the suite only reads, and it
+  // runs against the built Worker rather than a Vite dev server. In practice a
+  // WebKit job reproducibly killed its own server — every request after the
+  // first few answered "connection refused", with wrangler logging an empty
+  // error before dying. Two WebKit instances plus node plus workerd on a 4 GB
+  // runner is the likeliest cause, though that is a mitigation rather than a
+  // diagnosis. Parallelism comes from the browser matrix, which is unaffected.
+  workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
     baseURL: baseUrl,
