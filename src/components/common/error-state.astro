@@ -39,40 +39,8 @@ const key = keys[status];
 const actionHref = `/${locale}/`;
 ---
 
-<main>
-  <h1>{t(key.title)}</h1>
-  <p>{t(key.body)}</p>
-  <a href={actionHref}>{t(key.action)}</a>
+<main class="mx-auto max-w-[34rem] px-6 py-24">
+  <h1 class="font-heading text-2xl leading-tight text-balance text-foreground">{t(key.title)}</h1>
+  <p class="mt-4 mb-8 leading-relaxed text-pretty text-muted-foreground">{t(key.body)}</p>
+  <a href={actionHref} class="text-primary underline underline-offset-4">{t(key.action)}</a>
 </main>
-
-<style>
-  main {
-    margin-inline: auto;
-    max-width: 34rem;
-    padding-inline: 1.5rem;
-    padding-block: 6rem;
-  }
-
-  h1 {
-    font-family: var(--font-heading);
-    font-size: 1.75rem;
-    line-height: 1.2;
-    text-wrap: balance;
-    color: var(--foreground);
-  }
-
-  p {
-    margin-block: 1rem 2rem;
-    font-family: var(--font-sans);
-    font-size: 1.0625rem;
-    line-height: 1.6;
-    color: var(--muted-foreground);
-    text-wrap: pretty;
-  }
-
-  a {
-    font-family: var(--font-sans);
-    color: var(--primary);
-    text-underline-offset: 0.25em;
-  }
-</style>

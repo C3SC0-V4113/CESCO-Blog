@@ -9,6 +9,16 @@
  * Every value here is a token. No colour and no radius is written literally, so
  * both themes stay correct without per-component work.
  *
+ * **This is the exception to ADR-0030, and the only one.** Components are styled
+ * with Tailwind utilities; scoped CSS is reserved for styling slotted content a
+ * component does not own. That is exactly this file's job — it sets a type scale
+ * across `h2`, `h3`, `p`, `pre` and `code` whose markup it never writes. As
+ * utilities that becomes `[&_h2]:font-heading [&_h2]:text-2xl [&_h2]:mt-10 …`
+ * repeated per element, which stops resembling the CSS it compiles to.
+ *
+ * Do not take this as licence to add scoped blocks elsewhere: a component's own
+ * markup gets utilities, where they read fine.
+ *
  * Scope note: this styles the content it wraps. The site-wide `@layer base`
  * rule that ADR-0021 also calls for — the one that makes `--font-heading`
  * non-inert everywhere — belongs with the design system, not here.
