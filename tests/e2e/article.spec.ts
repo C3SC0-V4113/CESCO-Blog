@@ -169,6 +169,94 @@ test('anchors the table of contents at block ids, not heading text', async ({ pa
   await expect(link).toHaveAttribute('href', /^#[0-9a-f-]{36}$/);
 });
 
+test.describe('table of contents', () => {
+  test('marks the heading being read', async ({ page }) => {
+    // The guard that was missing, and its absence is why the highlight could
+    // ship broken: the scroll spy hydrated on `client:visible` while rendering
+    // `null`, so its placeholder had no box for the visibility observer to see
+    // and the island never woke up. Nothing failed, because nothing asked.
+    //
+    // Scrolled by pixels rather than with `scrollIntoViewIfNeeded`, which lands
+    // headings anywhere in the viewport — including below the upper band the
+    // observer's `rootMargin` restricts it to, where not marking is correct.
+    await page.goto(ES_ARTICLE);
+    await expect(page.locator('[data-toc-link][aria-current]')).toHaveCount(0);
+
+    await page.evaluate(() => window.scrollTo(0, 900));
+
+    // Two, not one: the outline exists twice in the document — the mobile
+    // disclosure and the desktop sidebar — and only one is displayed at a time.
+    // Both are marked, so the highlight is correct whichever one the viewport
+    // is showing.
+    await expect(page.locator('[data-toc-link][aria-current]')).toHaveCount(2);
+  });
+
+  test('keeps the outline open beside the article on desktop', async ({ page }) => {
+    // DESIGN.md: "aside on desktop". No interaction should be needed to read it,
+    // and the disclosure control has no business being there.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(ES_ARTICLE);
+
+    const toc = page.getByRole('navigation', { name: 'Contenido' });
+    await expect(toc.getByRole('link', { name: 'El silencio como herramienta' })).toBeVisible();
+    await expect(page.locator('summary')).toBeHidden();
+  });
+
+  test.describe('narrow screens', () => {
+    test.use({ viewport: { width: 375, height: 812 } });
+
+    test('starts collapsed and opens on tap', async ({ page }) => {
+      // DESIGN.md: "collapsed above content on mobile". Native `<details>`, so
+      // this works with no JavaScript at all.
+      await page.goto(ES_ARTICLE);
+
+      const link = page
+        .getByRole('navigation', { name: 'Contenido' })
+        .getByRole('link', { name: 'El silencio como herramienta' });
+
+      await expect(link).toBeHidden();
+
+      await page.locator('summary').click();
+
+      await expect(link).toBeVisible();
+    });
+
+    test('stays reachable from the middle of the article', async ({ page }) => {
+      // The reason it is sticky. An outline you can only reach by scrolling back
+      // to the top is an outline you stop using.
+      await page.goto(ES_ARTICLE);
+      await page.evaluate(() => window.scrollTo(0, 1200));
+
+      const summary = page.locator('summary');
+      const box = await summary.boundingBox();
+
+      expect(box).not.toBeNull();
+      expect(box!.y).toBeLessThan(200);
+      expect(box!.y + box!.height).toBeGreaterThan(0);
+    });
+  });
+});
+
+test.describe('without JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('still opens the outline and follows its links', async ({ page }) => {
+    // The collapse is a platform disclosure widget, not an island, so it keeps
+    // working when the island never arrives. Only the highlight is lost.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto(ES_ARTICLE);
+
+    await page.locator('summary').click();
+
+    const link = page
+      .getByRole('navigation', { name: 'Contenido' })
+      .getByRole('link', { name: 'El silencio como herramienta' });
+
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute('href', /^#[0-9a-f-]{36}$/);
+  });
+});
+
 test('renders the review-copy disclosure rather than merely storing it', async ({ page }) => {
   // ADR-0012 is explicit that this has to be on the page. A disclosure nobody
   // reads is not a disclosure.
