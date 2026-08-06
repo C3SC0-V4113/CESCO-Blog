@@ -20,10 +20,16 @@ test('carries the chrome on every page', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Cesco Blog' })).toBeVisible();
 });
 
-test('links the locale switch at the other language', async ({ page }) => {
+test('offers the languages behind a control, not among the destinations', async ({ page }) => {
+  // The picker is something you change, not somewhere you go. It reads as a
+  // button rather than a nav link, and the alternatives appear on activation.
   await page.goto(ES_ARTICLE);
 
-  await expect(page.getByRole('link', { name: 'Cambiar idioma' })).toHaveAttribute('href', '/en/');
+  const trigger = page.getByRole('button', { name: 'Cambiar idioma' });
+  await expect(trigger).toBeVisible();
+
+  await trigger.click();
+  await expect(page.getByRole('menuitem', { name: 'English' })).toHaveAttribute('href', '/en/');
 });
 
 test('offers a skip link before anything else', async ({ page }) => {
