@@ -69,6 +69,9 @@ const es = {
   'listing.next': 'Siguiente',
   'listing.latest': 'Lo último',
   'listing.featured': 'Destacado',
+  'listing.pagination': 'Paginación',
+  'listing.morePages': 'Más páginas',
+  'listing.goToPage': 'Ir a la página',
 
   'error.404.title': 'Esta página no existe',
   'error.404.body': 'Esta dirección no corresponde a ninguna publicación.',
@@ -141,6 +144,9 @@ const en = {
   'listing.next': 'Next',
   'listing.latest': 'Latest',
   'listing.featured': 'Featured',
+  'listing.pagination': 'Pagination',
+  'listing.morePages': 'More pages',
+  'listing.goToPage': 'Go to page',
 
   'error.404.title': 'This page does not exist',
   'error.404.body': 'The address you are looking for does not match any post.',
