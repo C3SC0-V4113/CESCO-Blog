@@ -97,6 +97,16 @@ pnpm dev
 pnpm build
 ```
 
+The quality gate before any commit is two commands, because `check` does not run
+Playwright:
+
+```sh
+pnpm run check && pnpm run test:e2e
+```
+
+See [AGENTS.md](AGENTS.md) for what each covers and for the two Windows-only
+failure modes that look like broken code and are not.
+
 ## Database and Cloudflare local development
 
 The content database is Cloudflare D1, with schema and migrations managed by
