@@ -52,13 +52,17 @@ export default function TocScrollSpy({ ids }: Props) {
 
   useEffect(() => {
     for (const id of ids) {
-      const link = document.querySelector(`[data-toc-link="${id}"]`);
-      if (!link) continue;
-
-      if (id === activeId) {
-        link.setAttribute('aria-current', 'true');
-      } else {
-        link.removeAttribute('aria-current');
+      // `querySelectorAll`, not `querySelector`: the outline is rendered twice —
+      // once in the mobile disclosure, once in the desktop sidebar — and only
+      // one of them is displayed at a time. Marking the first match alone would
+      // highlight whichever copy happens to come first in the document, which is
+      // the mobile one, and leave the visible desktop outline untouched.
+      for (const link of document.querySelectorAll(`[data-toc-link="${id}"]`)) {
+        if (id === activeId) {
+          link.setAttribute('aria-current', 'true');
+        } else {
+          link.removeAttribute('aria-current');
+        }
       }
     }
   }, [activeId, ids]);
