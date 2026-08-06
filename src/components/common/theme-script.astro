@@ -1,0 +1,29 @@
+---
+/**
+ * Applies the stored theme before the first paint.
+ *
+ * Lives in its own component rather than inline in the layout for one reason:
+ * it is the only JavaScript the public site runs that is not an island, and
+ * burying it among the meta tags made the layout read as though it were more
+ * complicated than it is.
+ *
+ * It has to stay a **blocking inline script in the head**. Anything that waits
+ * for hydration — or for a module to load — paints the default theme first and
+ * then corrects it, which is the flash the toggle exists to avoid.
+ */
+---
+
+<script is:inline>
+  try {
+    const stored = localStorage.getItem('theme');
+    const prefersDark =
+      stored === null && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (stored === 'dark' || prefersDark) {
+      document.documentElement.classList.add('dark');
+    }
+  } catch {
+    // Storage can be unavailable in a private or blocked context. Falling
+    // through leaves the light theme, which is the correct default.
+  }
+</script>
