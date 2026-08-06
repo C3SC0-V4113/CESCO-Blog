@@ -28,7 +28,15 @@ test('offers the languages behind a control, not among the destinations', async 
   const trigger = page.getByRole('button', { name: 'Cambiar idioma' });
   await expect(trigger).toBeVisible();
 
-  await trigger.click();
+  // Retried as a unit because the picker hydrates on `client:idle`: a click
+  // that lands before hydration does nothing, and WebKit reaches idle later
+  // than the others. Waiting on a hydration marker instead would test Astro's
+  // implementation detail rather than the behaviour a reader gets.
+  await expect(async () => {
+    await trigger.click();
+    await expect(page.getByRole('menuitem', { name: 'English' })).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+
   await expect(page.getByRole('menuitem', { name: 'English' })).toHaveAttribute('href', '/en/');
 });
 

@@ -49,15 +49,15 @@ test('never hydrates the article body', async ({ page }) => {
 
 test('keeps the article page inside its island budget', async ({ page }) => {
   // DESIGN.md budgets five islands for the entire public site and states that
-  // everything else ships no JavaScript. The article page spends exactly one of
-  // them today, on the theme toggle.
+  // everything else ships no JavaScript. The article page spends two of them on
+  // chrome: the language picker and the theme toggle.
   //
   // The number is the point: this fails when an island is added here, which
   // forces the addition to be a decision someone made rather than one that
   // arrived with a component.
   await page.goto(ES_ARTICLE);
 
-  await expect(page.locator('astro-island')).toHaveCount(1);
+  await expect(page.locator('astro-island')).toHaveCount(2);
 });
 
 test('anchors headings by block id rather than by their text', async ({ page }) => {

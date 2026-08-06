@@ -1,6 +1,6 @@
 ---
 import LocaleSwitcher from '@/components/nav/locale-switcher';
-import ThemeToggle from '@/components/nav/theme-toggle.astro';
+import ThemeToggle from '@/components/nav/theme-toggle';
 import { locales } from '@/i18n/locales';
 import { getTranslations } from '@/i18n/utils';
 import { mainNavItems } from '@/lib/navigation';
@@ -10,9 +10,10 @@ import type { Locale } from '@/i18n/locales';
 /**
  * Global chrome (ADR-0021, DESIGN.md).
  *
- * Static markup apart from the language picker, which is the one island the
- * header ships. The theme toggle is a plain button styled through `cva`
- * (ADR-0019) — it needed four lines of DOM work, not a component framework.
+ * Static markup apart from two islands: the language picker and the theme
+ * toggle. Both are behavior — dismissal, focus, storage — which is what
+ * ADR-0019 reserves React for, and both are built from registry primitives
+ * rather than assembled by hand (ADR-0020).
  *
  * The navigation renders whatever `mainNavItems` says is live. The bar is not
  * waiting on markup; it is waiting on routes, and linking to them early would
@@ -78,7 +79,7 @@ const localeOptions = locales.map((option) => ({
 
     <div class="ml-auto flex items-center gap-1">
       <LocaleSwitcher client:idle triggerLabel={t('locale.switch')} options={localeOptions} />
-      <ThemeToggle locale={locale} />
+      <ThemeToggle client:idle label={t('theme.toggle')} />
     </div>
   </div>
 </header>
