@@ -1,0 +1,120 @@
+---
+import { ChevronDown } from 'lucide-react';
+
+import TocList from '@/components/post/toc-list.astro';
+import TocScrollSpy from '@/components/post/toc-scroll-spy';
+import { getTranslations } from '@/i18n/utils';
+
+import type { Locale } from '@/i18n/locales';
+import type { TocEntry } from '@/lib/content/schema';
+
+/**
+ * Heading outline for the article (ADR-0012, DESIGN.md).
+ *
+ * Every anchor is a **block ID**, never a slug of the heading text. That is the
+ * whole reason the derivation exists: rewording a heading must not break a deep
+ * link or a table-of-contents entry, and text-derived anchors break both
+ * silently.
+ *
+ * DESIGN.md asks for "aside on desktop, collapsed above content on mobile", and
+ * the two are rendered as **separate markup** rather than one tree restyled at
+ * a breakpoint. That looks like duplication and is the only correct option:
+ *
+ * The obvious approach is a single `<details>`, closed for mobile, forced open
+ * on desktop by overriding `::details-content`. It renders — measured, the panel
+ * computes to `display: block` at 76px in all three engines. But WebKit still
+ * treats a closed `<details>` as semantically hidden, so its contents never
+ * enter the accessibility tree: the outline was on screen and invisible to a
+ * screen reader at the same time. Pixels are not the contract.
+ *
+ * So each viewport gets the markup that is honest for it, and `display: none`
+ * takes the other out of the accessibility tree entirely — which it does
+ * reliably, unlike the reverse. `TocList` is shared so the anchors cannot drift.
+ *
+ * The mobile collapse is a native `<details>` rather than an island. A
+ * disclosure widget is the one interaction the platform already ships, so
+ * spending React on it would buy nothing and cost hydration. Sticky and
+ * collapsed, the outline stays one tap away from anywhere in the article rather
+ * than only from the top of it.
+ *
+ * The landmark is labelled with `aria-label`, not `aria-labelledby`. The obvious
+ * target for that would be the `<summary>`, which does not exist on desktop —
+ * and a landmark whose label depends on which breakpoint you are at is a
+ * landmark that loses its name at one of them.
+ *
+ * `lg:h-full` on the landmark is what makes the desktop sidebar actually stick.
+ * A sticky element is constrained by its **containing block**, which is its
+ * parent — not the column it appears to live in. Without it the `<nav>` shrank
+ * to the height of the outline itself, giving the sticky panel inside it zero
+ * room to travel, so it scrolled away with the article while `position: sticky`
+ * sat there computing correctly. Measured: parent 76px, child 76px, travel nil.
+ *
+ * Server-rendered throughout. The scroll spy beside it is an island that only
+ * adds the highlight, so with JavaScript disabled this stays a working list of
+ * links that still opens and closes.
+ */
+
+interface Props {
+  locale: Locale;
+  entries: TocEntry[];
+}
+
+const { locale, entries } = Astro.props;
+const t = getTranslations(locale);
+
+// Only the top two levels. Deeper headings make the outline longer than the
+// article is navigable, and the derivation deliberately stores every level so
+// this choice stays a presentation one.
+const shown = entries.filter((entry) => entry.level <= 3);
+---
+
+{
+  shown.length > 0 && (
+    <nav aria-label={t('post.tableOfContents')} class="lg:h-full">
+      <details class="group rounded-md border border-border bg-background lg:hidden">
+        <summary class="flex cursor-pointer items-center justify-between gap-2 p-4 text-xs tracking-wide text-muted-foreground uppercase marker:content-none [&::-webkit-details-marker]:hidden">
+          {t('post.tableOfContents')}
+
+          {/*
+            Lucide, like every other icon here — `components.json` names it as
+            the icon library and a hand-rolled path would be the only one in the
+            tree, drifting in stroke weight and size the moment anything around
+            it changed.
+
+            Imported into `.astro` with **no client directive**, so Astro renders
+            it to markup on the server and it costs nothing at runtime. The
+            rotation is `transform` only, under ADR-0022, and it turns rather
+            than swapping glyphs so there is one element to animate.
+          */}
+          <ChevronDown
+            aria-hidden="true"
+            className="size-4 shrink-0 transition-transform duration-150 ease-[var(--ease-out-quad)] group-open:rotate-180 motion-reduce:transition-none"
+          />
+        </summary>
+
+        <div class="px-4 pb-4">
+          <TocList entries={shown} />
+        </div>
+      </details>
+
+      <div class="hidden lg:sticky lg:top-8 lg:block">
+        <h2 class="text-xs tracking-wide text-muted-foreground uppercase">
+          {t('post.tableOfContents')}
+        </h2>
+
+        <div class="mt-3">
+          <TocList entries={shown} />
+        </div>
+      </div>
+
+      {/*
+        `client:idle`, not `client:visible`, and the difference was a real bug:
+        this component renders `null`, so Astro's placeholder has no box at all,
+        and the visibility observer never reliably fired. The highlight simply
+        never appeared. An island that decorates other elements cannot be
+        triggered by its own visibility, because it has nothing to be visible.
+      */}
+      <TocScrollSpy client:idle ids={shown.map((entry) => entry.id)} />
+    </nav>
+  )
+}

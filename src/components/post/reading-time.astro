@@ -1,0 +1,29 @@
+---
+import { getTranslations } from '@/i18n/utils';
+
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * Reading estimate, read from the column rather than computed here (ADR-0012).
+ *
+ * The value was derived once at publish time from an immutable revision, so it
+ * cannot drift from its source and the Worker does not reparse rich text on
+ * every uncached render.
+ */
+
+interface Props {
+  locale: Locale;
+  minutes: number | null;
+}
+
+const { locale, minutes } = Astro.props;
+const t = getTranslations(locale);
+---
+
+{
+  minutes !== null && (
+    <span class="text-sm text-muted-foreground">
+      {minutes} {t('post.readingTime')}
+    </span>
+  )
+}

@@ -4,7 +4,7 @@
 // understands the `@/` alias. ADR-0017 requires the seed and the future admin to
 // share this module rather than duplicate it, so it has to stay loadable from
 // both runtimes.
-import type { ContentBlock, ContentDoc } from './schema.ts';
+import type { ContentBlock, ContentDoc, TocEntry } from './schema.ts';
 
 /**
  * Derivation of the values persisted on `post_revisions` (ADR-0012).
@@ -24,13 +24,6 @@ import type { ContentBlock, ContentDoc } from './schema.ts';
  * stable — an article whose estimate shifts between publishes looks broken.
  */
 const WORDS_PER_MINUTE = 200;
-
-export type TocEntry = {
-  /** The block ID. Never a slug of the heading text — see `deriveToc`. */
-  id: string;
-  level: number;
-  text: string;
-};
 
 /** Concatenates a block's text nodes. Leaf nodes such as images contribute nothing. */
 function blockText(block: ContentBlock): string {

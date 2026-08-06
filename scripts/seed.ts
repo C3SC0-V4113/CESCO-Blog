@@ -239,6 +239,36 @@ for (const locale of [
 }
 
 /**
+ * The structured facts behind the analysis (ADR-0012).
+ *
+ * The platform is a reference rather than free text, so the same console cannot
+ * arrive spelled three ways across posts.
+ */
+const PLATFORM_ID = '3f8a2b1c-5d6e-4a7b-8c9d-0e1f2a3b4c5d';
+
+push(
+  db.insert(schema.platforms).values({
+    id: PLATFORM_ID,
+    slug: 'pc',
+    name: 'PC',
+  })
+);
+
+push(
+  db.insert(schema.postAnalysisMetadata).values({
+    postId: POST_ID,
+    playedPlatformId: PLATFORM_ID,
+    playtimeHours: 24,
+    completionState: 'completed',
+    // Set so the local site actually renders the disclosure. ADR-0012 requires
+    // it to be visible on the page rather than merely stored, and a seed where
+    // it never fires cannot show whether that holds.
+    receivedReviewCopy: true,
+    reviewCopyProvider: 'Estudio Ejemplo',
+  })
+);
+
+/**
  * Two states the URL lifecycle has to answer for, which a set of happily
  * published posts can never exercise (ADR-0010).
  *

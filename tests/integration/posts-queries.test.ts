@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 
 import { schema } from '@/db/client';
@@ -192,5 +193,91 @@ describe('resolveArticleUrl', () => {
     const resolution = await resolveArticleUrl(db, { ...ES_ANALYSIS, slug: 'revisado' });
 
     expect(resolution.kind === 'render' && resolution.post.title).toBe('Publicada');
+  });
+});
+
+describe('resolveArticleUrl metadata', () => {
+  async function postAt(db: ReturnType<typeof testDb>, slug: string) {
+    const resolution = await resolveArticleUrl(db, { ...ES_ANALYSIS, slug });
+    if (resolution.kind !== 'render') throw new Error(`expected a render, got ${resolution.kind}`);
+    return resolution.post;
+  }
+
+  it('carries the byline, the derived fields and the section', async () => {
+    const db = testDb();
+    await seedPost(db, {
+      withAuthor: true,
+      localizations: [{ locale: 'es', slug: 'con-autor', publishedAt: PUBLISHED }],
+    });
+
+    const post = await postAt(db, 'con-autor');
+
+    expect(post.authorName).toBe('Cesco Valle');
+    expect(post.readingTimeMinutes).toBe(5);
+    expect(post.section).toBe('analysis');
+    // First publication, not the latest — the byline date must survive an
+    // unpublish and republish cycle (ADR-0010).
+    expect(post.publishedAt).toBe(PUBLISHED);
+  });
+
+  it('treats a missing table of contents as empty rather than an error', async () => {
+    // Revisions written before the derivation existed have no TOC, and an
+    // article with no headings correctly has nothing to list.
+    const db = testDb();
+    await seedPost(db, {
+      localizations: [{ locale: 'es', slug: 'sin-toc', publishedAt: PUBLISHED }],
+    });
+
+    expect((await postAt(db, 'sin-toc')).toc).toEqual([]);
+  });
+
+  it('reads a stored table of contents', async () => {
+    const db = testDb();
+    const seeded = await seedPost(db, {
+      localizations: [{ locale: 'es', slug: 'con-toc', publishedAt: PUBLISHED }],
+    });
+
+    await db
+      .update(schema.postRevisions)
+      .set({ tocJson: [{ id: 'bloque-1', level: 2, text: 'El combate' }] })
+      .where(eq(schema.postRevisions.id, seeded.localizations[0]!.revisionId));
+
+    expect((await postAt(db, 'con-toc')).toc).toEqual([
+      { id: 'bloque-1', level: 2, text: 'El combate' },
+    ]);
+  });
+
+  it('carries analysis metadata when the post has a row', async () => {
+    const db = testDb();
+    await seedPost(db, {
+      reviewCopyFrom: 'Estudio Ejemplo',
+      localizations: [{ locale: 'es', slug: 'con-copia', publishedAt: PUBLISHED }],
+    });
+
+    const post = await postAt(db, 'con-copia');
+
+    expect(post.analysis?.receivedReviewCopy).toBe(true);
+    expect(post.analysis?.reviewCopyProvider).toBe('Estudio Ejemplo');
+  });
+
+  it('reports no analysis metadata when the post has no row', async () => {
+    // The distinction that matters: "there is no metadata" is not the same as
+    // "the metadata says no review copy", and only the second should render a
+    // disclosure decision either way.
+    const db = testDb();
+    await seedPost(db, {
+      localizations: [{ locale: 'es', slug: 'sin-metadata', publishedAt: PUBLISHED }],
+    });
+
+    expect((await postAt(db, 'sin-metadata')).analysis).toBeNull();
+  });
+
+  it('leaves the author null when the post has none', async () => {
+    const db = testDb();
+    await seedPost(db, {
+      localizations: [{ locale: 'es', slug: 'sin-autor', publishedAt: PUBLISHED }],
+    });
+
+    expect((await postAt(db, 'sin-autor')).authorName).toBeNull();
   });
 });

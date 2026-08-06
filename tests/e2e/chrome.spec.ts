@@ -75,8 +75,15 @@ test('applies the stored theme before paint and remembers the choice', async ({ 
   await page.goto(ES_ARTICLE);
   await expect(page.locator('html')).not.toHaveClass(/dark/);
 
-  await page.getByRole('button', { name: 'Cambiar tema' }).click();
-  await expect(page.locator('html')).toHaveClass(/dark/);
+  // Retried as a unit for the same reason as the language picker: the toggle
+  // hydrates on `client:idle`, and a click that lands before hydration does
+  // nothing at all. The click and the assertion have to travel together —
+  // retrying a bare click would toggle twice once hydration caught up and land
+  // back on light, turning a flake into a wrong answer.
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Cambiar tema' }).click();
+    await expect(page.locator('html')).toHaveClass(/dark/, { timeout: 1_000 });
+  }).toPass();
 
   // The real assertion is what survives a reload. A theme applied during
   // hydration rather than by the blocking head script would paint light first

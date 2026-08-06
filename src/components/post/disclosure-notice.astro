@@ -1,0 +1,30 @@
+---
+import { getTranslations } from '@/i18n/utils';
+
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * Review-copy disclosure (ADR-0012).
+ *
+ * ADR-0012 requires this to be **visible on the page**, not merely stored — a
+ * disclosure nobody reads is not a disclosure. DESIGN.md repeats the point:
+ * it "renders rather than merely existing".
+ *
+ * The sentence is localized from the dictionary rather than stored per post,
+ * because the structured facts are locale-neutral and only the wording is not.
+ * A free-form note would be localized content and would belong on a
+ * per-localization table instead.
+ */
+
+interface Props {
+  locale: Locale;
+  provider: string | null;
+}
+
+const { locale, provider } = Astro.props;
+const t = getTranslations(locale);
+---
+
+<aside class="rounded-md border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
+  {provider ? `${t('disclosure.reviewCopyFrom')} ${provider}.` : t('disclosure.reviewCopy')}
+</aside>
