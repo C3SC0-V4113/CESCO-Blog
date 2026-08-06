@@ -1,0 +1,85 @@
+---
+import LocaleSwitcher from '@/components/nav/locale-switcher';
+import ThemeToggle from '@/components/nav/theme-toggle';
+import { locales } from '@/i18n/locales';
+import { getTranslations } from '@/i18n/utils';
+import { mainNavItems } from '@/lib/navigation';
+
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * Global chrome (ADR-0021, DESIGN.md).
+ *
+ * Static markup apart from two islands: the language picker and the theme
+ * toggle. Both are behavior — dismissal, focus, storage — which is what
+ * ADR-0019 reserves React for, and both are built from registry primitives
+ * rather than assembled by hand (ADR-0020).
+ *
+ * The navigation renders whatever `mainNavItems` says is live. The bar is not
+ * waiting on markup; it is waiting on routes, and linking to them early would
+ * fill the header with `404`s.
+ *
+ * Controls are grouped to the right and separated from the section links,
+ * because a language picker is something you *change*, not somewhere you *go* —
+ * styled like a nav link it reads as a destination.
+ *
+ * The picker still points at each locale's home rather than the equivalent
+ * page. Finding that page means resolving the sibling localization's slug,
+ * which is the same lookup `hreflang` needs (ADR-0013), so both arrive together
+ * rather than this one guessing.
+ */
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getTranslations(locale);
+
+const navItems = mainNavItems(locale);
+
+const localeOptions = locales.map((option) => ({
+  locale: option,
+  label: t(option === 'es' ? 'locale.es' : 'locale.en'),
+  href: `/${option}/`,
+  current: option === locale,
+}));
+---
+
+<a
+  href="#main"
+  class="sr-only bg-background text-foreground focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:px-4 focus:py-2 focus:ring-2 focus:ring-ring"
+>
+  {t('nav.skipToContent')}
+</a>
+
+<header class="border-b border-border">
+  <div class="mx-auto flex h-16 max-w-5xl items-center gap-6 px-6">
+    <a
+      href={`/${locale}/`}
+      class="font-heading text-lg text-foreground transition-colors duration-150 hover:text-primary"
+    >
+      Cesco Blog
+    </a>
+
+    {
+      navItems.length > 0 && (
+        <nav aria-label={t('nav.menu')} class="hidden items-center gap-4 sm:flex">
+          {navItems.map((item) => (
+            <a
+              href={item.href}
+              class="text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground"
+            >
+              {t(item.key)}
+            </a>
+          ))}
+        </nav>
+      )
+    }
+
+    <div class="ml-auto flex items-center gap-1">
+      <LocaleSwitcher client:idle triggerLabel={t('locale.switch')} options={localeOptions} />
+      <ThemeToggle client:idle label={t('theme.toggle')} />
+    </div>
+  </div>
+</header>
