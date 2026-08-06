@@ -1,0 +1,70 @@
+---
+import ErrorState from '@/components/common/error-state.astro';
+import SeoHead from '@/components/common/seo-head.astro';
+import PostCard from '@/components/post/post-card.astro';
+import { findTag, listPostsByTag } from '@/db/queries/taxonomy';
+import { getTranslations, resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+import { cacheTagHeader } from '@/lib/cache-tags';
+import { getDb } from '@/lib/runtime';
+
+/**
+ * A tag surface (ADR-0012).
+ *
+ * A tag is a label, not a publishable entity: it has no
+ * status and no publication date, so a URL naming one that does not exist
+ * answers a plain 404. There is no 410 here because there was never anything to
+ * withdraw (ADR-0010).
+ *
+ * The posts listed still obey the full rule — only servable localizations — so
+ * this cannot become a back door to a withdrawn article.
+ */
+
+const locale = resolveLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+const { slug } = Astro.params;
+
+const db = getDb();
+const tag = slug ? await findTag(db, slug) : null;
+const posts = tag ? await listPostsByTag(db, tag.slug, locale) : [];
+
+if (tag) {
+  Astro.response.headers.set('Cache-Tag', cacheTagHeader([`tag-${tag.slug}`, `locale-${locale}`]));
+} else {
+  Astro.response.status = 404;
+  Astro.response.headers.set('Cache-Control', 'public, max-age=300');
+}
+---
+
+<Layout>
+  {
+    tag && (
+      <Fragment slot="head">
+        <SeoHead locale={locale} title={tag.name} path={`/en/tags/${slug}`} />
+      </Fragment>
+    )
+  }
+
+  {
+    tag ? (
+      <main class="mx-auto max-w-3xl px-6 pt-12 pb-20">
+        <header class="mb-8">
+          <p class="text-xs tracking-wide text-muted-foreground uppercase">{t('post.tags')}</p>
+          <h1 class="mt-2 text-3xl leading-tight text-balance">{tag.name}</h1>
+        </header>
+
+        {posts.length === 0 ? (
+          <p class="text-muted-foreground">{t('listing.empty')}</p>
+        ) : (
+          <div>
+            {posts.map((post) => (
+              <PostCard locale={locale} post={post} />
+            ))}
+          </div>
+        )}
+      </main>
+    ) : (
+      <ErrorState locale={locale} status={404} />
+    )
+  }
+</Layout>
