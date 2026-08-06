@@ -1,0 +1,35 @@
+---
+import type { TocEntry } from '@/lib/content/schema';
+
+/**
+ * The outline itself, without any of the presentation around it.
+ *
+ * Extracted because the article renders it twice — once inside the mobile
+ * disclosure, once in the desktop sidebar — and the anchors are the part that
+ * must not drift between the two.
+ *
+ * Every `href` is a **block ID**, never a slug of the heading text (ADR-0012).
+ */
+
+interface Props {
+  entries: TocEntry[];
+}
+
+const { entries } = Astro.props;
+---
+
+<ol class="space-y-2 text-sm">
+  {
+    entries.map((entry) => (
+      <li class={entry.level === 3 ? 'ps-4' : undefined}>
+        <a
+          href={`#${entry.id}`}
+          data-toc-link={entry.id}
+          class="text-muted-foreground transition-colors duration-150 hover:text-foreground aria-[current]:text-foreground"
+        >
+          {entry.text}
+        </a>
+      </li>
+    ))
+  }
+</ol>
