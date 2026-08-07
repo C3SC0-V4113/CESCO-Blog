@@ -39,6 +39,7 @@ export function mainNavItems(locale: Locale): NavItem[] {
     { key: 'nav.blog', href: `/${locale}/blog` },
     { key: 'nav.analysis', href: sectionPath(locale, 'analysis') },
     { key: 'nav.opinion', href: sectionPath(locale, 'opinion') },
+    { key: 'nav.series', href: `/${locale}/series` },
   ];
 }
 

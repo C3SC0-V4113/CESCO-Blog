@@ -173,10 +173,57 @@ export async function withdraw(db: Db, localizationId: string): Promise<void> {
  * assertions depend on which tests ran before it — the kind of failure that
  * appears only when a file is run in a different order.
  *
- * Deleting posts cascades to localizations and revisions; authors have no
- * parent, so they go separately.
+ * Deleting posts and collections cascades to their localizations, revisions and
+ * membership rows; authors have no parent, so they go separately.
  */
 export async function resetContent(db: Db): Promise<void> {
   await db.delete(schema.posts);
+  await db.delete(schema.collections);
   await db.delete(schema.authors);
+}
+
+type CollectionSpec = {
+  locale: Locale;
+  slug: string;
+  title?: string;
+  /** Omit to leave it a never-published draft. */
+  publishedAt?: string;
+  /** Published once and then withdrawn: keeps `firstPublishedAt`, drops status. */
+  withdrawn?: boolean;
+  editorialState?: 'active' | 'archived';
+  /** Post ids in the order the series should read. */
+  postIds?: string[];
+};
+
+/**
+ * Seeds a series and its ordered membership.
+ *
+ * Mirrors `seedPost` because the schema does: a collection is the same
+ * aggregate-plus-localizations shape, which is exactly what lets the URL
+ * lifecycle apply to both (ADR-0010, ADR-0012).
+ */
+export async function seedCollection(db: Db, spec: CollectionSpec): Promise<string> {
+  const collectionId = crypto.randomUUID();
+  const published = spec.publishedAt !== undefined;
+
+  await db.insert(schema.collections).values({
+    id: collectionId,
+    editorialState: spec.editorialState ?? 'active',
+  });
+
+  await db.insert(schema.collectionLocalizations).values({
+    id: crypto.randomUUID(),
+    collectionId,
+    locale: spec.locale,
+    slug: spec.slug,
+    title: spec.title ?? `Serie ${spec.slug}`,
+    status: published && !spec.withdrawn ? 'published' : 'draft',
+    firstPublishedAt: published ? spec.publishedAt : null,
+  });
+
+  for (const [index, postId] of (spec.postIds ?? []).entries()) {
+    await db.insert(schema.collectionPosts).values({ collectionId, postId, position: index });
+  }
+
+  return collectionId;
 }

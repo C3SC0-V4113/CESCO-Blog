@@ -1,0 +1,88 @@
+---
+import ErrorState from '@/components/common/error-state.astro';
+import SeoHead from '@/components/common/seo-head.astro';
+import PostCard from '@/components/post/post-card.astro';
+import { listCollectionPosts, resolveCollectionUrl } from '@/db/queries/collections';
+import { getTranslations, resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+import { cacheTagHeader } from '@/lib/cache-tags';
+import { getDb } from '@/lib/runtime';
+
+/**
+ * A series (ADR-0012).
+ *
+ * Answers 404 and 410 through the same resolver the article routes use — a
+ * withdrawn series URL behaves exactly like a withdrawn article (ADR-0010).
+ * There is no 301 arm because collections keep no slug history, which is also
+ * why their slugs must stay immutable after publication.
+ */
+
+const locale = resolveLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+const { slug } = Astro.params;
+
+const db = getDb();
+const resolution = slug
+  ? await resolveCollectionUrl(db, { locale, slug })
+  : ({ kind: 'not-found' } as const);
+
+const posts =
+  resolution.kind === 'render'
+    ? await listCollectionPosts(db, resolution.collection.collectionId, locale)
+    : [];
+
+if (resolution.kind === 'render') {
+  Astro.response.headers.set(
+    'Cache-Tag',
+    cacheTagHeader([`collection-${resolution.collection.collectionId}`, `locale-${locale}`])
+  );
+} else {
+  Astro.response.headers.set('Cache-Control', 'public, max-age=300');
+}
+
+if (resolution.kind === 'gone') Astro.response.status = 410;
+if (resolution.kind === 'not-found') Astro.response.status = 404;
+---
+
+<Layout>
+  {
+    resolution.kind === 'render' && (
+      <Fragment slot="head">
+        <SeoHead
+          locale={locale}
+          title={resolution.collection.title}
+          description={resolution.collection.description}
+          path={`/en/series/${slug}`}
+        />
+      </Fragment>
+    )
+  }
+
+  {
+    resolution.kind === 'render' ? (
+      <main class="mx-auto max-w-3xl px-6 pt-12 pb-20">
+        <header class="mb-8">
+          <p class="text-xs tracking-wide text-muted-foreground uppercase">{t('nav.series')}</p>
+          <h1 class="mt-2 text-3xl leading-tight text-balance">{resolution.collection.title}</h1>
+          {resolution.collection.description && (
+            <p class="mt-3 leading-relaxed text-pretty text-muted-foreground">
+              {resolution.collection.description}
+            </p>
+          )}
+        </header>
+
+        {posts.length === 0 ? (
+          <p class="text-muted-foreground">{t('listing.empty')}</p>
+        ) : (
+          <div>
+            {posts.map((post) => (
+              <PostCard locale={locale} post={post} />
+            ))}
+          </div>
+        )}
+      </main>
+    ) : (
+      <ErrorState locale={locale} status={resolution.kind === 'gone' ? 410 : 404} />
+    )
+  }
+</Layout>

@@ -64,13 +64,14 @@ test('does not link to a route that does not exist yet', async ({ page }) => {
   // the header with 404s.
   await page.goto(ES_ARTICLE);
 
-  // Series and search still have dictionary entries and no routes. Blog and the
-  // two sections dropped off this list when their pages landed, which is the
-  // list doing its job rather than being relaxed.
+  // Search is the last dictionary entry with no route: it depends on indexing
+  // decisions nobody has made. Blog, the two sections and series each dropped
+  // off this list as their pages landed — the list doing its job rather than
+  // being relaxed.
   //
   // `exact` matters: accessible names match as substrings by default, and
   // "Blog" is inside the "Cesco Blog" wordmark.
-  for (const name of ['Series', 'Buscar']) {
+  for (const name of ['Buscar']) {
     await expect(page.getByRole('banner').getByRole('link', { name, exact: true })).toHaveCount(0);
   }
 });
