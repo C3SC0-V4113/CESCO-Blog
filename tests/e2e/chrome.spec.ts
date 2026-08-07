@@ -110,3 +110,52 @@ test('now links the section routes it has pages for', async ({ page }) => {
   // Still no route, so still no link.
   await expect(header.getByRole('link', { name: 'Buscar', exact: true })).toHaveCount(0);
 });
+
+test.describe('narrow screens', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test('reaches the sections through a sheet when the row cannot hold them', async ({ page }) => {
+    // The links are hidden below `sm` so the header does not overflow. Without
+    // the sheet they would simply be unreachable on a phone.
+    await page.goto('/es/');
+
+    await expect(
+      page.getByRole('banner').getByRole('link', { name: 'Análisis', exact: true })
+    ).toBeHidden();
+
+    // Opening is retried as a unit, the same as the language picker and the
+    // theme toggle: the sheet hydrates on `client:idle` and a click that lands
+    // first does nothing. Opening is idempotent, so a retry costs an extra
+    // click and never a wrong state.
+    const sheet = page.getByRole('dialog');
+    await expect(async () => {
+      await page.getByRole('button', { name: 'Menú' }).click();
+      await expect(sheet).toBeVisible({ timeout: 1_000 });
+    }).toPass();
+
+    await expect(sheet.getByRole('link', { name: 'Análisis', exact: true })).toBeVisible();
+    await expect(sheet.getByRole('link', { name: 'Series', exact: true })).toBeVisible();
+  });
+
+  test('dismisses on Escape and returns focus to the trigger', async ({ page }) => {
+    // The half of a sheet that hand-rolled versions get wrong, and that nobody
+    // notices with a mouse.
+    await page.goto('/es/');
+
+    const trigger = page.getByRole('button', { name: 'Menú' });
+
+    // Same hydration retry as above. This is the test that caught it on WebKit:
+    // the click landed before `client:idle` fired, the sheet never opened, and
+    // the Escape assertion below was left describing a dialog that was never
+    // there.
+    await expect(async () => {
+      await trigger.click();
+      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 1_000 });
+    }).toPass();
+
+    await page.keyboard.press('Escape');
+
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+});

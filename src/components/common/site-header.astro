@@ -1,5 +1,6 @@
 ---
 import LocaleSwitcher from '@/components/nav/locale-switcher';
+import MobileNav from '@/components/nav/mobile-nav';
 import ThemeToggle from '@/components/nav/theme-toggle';
 import { locales } from '@/i18n/locales';
 import { getTranslations } from '@/i18n/utils';
@@ -10,14 +11,19 @@ import type { Locale } from '@/i18n/locales';
 /**
  * Global chrome (ADR-0021, DESIGN.md).
  *
- * Static markup apart from two islands: the language picker and the theme
- * toggle. Both are behavior — dismissal, focus, storage — which is what
- * ADR-0019 reserves React for, and both are built from registry primitives
- * rather than assembled by hand (ADR-0020).
+ * Static markup apart from three islands: the language picker, the theme
+ * toggle, and the section sheet below the `sm` breakpoint. All three are
+ * behavior — dismissal, focus, storage — which is what ADR-0019 reserves React
+ * for, and all three are built from registry primitives rather than assembled
+ * by hand (ADR-0020).
  *
  * The navigation renders whatever `mainNavItems` says is live. The bar is not
  * waiting on markup; it is waiting on routes, and linking to them early would
  * fill the header with `404`s.
+ *
+ * The section links are hidden below `sm`, where a wordmark, four destinations
+ * and two controls do not fit in one row. `MobileNav` carries them there, so
+ * they stay reachable on a phone rather than merely absent.
  *
  * Controls are grouped to the right and separated from the section links,
  * because a language picker is something you *change*, not somewhere you *go* —
@@ -80,6 +86,14 @@ const localeOptions = locales.map((option) => ({
     <div class="ml-auto flex items-center gap-1">
       <LocaleSwitcher client:idle triggerLabel={t('locale.switch')} options={localeOptions} />
       <ThemeToggle client:idle label={t('theme.toggle')} />
+
+      <div class="sm:hidden">
+        <MobileNav
+          client:idle
+          openLabel={t('nav.menu')}
+          items={navItems.map((item) => ({ label: t(item.key), href: item.href }))}
+        />
+      </div>
     </div>
   </div>
 </header>

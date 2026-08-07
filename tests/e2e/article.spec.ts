@@ -49,16 +49,25 @@ test('never hydrates the article body', async ({ page }) => {
 
 test('keeps the article page inside its island budget', async ({ page }) => {
   // DESIGN.md budgets five islands for the entire public site and states that
-  // everything else ships no JavaScript. The article page spends three of them:
-  // two on chrome — the language picker and the theme toggle — and one on the
-  // table-of-contents scroll spy.
+  // everything else ships no JavaScript. The article page spends four: the
+  // language picker, the theme toggle and the section sheet in the chrome, plus
+  // the table-of-contents scroll spy.
   //
-  // The number is the point, and it has already earned its keep — adding the
-  // scroll spy failed this test, which is what turns "an island appeared" into
-  // a decision someone made rather than one that arrived with a component.
+  // The number is the point, and it has earned its keep twice — once when the
+  // scroll spy arrived and once when the sheet did. Each time it turned "an
+  // island appeared" into a decision someone had to justify rather than one
+  // that slipped in with a component.
+  //
+  // The sheet counts even though CSS hides it above the `sm` breakpoint:
+  // hydration does not care about `display`, which is exactly the sort of cost
+  // that hides from a desktop-only look at the page.
+  //
+  // Four of five is worth noticing. The budget is nearly spent, and the two
+  // remaining public islands DESIGN.md names — the copy-link button and search
+  // — have to fit inside what is left.
   await page.goto(ES_ARTICLE);
 
-  await expect(page.locator('astro-island')).toHaveCount(3);
+  await expect(page.locator('astro-island')).toHaveCount(4);
 });
 
 test('anchors headings by block id rather than by their text', async ({ page }) => {
