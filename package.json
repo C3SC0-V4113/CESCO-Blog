@@ -30,7 +30,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply cesco-blog --local",
     "db:migrate:remote": "wrangler d1 migrations apply cesco-blog --remote",
-    "db:seed": "node --disable-warning=ExperimentalWarning scripts/seed.ts && wrangler d1 execute cesco-blog --local --file=.wrangler/seed.sql",
+    "db:seed": "node --disable-warning=ExperimentalWarning scripts/seed.ts && wrangler d1 execute cesco-blog --local --file=.wrangler/seed.sql && wrangler r2 object put cesco-blog-media/media/2026/08/6d1f8a90-2b3c-4d5e-8f70-1a2b3c4d5e6f.png --file=.wrangler/seed-media.png --content-type=image/png --local",
     "cf:types": "wrangler types src/env.d.ts",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run format:check && pnpm run test && pnpm run doctor:ci",
     "prepare": "husky"
