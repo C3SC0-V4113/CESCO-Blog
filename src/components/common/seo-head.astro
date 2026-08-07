@@ -1,0 +1,63 @@
+---
+import { absolute, buildAlternateLinks, ogAlternateLocales, ogLocale } from '@/lib/seo';
+
+import type { Locale } from '@/i18n/locales';
+import type { AlternateLocalization } from '@/lib/seo';
+
+/**
+ * The server-rendered SEO head (ADR-0013).
+ *
+ * Everything here is computed on the server from the URL locale and the
+ * published revision. None of it is an island, and none of it is deferred: a
+ * crawler that does not run JavaScript must see the same metadata a reader does.
+ *
+ * The `hreflang` set and the Open Graph locale pair are **separate concerns**
+ * that happen to share a source. `hreflang` uses the site's editorial locales
+ * (ADR-0027); Open Graph needs `language_TERRITORY`, so it carries a territory
+ * that means nothing editorially and never reaches a reader.
+ */
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description?: string | null | undefined;
+  /** Path of this page, used for the canonical. */
+  path: string;
+  /** Published localizations of this page, this locale included. */
+  alternates?: AlternateLocalization[] | undefined;
+  ogType?: 'website' | 'article' | undefined;
+}
+
+const { locale, title, description, path, alternates = [], ogType = 'website' } = Astro.props;
+
+const siteUrl = Astro.site?.toString() ?? Astro.url.origin;
+const canonical = absolute(siteUrl, path);
+
+const alternateLinks = buildAlternateLinks(alternates, siteUrl);
+const alternateOgLocales = ogAlternateLocales(alternates, locale);
+---
+
+<title>{title}</title>
+{description && <meta name="description" content={description} />}
+
+<link rel="canonical" href={canonical} />
+
+{/* Reciprocal alternates, published localizations only. */}
+{alternateLinks.map((link) => <link rel="alternate" hreflang={link.hreflang} href={link.href} />)}
+
+{
+  /*
+  Lets search engines show a large thumbnail instead of cropping to a
+  postage stamp, which for an editorial site is most of the click-through.
+*/
+}
+<meta name="robots" content="max-image-preview:large" />
+
+<meta property="og:type" content={ogType} />
+<meta property="og:title" content={title} />
+{description && <meta property="og:description" content={description} />}
+<meta property="og:url" content={canonical} />
+<meta property="og:locale" content={ogLocale(locale)} />
+{alternateOgLocales.map((alternate) => <meta property="og:locale:alternate" content={alternate} />)}
+
+<meta name="twitter:card" content="summary_large_image" />

@@ -7,6 +7,9 @@ import { defineConfig } from 'astro/config';
 
 // https://astro.build/config
 export default defineConfig({
+  // Needed for absolute canonical and alternate URLs (ADR-0013). The host is
+  // fixed by ADR-0016.
+  site: 'https://checkpoint.cescovalle.com',
   output: 'server',
   adapter: cloudflare({
     imageService: 'compile',
