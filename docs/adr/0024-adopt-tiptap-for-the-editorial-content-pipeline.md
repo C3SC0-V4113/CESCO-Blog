@@ -102,6 +102,9 @@ cannot spend its budget running a highlighter on every uncached request.
 
 ## Related Decisions
 
+- [ADR-0032](0032-separate-drafts-from-revisions.md) — settles what "on save"
+  means here: the media walk described above runs at publication, not at every
+  autosave, because a revision is now defined as a published snapshot.
 - [ADR-0002](0002-use-d1-for-content-storage.md)
 - [ADR-0006](0006-model-editorial-media-and-social-preview-images.md)
 - [ADR-0012](0012-extend-editorial-schema-for-authors-series-and-analysis.md)
