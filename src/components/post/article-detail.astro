@@ -105,7 +105,7 @@ const analysis = post.section === 'analysis' ? post.analysis : null;
       {
         analysis && (
           <div class="mt-12">
-            <AnalysisMetaPanel locale={locale} analysis={analysis} />
+            <AnalysisMetaPanel locale={locale} analysis={analysis} game={post.game} />
           </div>
         )
       }

@@ -36,6 +36,10 @@ import { toDbTimestamp } from '../src/lib/timestamps.ts';
 const AUTHOR_ID = '9c2f0a51-6d3e-4b52-9c0f-1a7e5d8b3c40';
 const POST_ID = 'c1d4e7f0-3a29-4b6c-8d5e-2f7a9b0c1d34';
 
+/** A tag and a game, so both surfaces have something to show locally. */
+const TAG_ID = '1a2b3c4d-5e6f-4071-8a9b-0c1d2e3f4a5b';
+const GAME_ID = '2b3c4d5e-6f70-4182-9b0c-1d2e3f4a5b6c';
+
 const ES = {
   localizationId: '4f8b1c2d-5e6a-4079-8b1c-2d3e4f5a6b7c',
   revisionId: '7a1b2c3d-4e5f-4081-9a2b-3c4d5e6f7a8b',
@@ -183,13 +187,30 @@ push(
 );
 
 push(
+  db.insert(schema.games).values({
+    id: GAME_ID,
+    slug: 'un-juego-de-ejemplo',
+    title: 'Un juego de ejemplo',
+    developer: 'Estudio Ejemplo',
+    publisher: 'Distribuidora Ejemplo',
+    releaseDate: '2025-11-14',
+  })
+);
+
+push(db.insert(schema.tags).values({ id: TAG_ID, slug: 'diseno-sonoro', name: 'Diseño sonoro' }));
+
+push(
   db.insert(schema.posts).values({
     id: POST_ID,
     section: 'analysis',
     editorialState: 'active',
     authorId: AUTHOR_ID,
+    gameId: GAME_ID,
   })
 );
+
+// After the post: the join row needs both sides to exist.
+push(db.insert(schema.postTags).values({ postId: POST_ID, tagId: TAG_ID }));
 
 for (const locale of [
   {

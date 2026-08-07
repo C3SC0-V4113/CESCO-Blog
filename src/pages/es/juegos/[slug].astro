@@ -1,0 +1,100 @@
+---
+import ErrorState from '@/components/common/error-state.astro';
+import SeoHead from '@/components/common/seo-head.astro';
+import PostCard from '@/components/post/post-card.astro';
+import { findGame, listPostsByGame } from '@/db/queries/taxonomy';
+import { getTranslations, resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+import { cacheTagHeader } from '@/lib/cache-tags';
+import { getDb } from '@/lib/runtime';
+
+/**
+ * A game surface (ADR-0012).
+ *
+ * A game is a fact about the world, not a publishable entity: it has no
+ * status and no publication date, so a URL naming one that does not exist
+ * answers a plain 404. There is no 410 here because there was never anything to
+ * withdraw (ADR-0010).
+ *
+ * The posts listed still obey the full rule — only servable localizations — so
+ * this cannot become a back door to a withdrawn article.
+ */
+
+const locale = resolveLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+const { slug } = Astro.params;
+
+const db = getDb();
+const game = slug ? await findGame(db, slug) : null;
+const posts = game ? await listPostsByGame(db, game.slug, locale) : [];
+
+if (game) {
+  Astro.response.headers.set(
+    'Cache-Tag',
+    cacheTagHeader([`game-${game.slug}`, `locale-${locale}`])
+  );
+} else {
+  Astro.response.status = 404;
+  Astro.response.headers.set('Cache-Control', 'public, max-age=300');
+}
+---
+
+<Layout>
+  {
+    game && (
+      <Fragment slot="head">
+        <SeoHead locale={locale} title={game.name} path={`/es/juegos/${slug}`} />
+      </Fragment>
+    )
+  }
+
+  {
+    game ? (
+      <main class="mx-auto max-w-3xl px-6 pt-12 pb-20">
+        <header class="mb-8">
+          <p class="text-xs tracking-wide text-muted-foreground uppercase">{t('game.platforms')}</p>
+          <h1 class="mt-2 text-3xl leading-tight text-balance">{game.name}</h1>
+
+          <dl class="mt-6 grid gap-x-6 gap-y-3 border-t border-border pt-6 sm:grid-cols-3">
+            {game.developer && (
+              <div>
+                <dt class="text-xs tracking-wide text-muted-foreground uppercase">
+                  {t('game.developer')}
+                </dt>
+                <dd class="mt-1 text-sm">{game.developer}</dd>
+              </div>
+            )}
+            {game.publisher && (
+              <div>
+                <dt class="text-xs tracking-wide text-muted-foreground uppercase">
+                  {t('game.publisher')}
+                </dt>
+                <dd class="mt-1 text-sm">{game.publisher}</dd>
+              </div>
+            )}
+            {game.releaseDate && (
+              <div>
+                <dt class="text-xs tracking-wide text-muted-foreground uppercase">
+                  {t('game.releaseDate')}
+                </dt>
+                <dd class="mt-1 text-sm">{game.releaseDate}</dd>
+              </div>
+            )}
+          </dl>
+        </header>
+
+        {posts.length === 0 ? (
+          <p class="text-muted-foreground">{t('listing.empty')}</p>
+        ) : (
+          <div>
+            {posts.map((post) => (
+              <PostCard locale={locale} post={post} />
+            ))}
+          </div>
+        )}
+      </main>
+    ) : (
+      <ErrorState locale={locale} status={404} />
+    )
+  }
+</Layout>

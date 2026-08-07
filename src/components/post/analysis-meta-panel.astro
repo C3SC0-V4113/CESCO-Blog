@@ -1,16 +1,23 @@
 ---
 import { getTranslations } from '@/i18n/utils';
 
-import type { AnalysisMetadata } from '@/db/queries/posts';
+import type { AnalysisMetadata, PostGame } from '@/db/queries/posts';
 import type { Locale } from '@/i18n/locales';
 
 /**
  * The structured facts behind an analysis (ADR-0012).
  *
- * Which platform it was played on, for how long, and how far the writer got.
- * Readers use these to weigh the piece, so they are modelled rather than
- * buried in prose — and the platform is a reference to `platforms` rather than
- * free text, which would fragment the same platform across spellings.
+ * Which game it covers, which platform it was played on, for how long, and how
+ * far the writer got. Readers use these to weigh the piece, so they are
+ * modelled rather than buried in prose — and both the game and the platform are
+ * references to their own tables rather than free text, which would fragment
+ * the same subject across spellings.
+ *
+ * The game arrives as its own prop rather than inside `analysis`, because
+ * `game_id` lives on `posts`: an opinion piece can name a game too, and folding
+ * it into the analysis row would model a relationship the schema does not have.
+ * It is shown here because this is where a reader looks for it, not because it
+ * belongs to the analysis metadata.
  *
  * Rendered as a description list because that is what it is: a set of labelled
  * values, not a table and not a paragraph.
@@ -19,10 +26,16 @@ import type { Locale } from '@/i18n/locales';
 interface Props {
   locale: Locale;
   analysis: AnalysisMetadata;
+  game: PostGame | null;
 }
 
-const { locale, analysis } = Astro.props;
+const { locale, analysis, game } = Astro.props;
 const t = getTranslations(locale);
+
+// The game surfaces live under a localized segment, the same split the sections
+// use. Built here rather than imported because `sectionSegment` covers post
+// sections, and a game is not one.
+const gameSegment = locale === 'es' ? 'juegos' : 'games';
 
 // Spelled out rather than interpolated: `analysis.completion.${state}` is a
 // template literal TypeScript cannot check against the dictionary, and that
@@ -60,8 +73,29 @@ if (analysis.completionState) {
 ---
 
 {
-  facts.length > 0 && (
+  (game || facts.length > 0) && (
     <dl class="grid gap-x-6 gap-y-3 border-t border-border pt-6 sm:grid-cols-3">
+      {/*
+        First, and a link rather than a label: of everything in this panel it is
+        the only fact that leads somewhere, and the game page collects every
+        piece written about it.
+      */}
+      {game && (
+        <div>
+          <dt class="text-xs tracking-wide text-muted-foreground uppercase">
+            {t('analysis.game')}
+          </dt>
+          <dd class="mt-1 text-sm">
+            <a
+              href={`/${locale}/${gameSegment}/${game.slug}`}
+              class="text-foreground transition-colors duration-150 hover:text-primary"
+            >
+              {game.title}
+            </a>
+          </dd>
+        </div>
+      )}
+
       {facts.map((fact) => (
         <div>
           <dt class="text-xs tracking-wide text-muted-foreground uppercase">{fact.label}</dt>
