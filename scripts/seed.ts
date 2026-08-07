@@ -488,6 +488,49 @@ push(
   })
 );
 
+/**
+ * One stored object, so the delivery route has something real to serve
+ * (ADR-0033).
+ *
+ * A 1×1 PNG rather than a realistic photograph: the route's job is to find the
+ * object, refuse the wrong content types and set the right headers, none of
+ * which vary with the number of pixels. Embedding a real image would add
+ * hundreds of kilobytes to the repository to test nothing extra.
+ *
+ * PNG rather than the WebP that ADR-0028 normalizes to, because a minimal valid
+ * PNG can be written by hand and verified by eye. Both are on the serving
+ * allow-list, and the route does not care which it is handed.
+ *
+ * The key follows the ADR-0028 convention exactly — `media/{yyyy}/{mm}/{id}.{ext}`
+ * — because the delivery route reads the asset id back out of it to tag the
+ * response for purging.
+ */
+const MEDIA_ID = '6d1f8a90-2b3c-4d5e-8f70-1a2b3c4d5e6f';
+const MEDIA_KEY = `media/2026/08/${MEDIA_ID}.png`;
+
+const onePixelPng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64'
+);
+
+push(
+  db.insert(schema.mediaAssets).values({
+    id: MEDIA_ID,
+    r2Key: MEDIA_KEY,
+    altText: 'Un pixel de ejemplo',
+    isOwnWork: true,
+    contentType: 'image/png',
+    width: 1,
+    height: 1,
+    sizeBytes: onePixelPng.byteLength,
+  })
+);
+
+const mediaPath = path.join(process.cwd(), '.wrangler', 'seed-media.png');
+
+mkdirSync(path.dirname(mediaPath), { recursive: true });
+writeFileSync(mediaPath, onePixelPng);
+
 const outputPath = path.join(process.cwd(), '.wrangler', 'seed.sql');
 
 mkdirSync(path.dirname(outputPath), { recursive: true });

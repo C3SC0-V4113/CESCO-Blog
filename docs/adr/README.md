@@ -41,6 +41,7 @@ This directory records durable architecture decisions for Cesco Blog.
 | [0030](0030-style-components-with-tailwind-utilities.md) | Style components with Tailwind utilities | Accepted | 2026-08-05 |
 | [0031](0031-layer-the-data-path-by-effect-and-testability.md) | Layer the data path by effect and testability | Accepted | 2026-08-05 |
 | [0032](0032-separate-drafts-from-revisions.md) | Separate drafts from revisions | Accepted | 2026-08-07 |
+| [0033](0033-serve-media-from-r2-through-the-worker.md) | Serve media from R2 through the Worker | Accepted | 2026-08-07 |
 
 ## Status values
 
