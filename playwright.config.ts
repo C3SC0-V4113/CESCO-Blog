@@ -7,17 +7,23 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // Safe to parallelise: the suite only reads, and it now runs against the
-  // built Worker rather than a Vite dev server, which was the thing that could
-  // invalidate modules mid-run under concurrent load.
+  // Both numbers are caps, and they cap different things.
   //
-  // Locally the number is a cap rather than a default, and the thing being
-  // capped is clients per server. CI runs one browser per job
-  // (`--project=<browser>` in the matrix), so it only ever points one worker at
-  // one `wrangler dev`. Running `test:e2e` locally starts all three projects
-  // against a *single* server, and left unbounded Playwright sizes the pool
-  // from the CPU count — a number that describes this machine and not what one
-  // workerd process can absorb.
+  // On CI, one, and the constraint is runner memory. Two would be safe on
+  // paper: the suite only reads, and it runs against the built Worker rather
+  // than a Vite dev server. In practice a WebKit job reproducibly killed its
+  // own server — every request after the first few answered "connection
+  // refused", with wrangler logging an empty error before dying. Two WebKit
+  // instances plus node plus workerd on a 4 GB runner is the likeliest cause,
+  // though that is a mitigation rather than a diagnosis. Parallelism comes from
+  // the browser matrix, which is unaffected.
+  //
+  // Locally, two, and the constraint is clients per server. CI runs one browser
+  // per job (`--project=<browser>` in the matrix), so it only ever points one
+  // worker at one `wrangler dev`. Running `test:e2e` locally starts all three
+  // projects against a *single* server, and left unbounded Playwright sizes the
+  // pool from the CPU count — a number that describes this machine and not what
+  // one workerd process can absorb.
   //
   // Two carried 147 tests in 82 seconds, so the bound costs nothing worth
   // having. It is deliberately not claimed as a fix for anything: one local run
@@ -25,7 +31,9 @@ export default defineConfig({
   // two stray `wrangler dev` processes fighting over the port, so it is not
   // evidence of contention. The bound is here because unbounded clients against
   // one server is the wrong default, not because it repaired a measured fault.
-  workers: 2,
+  // In particular it does *not* address the WebKit exit hang noted below, which
+  // fires with the cap in place.
+  workers: process.env.CI ? 1 : 2,
   reporter: 'html',
   use: {
     baseURL: baseUrl,

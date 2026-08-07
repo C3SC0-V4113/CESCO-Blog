@@ -6,6 +6,7 @@ import ArticleJsonLd from '@/components/post/article-json-ld.astro';
 import { resolveArticleUrl } from '@/db/queries/posts';
 import { resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
+import { ERROR_RESPONSE_MAX_AGE, cacheTagHeader, postDetailTags } from '@/lib/cache-tags';
 import { getDb } from '@/lib/runtime';
 import { absolute } from '@/lib/seo';
 import { articlePath } from '@/lib/urls';
@@ -29,6 +30,18 @@ if (redirectTo) {
 
 // A retired URL answers 410 rather than 404. The content was public and
 // indexed, and saying it never existed discards that.
+// Tagged by dependency rather than by URL (ADR-0011). Both localizations
+// carry the same `post-{id}`, so publishing either purges both.
+if (resolution.kind === 'render') {
+  Astro.response.headers.set(
+    'Cache-Tag',
+    cacheTagHeader(postDetailTags(resolution.post.postId, locale, section))
+  );
+} else {
+  // A long-lived cached 410 outlives the republication that should end it.
+  Astro.response.headers.set('Cache-Control', `public, max-age=${ERROR_RESPONSE_MAX_AGE}`);
+}
+
 if (resolution.kind === 'gone') Astro.response.status = 410;
 if (resolution.kind === 'not-found') Astro.response.status = 404;
 ---

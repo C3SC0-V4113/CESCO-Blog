@@ -69,10 +69,15 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: |
           for attempt in 1 2 3; do
-            if timeout 300 pnpm exec playwright install --with-deps ${{ matrix.browser }}; then
+            if timeout 600 pnpm exec playwright install --with-deps ${{ matrix.browser }}; then
               exit 0
             fi
             echo "::warning::playwright install attempt $attempt failed or timed out; retrying"
+            # Killing apt mid-run leaves dpkg half-configured, and every later
+            # attempt then fails instantly with exit 100 rather than retrying
+            # anything. Recover before trying again, or the retry is theatre.
+            sudo dpkg --configure -a || true
+            sudo apt-get --fix-broken install -y || true
             sleep 5
           done
           exit 1
@@ -81,10 +86,15 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: |
           for attempt in 1 2 3; do
-            if timeout 300 pnpm exec playwright install-deps ${{ matrix.browser }}; then
+            if timeout 600 pnpm exec playwright install-deps ${{ matrix.browser }}; then
               exit 0
             fi
             echo "::warning::install-deps attempt $attempt failed or timed out; retrying"
+            # Killing apt mid-run leaves dpkg half-configured, and every later
+            # attempt then fails instantly with exit 100 rather than retrying
+            # anything. Recover before trying again, or the retry is theatre.
+            sudo dpkg --configure -a || true
+            sudo apt-get --fix-broken install -y || true
             sleep 5
           done
           exit 1

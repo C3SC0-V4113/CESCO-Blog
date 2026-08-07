@@ -23,6 +23,8 @@ export type AnalysisMetadata = {
 };
 
 export type PublishedPost = {
+  /** Locale-neutral aggregate id, used to tag both localizations alike (ADR-0011). */
+  postId: string;
   title: string;
   excerpt: string | null;
   content: ContentDoc;
@@ -76,10 +78,9 @@ type UrlCriteria = { locale: Locale; section: PostSection; slug: string };
  * row, so it runs beside it rather than after it. A Worker invocation may issue
  * at most 50 (ADR-0016), and neither query needs the other.
  *
- * The old note, still true of the first one: it spans six tables at once A Worker
- * invocation may issue at most 50 (ADR-0016), and the page needs the author,
- * the derived fields and the analysis metadata together — fetching them
- * separately would spend four where one does. The slug history is only
+ * The article read stays one statement because the page needs the author, the
+ * derived fields and the analysis metadata together, and fetching them
+ * separately would spend four queries where one does. The slug history is only
  * consulted when no live slug matched.
  *
  * The published revision is reached through `published_revision_id`, never
@@ -92,6 +93,7 @@ export async function resolveArticleUrl(
   const [[live], alternates] = await Promise.all([
     db
       .select({
+        postId: schema.posts.id,
         status: schema.postLocalizations.status,
         firstPublishedAt: schema.postLocalizations.firstPublishedAt,
         editorialState: schema.posts.editorialState,
@@ -163,6 +165,7 @@ export async function resolveArticleUrl(
   return {
     kind: 'render',
     post: {
+      postId: live.postId,
       title: live.title,
       excerpt: live.excerpt,
       // Validated on the way out, not trusted, and only once the response is
