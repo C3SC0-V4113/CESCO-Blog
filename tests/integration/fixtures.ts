@@ -164,3 +164,19 @@ export async function withdraw(db: Db, localizationId: string): Promise<void> {
     .set({ status: 'draft', publishedRevisionId: null })
     .where(eq(schema.postLocalizations.id, localizationId));
 }
+
+/**
+ * Empties the editorial tables.
+ *
+ * Needed by suites that read *everything* rather than one row by slug. A
+ * listing sees whatever earlier tests left behind, so without this its
+ * assertions depend on which tests ran before it — the kind of failure that
+ * appears only when a file is run in a different order.
+ *
+ * Deleting posts cascades to localizations and revisions; authors have no
+ * parent, so they go separately.
+ */
+export async function resetContent(db: Db): Promise<void> {
+  await db.delete(schema.posts);
+  await db.delete(schema.authors);
+}

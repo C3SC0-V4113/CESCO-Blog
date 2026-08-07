@@ -1,10 +1,36 @@
-﻿---
-import Layout from '../../layouts/main.astro';
+---
+import PostList from '@/components/common/post-list.astro';
+import { listPublishedPosts } from '@/db/queries/listings';
+import { getTranslations, resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+import { pageCount, readPageWindow } from '@/lib/pagination';
+import { getDb } from '@/lib/runtime';
+
+/**
+ * Editorial home.
+ *
+ * DESIGN.md also specifies a featured slot and per-section rows below the
+ * latest list. Both need `featured_at` and a second grouped read, so they
+ * arrive with the query that exposes them rather than being faked from this
+ * one — a "featured" post that is really just the newest would be a lie the
+ * page tells silently.
+ */
+
+const locale = resolveLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+
+const { page, offset, limit } = readPageWindow(Astro.url.searchParams.get('page'));
+
+const { posts, total } = await listPublishedPosts(getDb(), { locale, limit, offset });
 ---
 
 <Layout>
-  <main>
-    <h1>Inicio temporal</h1>
-    <p>Esta página localizada es temporal mientras se implementa la portada bilingüe.</p>
-  </main>
+  <PostList
+    locale={locale}
+    heading={t('listing.latest')}
+    posts={posts}
+    basePath="/es/"
+    page={page}
+    totalPages={pageCount(total)}
+  />
 </Layout>

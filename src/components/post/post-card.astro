@@ -1,0 +1,64 @@
+---
+import { formatDate, getTranslations } from '@/i18n/utils';
+import { articlePath } from '@/lib/urls';
+
+import type { PostSummary } from '@/db/queries/listings';
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * One post in a listing (ADR-0019).
+ *
+ * `.astro`, and repeated twenty times on a page — which is exactly the case
+ * DESIGN.md says the Astro-first preference matters most for, since every
+ * repetition of a React component is server CPU spent rendering the same markup.
+ *
+ * Everything shown comes from the row the listing query already fetched. The
+ * card never reaches for the database, which is what keeps a twenty-post page
+ * at two queries instead of twenty-one (ADR-0016).
+ */
+
+interface Props {
+  locale: Locale;
+  post: PostSummary;
+}
+
+const { locale, post } = Astro.props;
+const t = getTranslations(locale);
+
+const href = articlePath(locale, post.section, post.slug);
+const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.opinion');
+---
+
+<article class="border-b border-border py-6 last:border-b-0">
+  <p class="text-xs tracking-wide text-muted-foreground uppercase">{sectionLabel}</p>
+
+  <h2 class="mt-2 text-xl leading-snug text-balance">
+    <a href={href} class="transition-colors duration-150 hover:text-primary">{post.title}</a>
+  </h2>
+
+  {
+    post.excerpt && (
+      <p class="mt-2 leading-relaxed text-pretty text-muted-foreground">{post.excerpt}</p>
+    )
+  }
+
+  <p class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+    {post.authorName && <span>{post.authorName}</span>}
+    {post.authorName && post.publishedAt && <span aria-hidden="true">·</span>}
+    {
+      post.publishedAt && (
+        <time datetime={post.publishedAt.replace(' ', 'T') + 'Z'}>
+          {formatDate(post.publishedAt, locale)}
+        </time>
+      )
+    }
+    {post.readingTimeMinutes !== null && <span aria-hidden="true">·</span>}
+    {
+      post.readingTimeMinutes !== null && (
+        <span>
+          {post.readingTimeMinutes} {t('post.readingTime')}
+        </span>
+      )
+    }
+  </p>
+</article>
