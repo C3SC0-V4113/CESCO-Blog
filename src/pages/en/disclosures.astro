@@ -1,0 +1,53 @@
+---
+import Prose from '@/components/common/prose.astro';
+import SeoHead from '@/components/common/seo-head.astro';
+import { resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+
+/**
+ * A transparency page (ADR-0018).
+ *
+ * Static content, not a database row: these describe how the site operates
+ * rather than being editorial output, so they live in the repository where a
+ * change to them is a reviewed commit.
+ *
+ * ADR-0018 is explicit that these are reasonable transparency statements from
+ * the site owner and not legal advice, and claims no regulatory compliance.
+ */
+
+const locale = resolveLocale(Astro.currentLocale);
+---
+
+<Layout>
+  <Fragment slot="head">
+    <SeoHead
+      locale={locale}
+      title="Disclosures"
+      path="/en/disclosures"
+      alternates={[
+        { locale: 'en', path: '/en/disclosures' },
+        { locale: 'es', path: '/es/divulgaciones' },
+      ]}
+    />
+  </Fragment>
+
+  <main class="mx-auto max-w-[34rem] px-6 pt-12 pb-20">
+    <h1 class="mb-8 text-3xl leading-tight text-balance">Disclosures</h1>
+
+    <Prose>
+      <p>
+        When a studio or publisher supplies a copy of a game for review, the piece says so at the
+        top, before the text, not in a footnote.
+      </p>
+      <p>
+        Receiving a copy does not shape what is written and does not guarantee coverage. Plenty of
+        games received are never published about.
+      </p>
+      <p>
+        There is currently no advertising, no affiliate linking and no sponsored content. If any of
+        the three is ever adopted, it will be disclosed visibly on the affected content, under the
+        same rule as review copies.
+      </p>
+    </Prose>
+  </main>
+</Layout>

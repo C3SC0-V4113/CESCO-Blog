@@ -1,0 +1,57 @@
+---
+import Prose from '@/components/common/prose.astro';
+import SeoHead from '@/components/common/seo-head.astro';
+import { resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+
+/**
+ * A transparency page (ADR-0018).
+ *
+ * Static content, not a database row: these describe how the site operates
+ * rather than being editorial output, so they live in the repository where a
+ * change to them is a reviewed commit.
+ *
+ * ADR-0018 is explicit that these are reasonable transparency statements from
+ * the site owner and not legal advice, and claims no regulatory compliance.
+ */
+
+const locale = resolveLocale(Astro.currentLocale);
+---
+
+<Layout>
+  <Fragment slot="head">
+    <SeoHead
+      locale={locale}
+      title="Editorial policy"
+      path="/en/editorial-policy"
+      alternates={[
+        { locale: 'en', path: '/en/editorial-policy' },
+        { locale: 'es', path: '/es/politica-editorial' },
+      ]}
+    />
+  </Fragment>
+
+  <main class="mx-auto max-w-[34rem] px-6 pt-12 pb-20">
+    <h1 class="mb-8 text-3xl leading-tight text-balance">Editorial policy</h1>
+
+    <Prose>
+      <p>
+        There are no scores. A number summarises a game badly and gets quoted worse, so pieces are
+        read whole or not at all.
+      </p>
+      <p>
+        Every analysis states the platform it was played on, for how long, and what state the
+        playthrough reached. A game abandoned after three hours and one finished completely do not
+        support the same kind of claim.
+      </p>
+      <p>
+        Factual corrections are made on the published text and are marked as such. Nothing is
+        deleted or quietly rewritten.
+      </p>
+      <p>
+        When a piece is withdrawn, its address says so explicitly rather than pretending it never
+        existed.
+      </p>
+    </Prose>
+  </main>
+</Layout>

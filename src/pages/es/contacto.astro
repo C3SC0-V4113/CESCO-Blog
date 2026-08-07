@@ -1,0 +1,46 @@
+---
+import Prose from '@/components/common/prose.astro';
+import SeoHead from '@/components/common/seo-head.astro';
+import { resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+
+/**
+ * A transparency page (ADR-0018).
+ *
+ * Static content, not a database row: these describe how the site operates
+ * rather than being editorial output, so they live in the repository where a
+ * change to them is a reviewed commit.
+ *
+ * ADR-0018 is explicit that these are reasonable transparency statements from
+ * the site owner and not legal advice, and claims no regulatory compliance.
+ */
+
+const locale = resolveLocale(Astro.currentLocale);
+---
+
+<Layout>
+  <Fragment slot="head">
+    <SeoHead
+      locale={locale}
+      title="Contacto"
+      path="/es/contacto"
+      alternates={[
+        { locale: 'es', path: '/es/contacto' },
+        { locale: 'en', path: '/en/contact' },
+      ]}
+    />
+  </Fragment>
+
+  <main class="mx-auto max-w-[34rem] px-6 pt-12 pb-20">
+    <h1 class="mb-8 text-3xl leading-tight text-balance">Contacto</h1>
+
+    <Prose>
+      <p>Para correcciones, comentarios o consultas editoriales, el canal es el correo.</p>
+      <p>
+        Las correcciones de hechos se atienden siempre. Si un análisis dice algo incorrecto sobre un
+        juego, se corrige y se indica en la publicación que fue corregida.
+      </p>
+      <p>Los pedidos de cobertura se leen, pero no se garantiza respuesta ni publicación.</p>
+    </Prose>
+  </main>
+</Layout>

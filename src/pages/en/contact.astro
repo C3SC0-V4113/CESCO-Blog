@@ -1,0 +1,46 @@
+---
+import Prose from '@/components/common/prose.astro';
+import SeoHead from '@/components/common/seo-head.astro';
+import { resolveLocale } from '@/i18n/utils';
+import Layout from '@/layouts/main.astro';
+
+/**
+ * A transparency page (ADR-0018).
+ *
+ * Static content, not a database row: these describe how the site operates
+ * rather than being editorial output, so they live in the repository where a
+ * change to them is a reviewed commit.
+ *
+ * ADR-0018 is explicit that these are reasonable transparency statements from
+ * the site owner and not legal advice, and claims no regulatory compliance.
+ */
+
+const locale = resolveLocale(Astro.currentLocale);
+---
+
+<Layout>
+  <Fragment slot="head">
+    <SeoHead
+      locale={locale}
+      title="Contact"
+      path="/en/contact"
+      alternates={[
+        { locale: 'en', path: '/en/contact' },
+        { locale: 'es', path: '/es/contacto' },
+      ]}
+    />
+  </Fragment>
+
+  <main class="mx-auto max-w-[34rem] px-6 pt-12 pb-20">
+    <h1 class="mb-8 text-3xl leading-tight text-balance">Contact</h1>
+
+    <Prose>
+      <p>Email is the channel for corrections, feedback and editorial enquiries.</p>
+      <p>
+        Factual corrections are always acted on. If a piece says something incorrect about a game,
+        it gets corrected and the article says that it was.
+      </p>
+      <p>Coverage requests are read, but neither a reply nor publication is guaranteed.</p>
+    </Prose>
+  </main>
+</Layout>
