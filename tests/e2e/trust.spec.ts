@@ -57,8 +57,14 @@ test('states plainly that neither the site nor its analytics use cookies', async
   // Two separate claims, asserted separately. The first is about the site, the
   // second about the measurement layer — and the second is the one that would
   // quietly stop being true if the analytics decision ever changed.
+  //
+  // Neither assertion names the vendor, and that is deliberate on both sides:
+  // the page no longer names it either. Naming a supplier tells a reader
+  // something about our infrastructure and nothing about their privacy, and it
+  // dates the page the moment the supplier changes. What is promised is what is
+  // pinned.
   await page.goto('/es/privacidad');
 
-  await expect(page.getByText('Este sitio no usa cookies')).toBeVisible();
-  await expect(page.getByText('Cloudflare Web Analytics, que no usa cookies')).toBeVisible();
+  await expect(page.getByText('No hay cookies')).toBeVisible();
+  await expect(page.getByText('sin cookies ni identificadores persistentes')).toBeVisible();
 });

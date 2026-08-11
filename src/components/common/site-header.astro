@@ -5,6 +5,7 @@ import ThemeToggle from '@/components/nav/theme-toggle';
 import { locales } from '@/i18n/locales';
 import { getTranslations } from '@/i18n/utils';
 import { mainNavItems } from '@/lib/navigation';
+import { SITE_NAME } from '@/lib/site';
 
 import type { Locale } from '@/i18n/locales';
 
@@ -65,7 +66,7 @@ const localeOptions = locales.map((option) => ({
       href={`/${locale}/`}
       class="font-heading text-lg text-foreground transition-colors duration-150 hover:text-primary"
     >
-      Cesco Blog
+      {SITE_NAME}
     </a>
 
     {
