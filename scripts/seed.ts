@@ -260,27 +260,159 @@ for (const locale of [
 }
 
 /**
- * Filler analyses, so a listing has more than one page.
+ * Filler posts, so the listings have depth and the article page has something
+ * to exercise.
  *
- * `POSTS_PER_PAGE` is ten, and until these existed every listing fitted on page
- * one — which meant the pagination component rendered nowhere and no test could
- * reach it. A component the suite cannot see is a component nobody is checking.
+ * They started as twelve identical stubs whose only job was to push a second
+ * page into existence. That worked and taught nothing: none had an author, none
+ * had a heading, so no filler article could show a byline or a table of
+ * contents, and the outline could not be judged on a real page.
  *
- * Three deliberate choices keep them from disturbing what is already asserted:
+ * Now they vary the way real posts vary. Most carry an author and three or four
+ * headings; two deliberately carry neither, because the floor of what can be
+ * published is also a case worth seeing rendered — a post with no outline
+ * should not look broken.
  *
- * - **Spanish only.** The English listing stays a single page, so "keeps each
- *   locale to its own listing" still reads what it meant to read.
- * - **`analysis` only.** One test requires `/es/opinion` to be *empty* so the
- *   empty state renders; filling that section would delete that guarantee.
+ * Two choices are load-bearing for the suite rather than editorial:
+ *
+ * - **Spanish only.** The English listings stay a single page, so "keeps each
+ *   locale to its own listing" still reads what it meant to read, and the empty
+ *   state has somewhere to render.
  * - **Older than `PUBLISHED_AT`.** Listings order by `first_published_at`
- *   descending, so these sort underneath. Every assertion that expects a named
- *   post finds it on page one exactly where it was.
- *
- * They carry no analysis metadata and no author. They exist to be counted.
+ *   descending, so these sort underneath and every assertion that expects a
+ *   named post still finds it on page one.
  */
-const FILLER_COUNT = 12;
+const SECOND_AUTHOR_ID = 'b7e4c210-8a1d-4f36-9e52-3c8b1d0a4f77';
 
-for (let index = 0; index < FILLER_COUNT; index += 1) {
+push(
+  db.insert(schema.authors).values({
+    id: SECOND_AUTHOR_ID,
+    slug: 'marta-riera',
+    name: 'Marta Riera',
+    bio: 'Escribe sobre diseño de niveles y sobre por qué un pasillo puede ser una decisión.',
+  })
+);
+
+/**
+ * Each entry becomes one published Spanish post.
+ *
+ * `headings` drives everything derived: the outline, the reading time, and
+ * whether the table of contents renders at all. The empty arrays are the point
+ * of the two entries that have one.
+ */
+const fillers: {
+  title: string;
+  section: 'analysis' | 'opinion';
+  author: string | null;
+  headings: string[];
+}[] = [
+  {
+    title: 'El mapa que no querías abrir',
+    section: 'analysis',
+    author: AUTHOR_ID,
+    headings: [
+      'La fricción como diseño',
+      'Cuando el mapa miente',
+      'Lo que se pierde al simplificar',
+    ],
+  },
+  {
+    title: 'Guardar la partida es una decisión de diseño',
+    section: 'analysis',
+    author: SECOND_AUTHOR_ID,
+    headings: [
+      'El punto de guardado como castigo',
+      'Autoguardado y ansiedad',
+      'Confiar en el jugador',
+      'Dos escuelas que no se hablan',
+    ],
+  },
+  {
+    title: 'Tutoriales que no parecen tutoriales',
+    section: 'analysis',
+    author: AUTHOR_ID,
+    headings: [
+      'Enseñar sin decirlo',
+      'El primer cuarto como examen',
+      'Cuando el juego se explica de más',
+    ],
+  },
+  {
+    title: 'La cámara también narra',
+    section: 'analysis',
+    author: SECOND_AUTHOR_ID,
+    headings: [
+      'Encuadre y tensión',
+      'La cámara libre y su costo',
+      'Planos fijos en un medio interactivo',
+    ],
+  },
+  { title: 'Notas sueltas sobre un juego corto', section: 'analysis', author: null, headings: [] },
+  {
+    title: 'El inventario como narrativa',
+    section: 'analysis',
+    author: AUTHOR_ID,
+    headings: [
+      'Cargar peso es contar algo',
+      'La cuadrícula y el ritmo',
+      'Cuando gestionar deja de ser jugar',
+    ],
+  },
+  {
+    title: 'La dificultad no es una barra',
+    section: 'opinion',
+    author: SECOND_AUTHOR_ID,
+    headings: [
+      'Fácil, normal, imposible',
+      'Accesibilidad no es rebajar',
+      'El público que nadie mide',
+    ],
+  },
+  {
+    title: 'Contra la palabra inmersión',
+    section: 'opinion',
+    author: AUTHOR_ID,
+    headings: [
+      'Una palabra que ya no distingue',
+      'Qué decimos cuando la usamos',
+      'Alternativas más honestas',
+    ],
+  },
+  {
+    title: 'Los remakes no son restauraciones',
+    section: 'opinion',
+    author: SECOND_AUTHOR_ID,
+    headings: [
+      'Restaurar y reescribir',
+      'La nostalgia como argumento de venta',
+      'Qué se pierde sin decirlo',
+      'El original sigue existiendo',
+    ],
+  },
+  { title: 'Apunte rápido sobre una demo', section: 'opinion', author: null, headings: [] },
+  {
+    title: 'El sonido de los menús',
+    section: 'analysis',
+    author: AUTHOR_ID,
+    headings: [
+      'Confirmar tiene un tono',
+      'Silencio en la pausa',
+      'Detalles que solo se notan si faltan',
+    ],
+  },
+  {
+    title: 'Jugar con el mando apagado',
+    section: 'opinion',
+    author: SECOND_AUTHOR_ID,
+    headings: [
+      'Los momentos sin input',
+      'Cuando el juego pide que mires',
+      'La escena que no se puede saltar',
+    ],
+  },
+];
+
+fillers.forEach((filler, index) => {
   // Derived rather than random: the seed is idempotent through
   // `INSERT OR REPLACE`, which only works if a row keeps its identifier across
   // runs. The suffix is padded so the ids stay a fixed width.
@@ -292,6 +424,30 @@ for (let index = 0; index < FILLER_COUNT; index += 1) {
   // One day apart, walking backwards from the day before the named posts.
   const publishedAt = toDbTimestamp(new Date(Date.UTC(2026, 6, 20 - index, 12, 0, 0)));
 
+  // A heading and a paragraph per section, so the outline has real anchors and
+  // the reading time is derived from something worth reading.
+  const body = filler.headings.flatMap((heading, headingIndex) => {
+    const pair = String(headingIndex).padStart(2, '0');
+
+    return [
+      {
+        type: 'heading' as const,
+        attrs: { blockId: `f4${suffix}0000-0000-4000-8000-0000000000${pair}`, level: 2 as const },
+        content: [{ type: 'text' as const, text: heading }],
+      },
+      {
+        type: 'paragraph' as const,
+        attrs: { blockId: `f5${suffix}0000-0000-4000-8000-0000000000${pair}` },
+        content: [
+          {
+            type: 'text' as const,
+            text: 'Un juego rara vez explica sus decisiones, pero las toma en todo momento. Mirarlas de cerca es la única forma de distinguir lo que se eligió de lo que simplemente quedó así.',
+          },
+        ],
+      },
+    ];
+  });
+
   const content = parseContentDoc({
     type: 'doc',
     content: [
@@ -301,18 +457,20 @@ for (let index = 0; index < FILLER_COUNT; index += 1) {
         content: [
           {
             type: 'text',
-            text: 'Una entrada de relleno. Existe para que los listados tengan una segunda página que probar.',
+            text: 'Notas sobre una parte del diseño que suele pasar desapercibida hasta que falla.',
           },
         ],
       },
+      ...body,
     ],
   });
 
   push(
     db.insert(schema.posts).values({
       id: fillerPostId,
-      section: 'analysis',
+      section: filler.section,
       editorialState: 'active',
+      ...(filler.author ? { authorId: filler.author } : {}),
     })
   );
 
@@ -334,13 +492,14 @@ for (let index = 0; index < FILLER_COUNT; index += 1) {
       id: fillerRevisionId,
       postLocalizationId: fillerLocalizationId,
       version: 1,
-      title: `Entrada de relleno ${suffix}`,
+      title: filler.title,
+      excerpt: 'Una nota sobre diseño, escrita sin apuro.',
       contentJson: content,
       readingTimeMinutes: deriveReadingTime(content),
       tocJson: deriveToc(content),
     })
   );
-}
+});
 
 /**
  * The structured facts behind the analysis (ADR-0012).
@@ -453,10 +612,22 @@ push(
 );
 
 /**
- * A published series with the analysis in it.
+ * A published series, in both languages, with four posts in it.
  *
- * Seeded so the local site can show the surface at all, and so the end-to-end
- * suite has a real collection URL to exercise the ADR-0010 lifecycle against.
+ * It used to hold one post in one language. That was enough to prove the URL
+ * resolved and nothing else: a collection of one cannot show an order, and a
+ * collection in one language cannot show that the series page follows the same
+ * bilingual rules as everything else.
+ *
+ * The extra members are filler posts rather than new ones, because a post
+ * *belongs to* a collection rather than being owned by one, and reusing posts
+ * that already exist on their own is what makes that visible.
+ *
+ * They are attached **out of publication order on purpose**: position 0 is the
+ * named analysis, and the fillers that follow are not the three most recent.
+ * `collection_posts.position` is what decides reading order, so anything that
+ * quietly sorts a series by date instead shows itself here rather than in
+ * production.
  */
 const COLLECTION_ID = '7e1a4b2c-9d3f-4058-8a1b-6c7d8e9f0a1b';
 
@@ -481,12 +652,38 @@ push(
 );
 
 push(
+  db.insert(schema.collectionLocalizations).values({
+    id: '9a3c6d4e-1f5b-427a-8c3d-8e9f0a1b2c3d',
+    collectionId: COLLECTION_ID,
+    locale: 'en',
+    slug: 'sound-in-games',
+    title: 'Sound in games',
+    description: 'A series on how the worlds we play sound — and how they fall silent.',
+    status: 'published',
+    firstPublishedAt: PUBLISHED_AT,
+  })
+);
+
+// The named analysis opens the series; three fillers follow it. The indices are
+// deliberately not the three newest, so ordering by date rather than by
+// `position` produces a visibly different list.
+push(
   db.insert(schema.collectionPosts).values({
     collectionId: COLLECTION_ID,
     postId: POST_ID,
     position: 0,
   })
 );
+
+[10, 3, 5].forEach((filler, index) => {
+  push(
+    db.insert(schema.collectionPosts).values({
+      collectionId: COLLECTION_ID,
+      postId: `f0000000-0000-4000-8000-0000000000${String(filler).padStart(2, '0')}`,
+      position: index + 1,
+    })
+  );
+});
 
 /**
  * One stored object, so the delivery route has something real to serve
