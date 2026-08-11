@@ -18,14 +18,29 @@ interface Props {
 const { entries } = Astro.props;
 ---
 
-<ol class="space-y-2 text-sm">
+{
+  /*
+  A rule down the left, with the current entry marking itself on it.
+  
+  The highlight used to be a colour change alone, which is the weakest signal
+  available in a list where every item is already text: at a glance nothing
+  moved. The border gives the eye a position to find rather than a shade to
+  compare, and the accent is doing the one job it is best at — saying "here".
+*/
+}
+<ol class="space-y-1 border-s border-border text-sm">
   {
     entries.map((entry) => (
-      <li class={entry.level === 3 ? 'ps-4' : undefined}>
+      <li>
         <a
           href={`#${entry.id}`}
           data-toc-link={entry.id}
-          class="text-muted-foreground transition-colors duration-150 hover:text-foreground aria-[current]:text-foreground"
+          class:list={[
+            '-ms-px block border-s border-transparent py-1 ps-3 text-muted-foreground transition-colors duration-150',
+            'hover:border-border hover:text-foreground',
+            'aria-[current]:border-primary aria-[current]:text-foreground',
+            entry.level === 3 && 'ps-6',
+          ]}
         >
           {entry.text}
         </a>

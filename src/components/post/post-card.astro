@@ -6,7 +6,7 @@ import type { PostSummary } from '@/db/queries/listings';
 import type { Locale } from '@/i18n/locales';
 
 /**
- * One post in a listing (ADR-0019).
+ * One post in a listing (ADR-0019, ADR-0021).
  *
  * `.astro`, and repeated twenty times on a page — which is exactly the case
  * DESIGN.md says the Astro-first preference matters most for, since every
@@ -15,6 +15,17 @@ import type { Locale } from '@/i18n/locales';
  * Everything shown comes from the row the listing query already fetched. The
  * card never reaches for the database, which is what keeps a twenty-post page
  * at two queries instead of twenty-one (ADR-0016).
+ *
+ * **The section is the one thing here wearing the brand colour.** A listing is
+ * mostly text, so the accent has to earn its place rather than decorate: used on
+ * the one label that tells you what kind of piece this is, it becomes the thing
+ * the eye scans down the page. Used on the titles as well it would stop meaning
+ * anything.
+ *
+ * The hover lifts the whole row rather than only the link. `group` puts the
+ * state on the `article` while the anchor stays the only focusable thing in it,
+ * so pointer and keyboard land on the same target and nothing is clickable that
+ * does not announce itself.
  */
 
 interface Props {
@@ -29,20 +40,39 @@ const href = articlePath(locale, post.section, post.slug);
 const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.opinion');
 ---
 
-<article class="border-b border-border py-6 last:border-b-0">
-  <p class="text-xs tracking-wide text-muted-foreground uppercase">{sectionLabel}</p>
+<article class="group border-b border-border py-8 last:border-b-0">
+  <p
+    class="text-[0.6875rem] font-medium tracking-[0.14em] text-primary uppercase transition-colors duration-150"
+  >
+    {sectionLabel}
+  </p>
 
-  <h2 class="mt-2 text-xl leading-snug text-balance">
-    <a href={href} class="transition-colors duration-150 hover:text-primary">{post.title}</a>
+  <h2 class="mt-3 text-2xl leading-[1.25] text-balance">
+    <a
+      href={href}
+      class="decoration-primary/40 underline-offset-[6px] transition-colors duration-150 group-hover:underline hover:text-primary"
+    >
+      {post.title}
+    </a>
   </h2>
 
   {
     post.excerpt && (
-      <p class="mt-2 leading-relaxed text-pretty text-muted-foreground">{post.excerpt}</p>
+      <p class="mt-3 leading-relaxed text-pretty text-muted-foreground">{post.excerpt}</p>
     )
   }
 
-  <p class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+  {
+    /*
+    The metadata line is deliberately quieter than everything above it: smaller,
+    wider-tracked and muted. It is what a reader checks *after* deciding the
+    title is interesting, so it should not compete with the title for that
+    decision.
+  */
+  }
+  <p
+    class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tracking-wide text-muted-foreground"
+  >
     {post.authorName && <span>{post.authorName}</span>}
     {post.authorName && post.publishedAt && <span aria-hidden="true">·</span>}
     {
