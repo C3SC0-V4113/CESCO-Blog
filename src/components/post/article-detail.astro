@@ -1,4 +1,5 @@
 ---
+import BreadcrumbTrail from '@/components/common/breadcrumb-trail.astro';
 import Prose from '@/components/common/prose.astro';
 import AnalysisMetaPanel from '@/components/post/analysis-meta-panel.astro';
 import ArticleBody from '@/components/post/article-body.astro';
@@ -6,6 +7,8 @@ import Byline from '@/components/post/byline.astro';
 import DisclosureNotice from '@/components/post/disclosure-notice.astro';
 import ReadingTime from '@/components/post/reading-time.astro';
 import TableOfContents from '@/components/post/table-of-contents.astro';
+import { getTranslations } from '@/i18n/utils';
+import { sectionPath } from '@/lib/urls';
 
 import type { PublishedPost } from '@/db/queries/posts';
 import type { Locale } from '@/i18n/locales';
@@ -21,9 +24,10 @@ import type { Locale } from '@/i18n/locales';
  * the copy; placing it at the end would make the disclosure conditional on
  * finishing (ADR-0012).
  *
- * Cover image, breadcrumb, tags, series navigation and the copy-link button are
- * the remaining pieces of this surface. Each needs data this query does not yet
- * fetch, or media serving that does not exist.
+ * Cover image, tags, series navigation and the copy-link button are the
+ * remaining pieces of this surface. Each needs data this query does not yet
+ * fetch, or an image pipeline that has storage and delivery but nothing
+ * producing images for it.
  */
 
 interface Props {
@@ -36,6 +40,19 @@ const { locale, post } = Astro.props;
 // The panel is for analysis pieces. An opinion post has no metadata row at all,
 // so this is belt and braces — but the section is the rule, not the row.
 const analysis = post.section === 'analysis' ? post.analysis : null;
+
+const t = getTranslations(locale);
+
+// One step between home and the piece: its section. The tag and game surfaces a
+// reader may have arrived through are not ancestors of the article — a post
+// belongs to many of them — so putting one in the trail would invent a
+// hierarchy the content does not have.
+const trail = [
+  {
+    label: t(post.section === 'analysis' ? 'nav.analysis' : 'nav.opinion'),
+    href: sectionPath(locale, post.section),
+  },
+];
 ---
 
 {
@@ -73,6 +90,8 @@ const analysis = post.section === 'analysis' ? post.analysis : null;
     }
 
     <article class="max-w-[34rem] lg:order-1">
+      <BreadcrumbTrail locale={locale} trail={trail} current={post.title} />
+
       <header class="mb-10">
         <h1 class="text-3xl leading-tight text-balance text-foreground">{post.title}</h1>
 

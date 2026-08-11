@@ -169,6 +169,53 @@ test('anchors the table of contents at block ids, not heading text', async ({ pa
   await expect(link).toHaveAttribute('href', /^#[0-9a-f-]{36}$/);
 });
 
+test.describe('breadcrumb', () => {
+  test('offers a way out that is not the back button', async ({ page }) => {
+    // The gap this closes: a reader arriving from a search result has no
+    // history to go back through, so the browser control they are told to use
+    // does not exist for them.
+    await page.goto(ES_ARTICLE);
+
+    const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
+
+    await expect(trail.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/es/');
+    await expect(trail.getByRole('link', { name: 'Análisis' })).toHaveAttribute(
+      'href',
+      '/es/analisis'
+    );
+  });
+
+  test('marks the page you are on as current rather than navigable', async ({ page }) => {
+    // The registry marks the last crumb `role="link"` with `aria-disabled` and
+    // `aria-current="page"`, which is the conventional pattern: it stays in the
+    // list of links a screen reader walks, and announces itself as where you
+    // already are.
+    //
+    // So the contract to assert is that it does not *navigate*, not that it
+    // carries no role. An earlier version of this test asserted the role and
+    // failed against markup that was correct.
+    await page.goto(ES_ARTICLE);
+
+    const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
+    const current = trail.getByText('El peso del silencio en los juegos de exploración');
+
+    await expect(current).toBeVisible();
+    await expect(current).toHaveAttribute('aria-current', 'page');
+    await expect(current).toHaveAttribute('aria-disabled', 'true');
+    await expect(current).not.toHaveAttribute('href', /./);
+  });
+
+  test('leads back to the section listing', async ({ page }) => {
+    await page.goto(ES_ARTICLE);
+    await page
+      .getByRole('navigation', { name: 'Ruta de navegación' })
+      .getByRole('link', { name: 'Análisis' })
+      .click();
+
+    await expect(page).toHaveURL(/\/es\/analisis$/);
+  });
+});
+
 test.describe('table of contents', () => {
   test('marks the heading being read', async ({ page }) => {
     // The guard that was missing, and its absence is why the highlight could
@@ -226,15 +273,22 @@ test.describe('table of contents', () => {
 
     await page.evaluate(() => window.scrollTo(0, 300));
 
-    // Polled rather than slept on: the position settles when the browser has
-    // finished scrolling, and a fixed wait would either be slower than that or
-    // occasionally shorter.
-    await expect.poll(top).toBeLessThan(before!);
-
+    // Polled on the **final** state, not on "has it started moving".
+    //
+    // An earlier version polled for any decrease and then read the position
+    // once. That was correct until `scroll-behavior: smooth` landed: scrolling
+    // became an animation, the first assertion passed the moment it began, and
+    // the reading that followed caught the panel mid-flight. The test failed at
+    // 75px against a 64px bound while the code was right.
+    //
     // Pinned near the top of the viewport rather than carried off it.
+    await expect
+      .poll(top, { message: 'the outline should pin near the top rather than scroll away' })
+      .toBeLessThanOrEqual(64);
+
     const after = await top();
     expect(after).toBeGreaterThanOrEqual(0);
-    expect(after).toBeLessThanOrEqual(64);
+    expect(after).toBeLessThan(before!);
   });
 
   test.describe('narrow screens', () => {

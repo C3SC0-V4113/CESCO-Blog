@@ -1,0 +1,71 @@
+---
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { getTranslations } from '@/i18n/utils';
+
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * Where you are, and the way back (DESIGN.md).
+ *
+ * The article surface has always listed a breadcrumb; without one the only way
+ * out of a piece is the browser's back button, which fails the reader who
+ * arrived from a search result and has no history to go back through.
+ *
+ * Built from the registry primitives (ADR-0020) and imported with **no
+ * `client:*` directive**, so Astro renders it to markup on the server. Same
+ * property the pagination relies on: a framework component without a directive
+ * is not an island.
+ *
+ * The last entry is a `BreadcrumbPage`, not a link. Linking the page you are
+ * already on gives a reader a control that does nothing, and tells a screen
+ * reader there is somewhere to go when there is not.
+ */
+
+interface Props {
+  locale: Locale;
+  /** Ancestors, nearest last. The current page is passed separately. */
+  trail: { label: string; href: string }[];
+  current: string;
+}
+
+const { locale, trail, current } = Astro.props;
+const t = getTranslations(locale);
+
+// Home is on every trail, so callers do not repeat it.
+const ancestors = [{ label: t('nav.home'), href: `/${locale}/` }, ...trail];
+---
+
+<Breadcrumb aria-label={t('nav.breadcrumb')} className="mb-8">
+  <BreadcrumbList>
+    {
+      ancestors.map((ancestor) => (
+        <>
+          <BreadcrumbItem>
+            <BreadcrumbLink href={ancestor.href}>{ancestor.label}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+        </>
+      ))
+    }
+
+    <BreadcrumbItem>
+      {
+        /*
+        Truncated by CSS rather than by cutting the string: the full title stays
+        in the accessibility tree and in the page source, and only the pixels
+        are constrained.
+      */
+      }
+      <BreadcrumbPage className="max-w-[16rem] truncate sm:max-w-[24rem]">
+        {current}
+      </BreadcrumbPage>
+    </BreadcrumbItem>
+  </BreadcrumbList>
+</Breadcrumb>

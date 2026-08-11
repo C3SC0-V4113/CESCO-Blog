@@ -6,6 +6,7 @@ import { getTranslations, resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
 import { cacheTagHeader, homeTags } from '@/lib/cache-tags';
 import { pageCount, readPageWindow } from '@/lib/pagination';
+import { routeAlternates } from '@/lib/routes';
 import { getDb } from '@/lib/runtime';
 
 // See the Spanish home for why the featured slot and section rows are absent.
@@ -20,19 +21,13 @@ const { page, offset, limit } = readPageWindow(Astro.url.searchParams.get('page'
 const { posts, total } = await listPublishedPosts(getDb(), { locale, limit, offset });
 
 Astro.response.headers.set('Cache-Tag', cacheTagHeader(homeTags(locale)));
+
+const alternates = routeAlternates('home');
 ---
 
-<Layout>
+<Layout alternates={alternates}>
   <Fragment slot="head">
-    <SeoHead
-      locale={locale}
-      title={heading}
-      path="/en/"
-      alternates={[
-        { locale: 'en', path: '/en/' },
-        { locale: 'es', path: '/es/' },
-      ]}
-    />
+    <SeoHead locale={locale} title={heading} path="/en/" alternates={alternates} />
   </Fragment>
 
   <PostList

@@ -6,6 +6,23 @@ import { resolveLocale } from '@/i18n/utils';
 
 import '../styles/global.css';
 
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * `alternates` is where the same page lives in the other locales, and it is
+ * optional because most pages cannot answer it. A listing knows; an article
+ * knows only after resolving the sibling localization's slug; a `404` has no
+ * counterpart at all.
+ *
+ * Supplied, the language picker sends a reader to the page they are on. Absent,
+ * it falls back to that locale's home, which is where it used to always go.
+ */
+interface Props {
+  alternates?: { locale: Locale; path: string }[];
+}
+
+const { alternates } = Astro.props;
+
 const locale = resolveLocale(Astro.currentLocale);
 ---
 
@@ -29,7 +46,7 @@ const locale = resolveLocale(Astro.currentLocale);
     <slot name="head" />
   </head>
   <body class="flex min-h-dvh flex-col">
-    <SiteHeader locale={locale} />
+    <SiteHeader locale={locale} alternates={alternates} />
     <div id="main" class="flex-1">
       <slot />
     </div>
