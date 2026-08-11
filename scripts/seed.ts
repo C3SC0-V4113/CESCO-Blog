@@ -294,6 +294,26 @@ push(
 );
 
 /**
+ * Body copy for the filler posts.
+ *
+ * Nine sentences rotated across every heading of every post, so no two sections
+ * read alike. They argue about game design rather than saying nothing, because
+ * a seed that says nothing cannot show whether the typography carries an
+ * argument — which is the only job a reading page has.
+ */
+const PARAGRAPHS = [
+  'Un juego rara vez explica sus decisiones, pero las toma en todo momento. Mirarlas de cerca es la única forma de distinguir lo que se eligió de lo que simplemente quedó así.',
+  'Hay una diferencia entre exigir atención y merecerla. La primera se consigue con obstáculos; la segunda, con algo que valga la pena mirar dos veces.',
+  'El diseño se nota cuando falla. Mientras funciona parece que no estuviera, y esa invisibilidad es el resultado de mucho trabajo deliberado.',
+  'Ningún sistema es neutral. Cada regla decide qué tipo de jugador va a prosperar, y esa decisión se toma mucho antes de que alguien encienda la consola.',
+  'La repetición no es aburrimiento por sí sola. Se vuelve aburrimiento cuando repetir deja de enseñar algo nuevo sobre el sistema que se repite.',
+  'Lo difícil no es agregar una mecánica, es sostenerla veinte horas sin que se agote. Casi todo lo que sobra en un juego estuvo ahí desde la primera hora.',
+  'Un espacio bien construido se recuerda sin mapa. Si hace falta consultarlo cada vez, el problema rara vez está en el mapa.',
+  'El ritmo importa más que la cantidad. Dos horas bien administradas dejan más que veinte que no saben cuándo dejar al jugador en silencio.',
+  'Toda interfaz argumenta algo sobre lo que el juego considera importante. Lo que se pone en pantalla, y sobre todo lo que se decide no poner, es una postura.',
+];
+
+/**
  * Each entry becomes one published Spanish post.
  *
  * `headings` drives everything derived: the outline, the reading time, and
@@ -304,10 +324,12 @@ const fillers: {
   title: string;
   section: 'analysis' | 'opinion';
   author: string | null;
+  excerpt: string;
   headings: string[];
 }[] = [
   {
     title: 'El mapa que no querías abrir',
+    excerpt: 'Abrir el mapa es admitir que el espacio no se explicó solo.',
     section: 'analysis',
     author: AUTHOR_ID,
     headings: [
@@ -318,6 +340,7 @@ const fillers: {
   },
   {
     title: 'Guardar la partida es una decisión de diseño',
+    excerpt: 'Dónde se puede guardar dice qué clase de error el juego considera aceptable.',
     section: 'analysis',
     author: SECOND_AUTHOR_ID,
     headings: [
@@ -329,6 +352,7 @@ const fillers: {
   },
   {
     title: 'Tutoriales que no parecen tutoriales',
+    excerpt: 'Los mejores tutoriales terminan antes de que el jugador note que empezaron.',
     section: 'analysis',
     author: AUTHOR_ID,
     headings: [
@@ -339,6 +363,7 @@ const fillers: {
   },
   {
     title: 'La cámara también narra',
+    excerpt: 'Elegir qué se ve es elegir qué se siente. La cámara nunca es neutral.',
     section: 'analysis',
     author: SECOND_AUTHOR_ID,
     headings: [
@@ -347,9 +372,16 @@ const fillers: {
       'Planos fijos en un medio interactivo',
     ],
   },
-  { title: 'Notas sueltas sobre un juego corto', section: 'analysis', author: null, headings: [] },
+  {
+    title: 'Notas sueltas sobre un juego corto',
+    section: 'analysis',
+    author: null,
+    excerpt: 'Apuntes de una tarde, sin más pretensión que dejarlos anotados.',
+    headings: [],
+  },
   {
     title: 'El inventario como narrativa',
+    excerpt: 'Apuntes de una tarde, sin más pretensión que dejarlos anotados.',
     section: 'analysis',
     author: AUTHOR_ID,
     headings: [
@@ -360,6 +392,7 @@ const fillers: {
   },
   {
     title: 'La dificultad no es una barra',
+    excerpt: 'Cargar objetos es cargar decisiones, y casi nadie diseña ese peso.',
     section: 'opinion',
     author: SECOND_AUTHOR_ID,
     headings: [
@@ -370,6 +403,7 @@ const fillers: {
   },
   {
     title: 'Contra la palabra inmersión',
+    excerpt: 'Tres niveles de dificultad son una respuesta cómoda a una pregunta difícil.',
     section: 'opinion',
     author: AUTHOR_ID,
     headings: [
@@ -380,6 +414,7 @@ const fillers: {
   },
   {
     title: 'Los remakes no son restauraciones',
+    excerpt: 'La usamos para todo, y por eso ya no distingue nada.',
     section: 'opinion',
     author: SECOND_AUTHOR_ID,
     headings: [
@@ -389,9 +424,16 @@ const fillers: {
       'El original sigue existiendo',
     ],
   },
-  { title: 'Apunte rápido sobre una demo', section: 'opinion', author: null, headings: [] },
+  {
+    title: 'Apunte rápido sobre una demo',
+    section: 'opinion',
+    author: null,
+    excerpt: 'Notas rápidas después de media hora con una demo.',
+    headings: [],
+  },
   {
     title: 'El sonido de los menús',
+    excerpt: 'Rehacer un juego es opinar sobre él, aunque el anuncio diga lo contrario.',
     section: 'analysis',
     author: AUTHOR_ID,
     headings: [
@@ -402,6 +444,7 @@ const fillers: {
   },
   {
     title: 'Jugar con el mando apagado',
+    excerpt: 'Notas rápidas después de media hora con una demo.',
     section: 'opinion',
     author: SECOND_AUTHOR_ID,
     headings: [
@@ -429,6 +472,12 @@ fillers.forEach((filler, index) => {
   const body = filler.headings.flatMap((heading, headingIndex) => {
     const pair = String(headingIndex).padStart(2, '0');
 
+    // Rotated rather than repeated. The first version put one sentence under
+    // every heading of every post, and the result read as lorem ipsum — which
+    // defeats a seed whose whole purpose is to be looked at. Offset by the post
+    // index too, so two posts do not open with the same line.
+    const paragraph = PARAGRAPHS[(index * 3 + headingIndex) % PARAGRAPHS.length]!;
+
     return [
       {
         type: 'heading' as const,
@@ -438,12 +487,7 @@ fillers.forEach((filler, index) => {
       {
         type: 'paragraph' as const,
         attrs: { blockId: `f5${suffix}0000-0000-4000-8000-0000000000${pair}` },
-        content: [
-          {
-            type: 'text' as const,
-            text: 'Un juego rara vez explica sus decisiones, pero las toma en todo momento. Mirarlas de cerca es la única forma de distinguir lo que se eligió de lo que simplemente quedó así.',
-          },
-        ],
+        content: [{ type: 'text' as const, text: paragraph }],
       },
     ];
   });
@@ -493,7 +537,7 @@ fillers.forEach((filler, index) => {
       postLocalizationId: fillerLocalizationId,
       version: 1,
       title: filler.title,
-      excerpt: 'Una nota sobre diseño, escrita sin apuro.',
+      excerpt: filler.excerpt,
       contentJson: content,
       readingTimeMinutes: deriveReadingTime(content),
       tocJson: deriveToc(content),
