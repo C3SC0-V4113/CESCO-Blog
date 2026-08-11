@@ -1,4 +1,6 @@
 ---
+import { SITE_NAME } from '@/lib/site';
+
 import Layout from '../layouts/main.astro';
 
 // Required by Astro i18n to create the root redirect to the prefixed default locale.
@@ -6,6 +8,6 @@ import Layout from '../layouts/main.astro';
 
 <Layout>
   <main>
-    <h1>Cesco Blog</h1>
+    <h1>{SITE_NAME}</h1>
   </main>
 </Layout>

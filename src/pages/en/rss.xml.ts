@@ -6,6 +6,7 @@ import { cacheTagHeader } from '@/lib/cache-tags';
 import { feedItemIdentity } from '@/lib/feed';
 import { getDb } from '@/lib/runtime';
 import { absolute } from '@/lib/seo';
+import { SITE_NAME } from '@/lib/site';
 import { fromDbTimestamp } from '@/lib/timestamps';
 import { articlePath } from '@/lib/urls';
 
@@ -26,7 +27,7 @@ export const GET: APIRoute = async (context) => {
   const items = await listFeedItems(getDb(), locale, 20);
 
   const response = await rss({
-    title: 'Cesco Blog',
+    title: SITE_NAME,
     description: t('listing.latest'),
     site,
     // `link` is deliberately absent from each item: supplying it makes

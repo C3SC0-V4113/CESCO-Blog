@@ -3,6 +3,7 @@ import Prose from '@/components/common/prose.astro';
 import SeoHead from '@/components/common/seo-head.astro';
 import { resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
+import { CONTACT_EMAIL } from '@/lib/site';
 
 /**
  * A transparency page (ADR-0018).
@@ -35,12 +36,18 @@ const locale = resolveLocale(Astro.currentLocale);
     <h1 class="mb-8 text-3xl leading-tight text-balance">Contact</h1>
 
     <Prose>
-      <p>Email is the channel for corrections, feedback and editorial enquiries.</p>
       <p>
-        Factual corrections are always acted on. If a piece says something incorrect about a game,
-        it gets corrected and the article says that it was.
+        For corrections, feedback or editorial enquiries, write to{' '}
+        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. A person reads it, not a form.
       </p>
-      <p>Coverage requests are read, but neither a reply nor publication is guaranteed.</p>
+      <p>
+        If a piece says something incorrect about a game, say so. Factual corrections are always
+        acted on, and when an article is corrected the article says so itself.
+      </p>
+      <p>
+        Studios and publishers are welcome to write too. Every coverage request is read, though a
+        reply is not guaranteed and a promise almost never is: what gets covered is decided here.
+      </p>
     </Prose>
   </main>
 </Layout>

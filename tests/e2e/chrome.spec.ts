@@ -17,7 +17,7 @@ test('carries the chrome on every page', async ({ page }) => {
 
   await expect(page.getByRole('banner')).toBeVisible();
   await expect(page.getByRole('contentinfo')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Cesco Blog' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Checkpoint' })).toBeVisible();
 });
 
 test('offers the languages behind a control, not among the destinations', async ({ page }) => {
@@ -69,8 +69,10 @@ test('does not link to a route that does not exist yet', async ({ page }) => {
   // off this list as their pages landed — the list doing its job rather than
   // being relaxed.
   //
-  // `exact` matters: accessible names match as substrings by default, and
-  // "Blog" is inside the "Cesco Blog" wordmark.
+  // `exact` matters: accessible names match as substrings by default. The
+  // wordmark no longer contains "Blog" — it is "Checkpoint" now (ADR-0016) — but
+  // the flag stays, because the guard should not depend on the brand name
+  // happening not to collide with a nav label.
   for (const name of ['Buscar']) {
     await expect(page.getByRole('banner').getByRole('link', { name, exact: true })).toHaveCount(0);
   }
