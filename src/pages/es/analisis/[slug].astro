@@ -7,6 +7,7 @@ import { resolveArticleUrl } from '@/db/queries/posts';
 import { resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
 import { ERROR_RESPONSE_MAX_AGE, cacheTagHeader, postDetailTags } from '@/lib/cache-tags';
+import { articleAlternates } from '@/lib/routes';
 import { getDb } from '@/lib/runtime';
 import { absolute } from '@/lib/seo';
 import { articlePath } from '@/lib/urls';
@@ -44,9 +45,14 @@ if (resolution.kind === 'render') {
 
 if (resolution.kind === 'gone') Astro.response.status = 410;
 if (resolution.kind === 'not-found') Astro.response.status = 404;
+// Where this same article lives in the other locales, published ones only
+// (ADR-0013). Computed once: the `<head>` needs it for `hreflang` and the
+// language picker needs it to keep a reader on the page they are reading.
+const alternates =
+  resolution.kind === 'render' ? articleAlternates(section, resolution.post.alternates) : [];
 ---
 
-<Layout>
+<Layout alternates={alternates}>
   {
     resolution.kind === 'render' && (
       <Fragment slot="head">
@@ -55,10 +61,7 @@ if (resolution.kind === 'not-found') Astro.response.status = 404;
           title={resolution.post.title}
           description={resolution.post.excerpt}
           path={articlePath(locale, section, slug ?? '')}
-          alternates={resolution.post.alternates.map((alternate) => ({
-            locale: alternate.locale,
-            path: articlePath(alternate.locale, section, alternate.slug),
-          }))}
+          alternates={alternates}
           ogType="article"
         />
         <ArticleJsonLd

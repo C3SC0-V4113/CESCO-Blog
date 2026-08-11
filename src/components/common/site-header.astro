@@ -30,17 +30,23 @@ import type { Locale } from '@/i18n/locales';
  * because a language picker is something you *change*, not somewhere you *go* —
  * styled like a nav link it reads as a destination.
  *
- * The picker still points at each locale's home rather than the equivalent
- * page. Finding that page means resolving the sibling localization's slug,
- * which is the same lookup `hreflang` needs (ADR-0013), so both arrive together
- * rather than this one guessing.
+ * The picker sends a reader to the page they are on, when the page can say
+ * where that is. It used to always go to the locale's home, with a note that it
+ * was waiting on the sibling slug lookup `hreflang` needs (ADR-0013) — that
+ * lookup exists now, so `alternates` carries its answer up here instead of
+ * being spent only on the `<head>`.
+ *
+ * Only *published* localizations appear in `alternates`, so the picker cannot
+ * offer a language that would answer `404`. When a page supplies nothing, the
+ * old behaviour stands: the locale's home is somewhere real.
  */
 
 interface Props {
   locale: Locale;
+  alternates?: { locale: Locale; path: string }[];
 }
 
-const { locale } = Astro.props;
+const { locale, alternates = [] } = Astro.props;
 const t = getTranslations(locale);
 
 const navItems = mainNavItems(locale);
@@ -48,7 +54,7 @@ const navItems = mainNavItems(locale);
 const localeOptions = locales.map((option) => ({
   locale: option,
   label: t(option === 'es' ? 'locale.es' : 'locale.en'),
-  href: `/${option}/`,
+  href: alternates.find((alternate) => alternate.locale === option)?.path ?? `/${option}/`,
   current: option === locale,
 }));
 ---

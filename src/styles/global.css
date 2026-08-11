@@ -153,6 +153,34 @@
   h3 {
     @apply font-heading;
   }
+
+  /*
+   * Anchors glide rather than jump.
+   *
+   * Behind `prefers-reduced-motion: no-preference` rather than paired with a
+   * `motion-reduce` override, because this is the one motion in the project the
+   * user agent animates on its own: an instant jump is the correct behaviour to
+   * fall back to, and it is what the browser already does without this rule.
+   * ADR-0022 asks for the opt-out; here the opt-out is the absence of the rule.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /*
+   * Landing room above an anchored heading.
+   *
+   * Without this the outline scrolls a heading flush to the top of the viewport,
+   * where the sticky mobile table of contents sits on top of it — the reader
+   * follows a link and arrives at a heading they cannot see. The value clears
+   * that bar with a little air to spare.
+   */
+  :target,
+  [id] {
+    scroll-margin-top: 5rem;
+  }
 }
 
 /*

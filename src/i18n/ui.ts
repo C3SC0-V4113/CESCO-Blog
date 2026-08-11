@@ -15,6 +15,7 @@
 
 const es = {
   'nav.home': 'Inicio',
+  'nav.breadcrumb': 'Ruta de navegación',
   'nav.blog': 'Blog',
   'nav.analysis': 'Análisis',
   'nav.opinion': 'Opiniones',
@@ -92,6 +93,7 @@ const es = {
 
 const en = {
   'nav.home': 'Home',
+  'nav.breadcrumb': 'Breadcrumb',
   'nav.blog': 'Blog',
   'nav.analysis': 'Analysis',
   'nav.opinion': 'Opinion',

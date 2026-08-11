@@ -37,6 +37,43 @@ test('offers the languages behind a control, not among the destinations', async 
     await expect(page.getByRole('menuitem', { name: 'English' })).toBeVisible({ timeout: 1_000 });
   }).toPass();
 
+  // The article's English counterpart, not the English home. Switching language
+  // used to drop a reader back at the front page, which is the one place they
+  // had already decided not to be.
+  await expect(page.getByRole('menuitem', { name: 'English' })).toHaveAttribute(
+    'href',
+    '/en/analysis/the-weight-of-silence'
+  );
+});
+
+test('keeps a reader on the same page when they switch language', async ({ page }) => {
+  // Asserted by following it rather than by reading the href, because the point
+  // is where the reader ends up.
+  await page.goto(ES_ARTICLE);
+
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Cambiar idioma' }).click();
+    await expect(page.getByRole('menuitem', { name: 'English' })).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+
+  await page.getByRole('menuitem', { name: 'English' }).click();
+
+  await expect(page).toHaveURL(/\/en\/analysis\/the-weight-of-silence$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'The weight of silence in exploration games'
+  );
+});
+
+test('falls back to the locale home when a page has no counterpart', async ({ page }) => {
+  // A `404` has no equivalent in the other language, so the picker offers
+  // somewhere real instead of an address that would also answer `404`.
+  await page.goto('/es/analisis/no-existe');
+
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Cambiar idioma' }).click();
+    await expect(page.getByRole('menuitem', { name: 'English' })).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+
   await expect(page.getByRole('menuitem', { name: 'English' })).toHaveAttribute('href', '/en/');
 });
 

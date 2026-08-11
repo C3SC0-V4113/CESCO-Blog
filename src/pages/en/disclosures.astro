@@ -3,6 +3,7 @@ import Prose from '@/components/common/prose.astro';
 import SeoHead from '@/components/common/seo-head.astro';
 import { resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
+import { routeAlternates } from '@/lib/routes';
 
 /**
  * A transparency page (ADR-0018).
@@ -16,19 +17,13 @@ import Layout from '@/layouts/main.astro';
  */
 
 const locale = resolveLocale(Astro.currentLocale);
+
+const alternates = routeAlternates('disclosures');
 ---
 
-<Layout>
+<Layout alternates={alternates}>
   <Fragment slot="head">
-    <SeoHead
-      locale={locale}
-      title="Disclosures"
-      path="/en/disclosures"
-      alternates={[
-        { locale: 'en', path: '/en/disclosures' },
-        { locale: 'es', path: '/es/divulgaciones' },
-      ]}
-    />
+    <SeoHead locale={locale} title="Disclosures" path="/en/disclosures" alternates={alternates} />
   </Fragment>
 
   <main class="mx-auto max-w-[34rem] px-6 pt-12 pb-20">

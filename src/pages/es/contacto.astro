@@ -3,6 +3,7 @@ import Prose from '@/components/common/prose.astro';
 import SeoHead from '@/components/common/seo-head.astro';
 import { resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
+import { routeAlternates } from '@/lib/routes';
 import { CONTACT_EMAIL } from '@/lib/site';
 
 /**
@@ -17,19 +18,13 @@ import { CONTACT_EMAIL } from '@/lib/site';
  */
 
 const locale = resolveLocale(Astro.currentLocale);
+
+const alternates = routeAlternates('contact');
 ---
 
-<Layout>
+<Layout alternates={alternates}>
   <Fragment slot="head">
-    <SeoHead
-      locale={locale}
-      title="Contacto"
-      path="/es/contacto"
-      alternates={[
-        { locale: 'es', path: '/es/contacto' },
-        { locale: 'en', path: '/en/contact' },
-      ]}
-    />
+    <SeoHead locale={locale} title="Contacto" path="/es/contacto" alternates={alternates} />
   </Fragment>
 
   <main class="mx-auto max-w-[34rem] px-6 pt-12 pb-20">

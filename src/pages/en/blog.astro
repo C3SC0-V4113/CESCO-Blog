@@ -6,6 +6,7 @@ import { getTranslations, resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
 import { cacheTagHeader, fullListingTags } from '@/lib/cache-tags';
 import { pageCount, readPageWindow } from '@/lib/pagination';
+import { routeAlternates } from '@/lib/routes';
 import { getDb } from '@/lib/runtime';
 
 const locale = resolveLocale(Astro.currentLocale);
@@ -22,19 +23,13 @@ const { posts, total } = await listPublishedPosts(getDb(), {
 });
 
 Astro.response.headers.set('Cache-Tag', cacheTagHeader(fullListingTags(locale)));
+
+const alternates = routeAlternates('blog');
 ---
 
-<Layout>
+<Layout alternates={alternates}>
   <Fragment slot="head">
-    <SeoHead
-      locale={locale}
-      title={heading}
-      path="/en/blog"
-      alternates={[
-        { locale: 'en', path: '/en/blog' },
-        { locale: 'es', path: '/es/blog' },
-      ]}
-    />
+    <SeoHead locale={locale} title={heading} path="/en/blog" alternates={alternates} />
   </Fragment>
 
   <PostList
