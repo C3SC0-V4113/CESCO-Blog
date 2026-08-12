@@ -92,18 +92,36 @@ const trail = [
     <article class="max-w-[34rem] lg:order-1">
       <BreadcrumbTrail locale={locale} trail={trail} current={post.title} />
 
-      <header class="mb-10">
-        <h1 class="text-3xl leading-tight text-balance text-foreground">{post.title}</h1>
+      {
+        /*
+        The masthead of the piece. Merriweather at a size it can actually carry —
+        a serif chosen for authority spends it at 1.875rem — with the section
+        above it in the accent, which is the same signal the listing cards use.
+        A reader who scanned a card and clicked meets the same colour on arrival.
+      */
+      }
+      <header class="mb-12">
+        <p class="mb-4 text-[0.6875rem] font-medium tracking-[0.14em] text-primary uppercase">
+          {t(post.section === 'analysis' ? 'nav.analysis' : 'nav.opinion')}
+        </p>
+
+        <h1 class="text-[2.125rem] leading-[1.15] text-balance text-foreground sm:text-[2.5rem]">
+          {post.title}
+        </h1>
 
         {
           post.excerpt && (
-            <p class="mt-4 text-lg leading-relaxed text-pretty text-muted-foreground">
+            <p class="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
               {post.excerpt}
             </p>
           )
         }
 
-        <div class="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1">
+        {
+          /* A rule, not a gap: it separates the masthead from the credits without
+            adding another band of empty space to a page that already has air. */
+        }
+        <div class="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-5">
           <Byline locale={locale} authorName={post.authorName} publishedAt={post.publishedAt} />
           <ReadingTime locale={locale} minutes={post.readingTimeMinutes} />
         </div>

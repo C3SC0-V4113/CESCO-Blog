@@ -78,4 +78,27 @@
     font-family: ui-monospace, monospace;
     font-size: 0.9375em;
   }
+
+  /*
+   * Links in body copy are the second place the accent appears, and the only
+   * one inside the reading column.
+   *
+   * Underlined rather than coloured alone: colour is not available to every
+   * reader, and an underline is the one link affordance that survives both
+   * colour blindness and a monochrome print. The offset and the thin rule keep
+   * it from cutting through descenders, which is what makes underlines look
+   * cheap.
+   */
+  .prose :global(a) {
+    color: var(--primary);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    text-decoration-color: color-mix(in oklch, var(--primary), transparent 55%);
+    transition: text-decoration-color 150ms var(--ease-out-quad);
+  }
+
+  .prose :global(a:hover) {
+    text-decoration-color: var(--primary);
+  }
 </style>
