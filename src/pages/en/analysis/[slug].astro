@@ -3,6 +3,7 @@ import ErrorState from '@/components/common/error-state.astro';
 import SeoHead from '@/components/common/seo-head.astro';
 import ArticleDetail from '@/components/post/article-detail.astro';
 import ArticleJsonLd from '@/components/post/article-json-ld.astro';
+import { findPostSeries } from '@/db/queries/collections';
 import { resolveArticleUrl } from '@/db/queries/posts';
 import { resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
@@ -20,6 +21,14 @@ const { slug } = Astro.params;
 const resolution = slug
   ? await resolveArticleUrl(getDb(), { locale, section, slug })
   : ({ kind: 'not-found' } as const);
+
+// Fetched only for a page that will render: a 404 or a 410 has no series to
+// show, and spending two queries to decorate an error response is two queries
+// the budget did not need to lose (ADR-0016).
+const series =
+  resolution.kind === 'render'
+    ? await findPostSeries(getDb(), resolution.post.postId, locale)
+    : null;
 
 const redirectTo =
   resolution.kind === 'redirect' ? articlePath(locale, section, resolution.slug) : null;
@@ -79,7 +88,7 @@ const alternates =
 
   {
     resolution.kind === 'render' ? (
-      <ArticleDetail locale={locale} post={resolution.post} />
+      <ArticleDetail locale={locale} post={resolution.post} series={series} />
     ) : (
       <ErrorState locale={locale} status={resolution.kind === 'gone' ? 410 : 404} />
     )

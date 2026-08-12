@@ -71,3 +71,26 @@ const trustPages: { key: UiKey; route: keyof typeof routes }[] = [
 export function footerLinks(locale: Locale): NavItem[] {
   return trustPages.map(({ key, route }) => ({ key, href: routePath(route, locale) }));
 }
+
+/**
+ * Whether a navigation item describes the page being viewed.
+ *
+ * A destination stays marked while you are *inside* it: `/es/analisis` is the
+ * current section on the listing and on every article under it, because that is
+ * what a reader means by "where am I". Marking only the exact listing would
+ * leave the bar blank on precisely the pages people spend their time on.
+ *
+ * The boundary is a `/`, not a prefix. `/es/blog` must not match
+ * `/es/blogosfera`, and a plain `startsWith` would say it does.
+ *
+ * Trailing slashes are normalised because `/es/series` and `/es/series/` are
+ * the same place, and which one arrives depends on how the reader got here.
+ */
+export function isNavItemActive(href: string, pathname: string): boolean {
+  const trim = (value: string) => (value.length > 1 ? value.replace(/\/+$/, '') : value);
+
+  const target = trim(href);
+  const current = trim(pathname);
+
+  return current === target || current.startsWith(`${target}/`);
+}

@@ -23,6 +23,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 export type MobileNavItem = {
   label: string;
   href: string;
+  /**
+   * Decided on the server, not read from `location` here.
+   *
+   * The sheet renders on the server before it hydrates, and a client-side check
+   * would mark the wrong item — or nothing — in that first paint.
+   */
+  current: boolean;
 };
 
 interface Props {
@@ -55,7 +62,8 @@ export default function MobileNav({ openLabel, items }: Props) {
             <a
               key={item.href}
               href={item.href}
-              className="rounded-md px-3 py-2 text-base text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
+              aria-current={item.current ? 'page' : undefined}
+              className="rounded-md px-3 py-2 text-base text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground aria-[current]:bg-muted aria-[current]:font-medium aria-[current]:text-foreground"
             >
               {item.label}
             </a>

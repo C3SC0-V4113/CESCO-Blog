@@ -49,3 +49,60 @@ test('links series from the header now that the route exists', async ({ page }) 
     page.getByRole('banner').getByRole('link', { name: 'Series', exact: true })
   ).toBeVisible();
 });
+
+test.describe('the series indicator on an article', () => {
+  test('says which series a piece belongs to, and where it sits', async ({ page }) => {
+    // Before this, a reader could land on part three of a series with nothing
+    // telling them the other three existed. The position is what turns a label
+    // into an invitation.
+    await page.goto('/es/analisis/el-peso-del-silencio');
+
+    const badge = page.getByRole('article').getByRole('link', { name: /El sonido en los juegos/ });
+
+    await expect(badge).toBeVisible();
+    // The exact string, spaces included. Written as adjacent expressions the
+    // whitespace collapsed at build time and this read "1de4" — a defect no
+    // assertion on the digits alone would have caught.
+    await expect(badge).toContainText('1 de 4');
+  });
+
+  test('leads straight into the series', async ({ page }) => {
+    await page.goto('/es/analisis/el-peso-del-silencio');
+    await page
+      .getByRole('article')
+      .getByRole('link', { name: /El sonido en los juegos/ })
+      .click();
+
+    await expect(page).toHaveURL(/\/es\/series\/el-sonido-en-los-juegos$/);
+  });
+
+  test('shows nothing for a piece in no series', async ({ page }) => {
+    await page.goto('/es/analisis/relleno-04');
+
+    await expect(page.getByRole('article').getByText('Serie')).toHaveCount(0);
+  });
+});
+
+test.describe('the series index', () => {
+  test('lists the published series instead of claiming there are none', async ({ page }) => {
+    // It was a hard-coded placeholder printing the empty state unconditionally,
+    // so a published series answered 200 at its own URL while the one page
+    // built to find it said nothing existed.
+    await page.goto('/es/series');
+
+    await expect(page.getByRole('link', { name: 'El sonido en los juegos' })).toBeVisible();
+  });
+
+  test('says how many pieces a series holds', async ({ page }) => {
+    // What separates a trilogy from a single piece at a glance.
+    await page.goto('/es/series');
+
+    await expect(page.getByText('4 publicaciones')).toBeVisible();
+  });
+
+  test('lists it in English too', async ({ page }) => {
+    await page.goto('/en/series');
+
+    await expect(page.getByRole('link', { name: 'Sound in games' })).toBeVisible();
+  });
+});

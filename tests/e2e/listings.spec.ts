@@ -118,3 +118,41 @@ test('walks to the second page and back through the links alone', async ({ page 
   await expect(page).toHaveURL(/\?page=2$/);
   await expect(page.getByRole('link', { name: 'Jugar con el mando apagado' })).toBeVisible();
 });
+
+test.describe('covers', () => {
+  test('shows a cover that actually loads', async ({ page }) => {
+    // `naturalWidth`, not visibility. A broken `src` still produces a visible
+    // element with a border and an alt box, which is exactly what an earlier
+    // version of this shipped — the layout was right and every card was empty.
+    await page.goto('/es/blog');
+
+    const cover = page.locator('article img').first();
+
+    await expect(cover).toBeVisible();
+    await expect
+      .poll(() => cover.evaluate((el: HTMLImageElement) => el.naturalWidth))
+      .toBeGreaterThan(0);
+  });
+
+  test('reserves the space before the image arrives', async ({ page }) => {
+    // Explicit dimensions are what stop twenty lazy covers reflowing the page
+    // twenty times as they land (ADR-0028 records width and height for this).
+    await page.goto('/es/blog');
+
+    const cover = page.locator('article img').first();
+
+    await expect(cover).toHaveAttribute('width', '1200');
+    await expect(cover).toHaveAttribute('height', '628');
+    await expect(cover).toHaveAttribute('loading', 'lazy');
+  });
+
+  test('keeps the cover out of the accessibility tree', async ({ page }) => {
+    // Generated shapes carry nothing a reader would miss, and the title beside
+    // them is the label. Announcing them would add noise, not meaning.
+    await page.goto('/es/blog');
+
+    const cover = page.locator('article img').first();
+
+    await expect(cover).toHaveAttribute('alt', '');
+  });
+});

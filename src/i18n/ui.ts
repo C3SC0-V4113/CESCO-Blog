@@ -41,7 +41,8 @@ const es = {
   'post.copyLink': 'Copiar enlace',
   'post.linkCopied': 'Enlace copiado',
   'post.tags': 'Etiquetas',
-  'post.partOfSeries': 'Parte de la serie',
+  'post.partOfSeries': 'Serie',
+  'post.ofSeries': 'de',
   'post.previousInSeries': 'Anterior en la serie',
   'post.nextInSeries': 'Siguiente en la serie',
 
@@ -74,6 +75,10 @@ const es = {
   'listing.pagination': 'Paginación',
   'listing.morePages': 'Más páginas',
   'listing.goToPage': 'Ir a la página',
+
+  'series.empty': 'Todavía no hay series publicadas en este idioma.',
+  'series.piece': 'publicación',
+  'series.pieces': 'publicaciones',
 
   'error.404.title': 'Esta página no existe',
   'error.404.body': 'Esta dirección no corresponde a ninguna publicación.',
@@ -119,7 +124,8 @@ const en = {
   'post.copyLink': 'Copy link',
   'post.linkCopied': 'Link copied',
   'post.tags': 'Tags',
-  'post.partOfSeries': 'Part of the series',
+  'post.partOfSeries': 'Series',
+  'post.ofSeries': 'of',
   'post.previousInSeries': 'Previous in series',
   'post.nextInSeries': 'Next in series',
 
@@ -151,6 +157,10 @@ const en = {
   'listing.pagination': 'Pagination',
   'listing.morePages': 'More pages',
   'listing.goToPage': 'Go to page',
+
+  'series.empty': 'No series published in this language yet.',
+  'series.piece': 'piece',
+  'series.pieces': 'pieces',
 
   'error.404.title': 'This page does not exist',
   'error.404.body': 'The address you are looking for does not match any post.',
