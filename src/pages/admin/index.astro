@@ -1,0 +1,13 @@
+---
+import { AdminApp } from '@/components/admin/admin-app';
+import { getTranslations } from '@/i18n/utils';
+import AdminLayout from '@/layouts/admin.astro';
+
+export const prerender = false;
+
+const t = getTranslations('es');
+---
+
+<AdminLayout title={t('admin.documentTitle')}>
+  <AdminApp client:load />
+</AdminLayout>

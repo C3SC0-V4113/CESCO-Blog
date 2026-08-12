@@ -17,10 +17,9 @@ export default defineConfig({
   i18n: {
     locales: ['es', 'en'],
     defaultLocale: 'es',
-    routing: {
-      prefixDefaultLocale: true,
-      redirectToDefaultLocale: true,
-    },
+    // Manual mode preserves Astro's standard locale rules in src/middleware.ts
+    // while allowing the language-neutral /admin boundary from ADR-0003.
+    routing: 'manual',
   },
 
   vite: {
