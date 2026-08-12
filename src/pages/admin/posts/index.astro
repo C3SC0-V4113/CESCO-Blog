@@ -1,0 +1,18 @@
+﻿---
+import { AdminApp } from '@/components/admin/admin-app';
+import { listAdminPosts } from '@/db/queries/admin-posts';
+import { getTranslations } from '@/i18n/utils';
+import AdminLayout from '@/layouts/admin.astro';
+import { readPageWindow } from '@/lib/pagination';
+import { getDb } from '@/lib/runtime';
+const t = getTranslations('es');
+const { page, limit, offset } = readPageWindow(Astro.url.searchParams.get('page'));
+const listing = await listAdminPosts(getDb(), { limit, offset });
+---
+
+<AdminLayout title={`${t('admin.posts.title')} | ${t('admin.brand')}`}>
+  <AdminApp
+    screen={{ name: 'posts', posts: listing.posts, page, total: listing.total }}
+    client:load
+  />
+</AdminLayout>

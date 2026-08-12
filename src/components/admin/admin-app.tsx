@@ -10,31 +10,45 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
 import { cn } from '@/lib/utils';
 
 import { AdminDashboard } from './admin-dashboard';
+import { AdminPostForm } from './admin-post-form';
+import { AdminPostList } from './admin-post-list';
 
+import type { AdminPostSummary } from '@/db/queries/admin-posts';
 import type { UiKey } from '@/i18n/ui';
 import type { LucideIcon } from 'lucide-react';
 
 const t = getTranslations('es');
 
-const pendingDestinations: Array<{ label: UiKey; icon: LucideIcon }> = [
-  { label: 'admin.navigation.posts', icon: FileTextIcon },
+type Screen =
+  | { name: 'dashboard' }
+  | { name: 'posts'; posts: AdminPostSummary[]; page: number; total: number }
+  | { name: 'new-post' };
+
+const laterDestinations: Array<{ label: UiKey; icon: LucideIcon }> = [
   { label: 'admin.navigation.media', icon: ImagesIcon },
   { label: 'admin.navigation.review', icon: SearchCheckIcon },
   { label: 'admin.navigation.collections', icon: BookOpenIcon },
   { label: 'admin.navigation.authors', icon: UsersIcon },
 ];
+const screenCopy = {
+  dashboard: ['admin.title', 'admin.subtitle'],
+  posts: ['admin.posts.title', 'admin.posts.subtitle'],
+  'new-post': ['admin.posts.new', 'admin.posts.newSubtitle'],
+} as const;
 
-export function AdminApp() {
+export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }) {
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const navigationLabel = isNavigationOpen
     ? t('admin.navigation.close')
     : t('admin.navigation.open');
   const NavigationIcon = isNavigationOpen ? XIcon : MenuIcon;
+  const isPosts = screen.name === 'posts' || screen.name === 'new-post';
+  const [title, subtitle] = screenCopy[screen.name];
 
   return (
     <div className="min-h-dvh bg-muted/30">
@@ -66,14 +80,31 @@ export function AdminApp() {
           )}
         >
           <nav aria-label={t('admin.navigation')} className="flex flex-col gap-1">
-            <div
-              aria-current="page"
-              className="flex h-9 items-center gap-2 rounded-lg bg-sidebar-accent px-3 text-sm font-medium text-sidebar-accent-foreground"
+            <a
+              href="/admin"
+              aria-current={screen.name === 'dashboard' ? 'page' : undefined}
+              className={cn(
+                buttonVariants({ variant: 'ghost' }),
+                'justify-start',
+                screen.name === 'dashboard' && 'bg-sidebar-accent text-sidebar-accent-foreground'
+              )}
             >
-              <LayoutDashboardIcon aria-hidden="true" />
+              <LayoutDashboardIcon data-icon="inline-start" />
               {t('admin.navigation.dashboard')}
-            </div>
-            {pendingDestinations.map(({ label, icon: Icon }) => (
+            </a>
+            <a
+              href="/admin/posts"
+              aria-current={isPosts ? 'page' : undefined}
+              className={cn(
+                buttonVariants({ variant: 'ghost' }),
+                'justify-start',
+                isPosts && 'bg-sidebar-accent text-sidebar-accent-foreground'
+              )}
+            >
+              <FileTextIcon data-icon="inline-start" />
+              {t('admin.navigation.posts')}
+            </a>
+            {laterDestinations.map(({ label, icon: Icon }) => (
               <Button
                 key={label}
                 type="button"
@@ -91,12 +122,14 @@ export function AdminApp() {
 
         <main className="min-w-0 p-4 sm:p-6 lg:p-8">
           <div className="mb-6 flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              {t('admin.title')}
-            </h1>
-            <p className="text-muted-foreground">{t('admin.subtitle')}</p>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t(title)}</h1>
+            <p className="text-muted-foreground">{t(subtitle)}</p>
           </div>
-          <AdminDashboard />
+          {screen.name === 'dashboard' && <AdminDashboard />}
+          {screen.name === 'posts' && (
+            <AdminPostList posts={screen.posts} page={screen.page} total={screen.total} />
+          )}
+          {screen.name === 'new-post' && <AdminPostForm />}
         </main>
       </div>
     </div>

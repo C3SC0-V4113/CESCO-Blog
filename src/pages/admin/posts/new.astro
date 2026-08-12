@@ -1,0 +1,10 @@
+﻿---
+import { AdminApp } from '@/components/admin/admin-app';
+import { getTranslations } from '@/i18n/utils';
+import AdminLayout from '@/layouts/admin.astro';
+const t = getTranslations('es');
+---
+
+<AdminLayout title={`${t('admin.posts.new')} | ${t('admin.brand')}`}>
+  <AdminApp screen={{ name: 'new-post' }} client:load />
+</AdminLayout>
