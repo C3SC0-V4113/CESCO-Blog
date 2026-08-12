@@ -54,9 +54,14 @@ const t = getTranslations(locale);
   }
   <span aria-hidden="true" class="text-muted-foreground">·</span>
 
+  {
+    /*
+    One expression, not three. Written as adjacent expressions the whitespace
+    between them collapses at build time and the badge reads "1de4" — visible
+    only once rendered, which is where this was caught.
+  */
+  }
   <span class="text-muted-foreground">
-    {series.position}
-    {t('post.ofSeries')}
-    {series.total}
+    {`${series.position} ${t('post.ofSeries')} ${series.total}`}
   </span>
 </a>

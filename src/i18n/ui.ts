@@ -76,6 +76,10 @@ const es = {
   'listing.morePages': 'Más páginas',
   'listing.goToPage': 'Ir a la página',
 
+  'series.empty': 'Todavía no hay series publicadas en este idioma.',
+  'series.piece': 'publicación',
+  'series.pieces': 'publicaciones',
+
   'error.404.title': 'Esta página no existe',
   'error.404.body': 'Esta dirección no corresponde a ninguna publicación.',
   'error.404.action': 'Ir al inicio',
@@ -153,6 +157,10 @@ const en = {
   'listing.pagination': 'Pagination',
   'listing.morePages': 'More pages',
   'listing.goToPage': 'Go to page',
+
+  'series.empty': 'No series published in this language yet.',
+  'series.piece': 'piece',
+  'series.pieces': 'pieces',
 
   'error.404.title': 'This page does not exist',
   'error.404.body': 'The address you are looking for does not match any post.',

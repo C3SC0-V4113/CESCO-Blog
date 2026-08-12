@@ -1,4 +1,4 @@
-import { and, asc, count, eq, isNotNull } from 'drizzle-orm';
+import { and, asc, count, desc, eq, isNotNull } from 'drizzle-orm';
 
 import { schema, type Db } from '@/db/client';
 import { resolveLocalizationUrl } from '@/lib/urls';
@@ -218,4 +218,58 @@ export async function findPostSeries(
     position: membership.position + 1,
     total: size?.total ?? 1,
   };
+}
+
+/** One series in the index. */
+export type CollectionSummary = {
+  slug: string;
+  title: string;
+  description: string | null;
+  /** How many posts it holds, so a reader can tell a trilogy from a single piece. */
+  postCount: number;
+};
+
+/**
+ * Published series in a locale, newest first.
+ *
+ * The index used to be a hard-coded placeholder that printed the empty state
+ * unconditionally — so the series existed in the database, the individual pages
+ * answered `200`, and the one surface a reader would use to find them said
+ * there was nothing. This is the query that page was waiting for.
+ *
+ * `postCount` comes from a grouped join rather than a query per row: a listing
+ * that spent one query per series would be the N+1 ADR-0016 budgets against.
+ * Series with no posts still list — an empty series is an editorial state, not
+ * a broken row — which is why the join is left.
+ */
+export async function listPublishedCollections(
+  db: Db,
+  locale: Locale
+): Promise<CollectionSummary[]> {
+  return db
+    .select({
+      slug: schema.collectionLocalizations.slug,
+      title: schema.collectionLocalizations.title,
+      description: schema.collectionLocalizations.description,
+      postCount: count(schema.collectionPosts.postId),
+    })
+    .from(schema.collectionLocalizations)
+    .innerJoin(
+      schema.collections,
+      eq(schema.collections.id, schema.collectionLocalizations.collectionId)
+    )
+    .leftJoin(
+      schema.collectionPosts,
+      eq(schema.collectionPosts.collectionId, schema.collectionLocalizations.collectionId)
+    )
+    .where(
+      and(
+        eq(schema.collectionLocalizations.locale, locale),
+        eq(schema.collectionLocalizations.status, 'published'),
+        eq(schema.collections.editorialState, 'active'),
+        isNotNull(schema.collectionLocalizations.firstPublishedAt)
+      )
+    )
+    .groupBy(schema.collectionLocalizations.id)
+    .orderBy(desc(schema.collectionLocalizations.firstPublishedAt));
 }

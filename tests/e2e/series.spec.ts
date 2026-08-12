@@ -60,8 +60,10 @@ test.describe('the series indicator on an article', () => {
     const badge = page.getByRole('article').getByRole('link', { name: /El sonido en los juegos/ });
 
     await expect(badge).toBeVisible();
-    await expect(badge).toContainText('1');
-    await expect(badge).toContainText('4');
+    // The exact string, spaces included. Written as adjacent expressions the
+    // whitespace collapsed at build time and this read "1de4" — a defect no
+    // assertion on the digits alone would have caught.
+    await expect(badge).toContainText('1 de 4');
   });
 
   test('leads straight into the series', async ({ page }) => {
@@ -78,5 +80,29 @@ test.describe('the series indicator on an article', () => {
     await page.goto('/es/analisis/relleno-04');
 
     await expect(page.getByRole('article').getByText('Serie')).toHaveCount(0);
+  });
+});
+
+test.describe('the series index', () => {
+  test('lists the published series instead of claiming there are none', async ({ page }) => {
+    // It was a hard-coded placeholder printing the empty state unconditionally,
+    // so a published series answered 200 at its own URL while the one page
+    // built to find it said nothing existed.
+    await page.goto('/es/series');
+
+    await expect(page.getByRole('link', { name: 'El sonido en los juegos' })).toBeVisible();
+  });
+
+  test('says how many pieces a series holds', async ({ page }) => {
+    // What separates a trilogy from a single piece at a glance.
+    await page.goto('/es/series');
+
+    await expect(page.getByText('4 publicaciones')).toBeVisible();
+  });
+
+  test('lists it in English too', async ({ page }) => {
+    await page.goto('/en/series');
+
+    await expect(page.getByRole('link', { name: 'Sound in games' })).toBeVisible();
   });
 });
