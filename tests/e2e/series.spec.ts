@@ -14,6 +14,28 @@ test('renders a published series with its members in order', async ({ page }) =>
   ).toBeVisible();
 });
 
+test('orders members by position, not by publication date', async ({ page }) => {
+  // The guard the one-member seed could not carry. `collection_posts.position`
+  // is what decides reading order, and the members are attached deliberately
+  // out of date order — so a listing that sorted by `first_published_at`
+  // instead would produce a visibly different sequence here rather than in
+  // production.
+  await page.goto('/es/series/el-sonido-en-los-juegos');
+
+  const titles = await page.getByRole('article').getByRole('heading').allInnerTexts();
+
+  expect(titles.length).toBeGreaterThan(1);
+  expect(titles[0]).toContain('El peso del silencio');
+});
+
+test('publishes the series in both languages', async ({ page }) => {
+  // A collection follows the same bilingual rules as everything else, which a
+  // Spanish-only seed could not show.
+  await page.goto('/en/series/sound-in-games');
+
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sound in games');
+});
+
 test('answers 404 for a series that does not exist', async ({ page }) => {
   const response = await page.goto('/es/series/no-existe');
 

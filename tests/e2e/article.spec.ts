@@ -169,6 +169,33 @@ test('anchors the table of contents at block ids, not heading text', async ({ pa
   await expect(link).toHaveAttribute('href', /^#[0-9a-f-]{36}$/);
 });
 
+test.describe('the shape of a minimal post', () => {
+  test('renders a piece with no outline without looking broken', async ({ page }) => {
+    // The floor of what can be published, and a case the seed deliberately
+    // keeps: a post with no headings and no author. Nothing should be empty,
+    // stray or half-drawn — the outline is simply absent.
+    await page.goto('/es/analisis/relleno-04');
+
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Notas sueltas sobre un juego corto'
+    );
+    await expect(page.getByRole('navigation', { name: 'Contenido' })).toHaveCount(0);
+    await expect(page.getByRole('article').getByText('Por ')).toHaveCount(0);
+  });
+
+  test('gives a piece with headings the outline it earns', async ({ page }) => {
+    // The other half of the same seed decision: most fillers carry three or
+    // four headings, so the table of contents can be judged on a real page
+    // rather than only on the one named article.
+    await page.goto('/es/analisis/relleno-01');
+
+    const toc = page.getByRole('navigation', { name: 'Contenido' });
+
+    await expect(toc.getByRole('link')).toHaveCount(4);
+    await expect(page.getByRole('article').getByText('Marta Riera')).toBeVisible();
+  });
+});
+
 test.describe('breadcrumb', () => {
   test('offers a way out that is not the back button', async ({ page }) => {
     // The gap this closes: a reader arriving from a search result has no

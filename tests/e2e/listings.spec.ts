@@ -37,9 +37,14 @@ test('filters a section listing to its own section', async ({ page }) => {
 test('says so when a listing is empty rather than showing a blank page', async ({ page }) => {
   // Locales publish independently (ADR-0008), so an empty section is a normal
   // early state rather than a failure.
-  await page.goto('/es/opinion');
+  //
+  // English opinion is the empty one now. It used to be Spanish opinion, until
+  // the seed gained real opinion pieces to look at — and an empty state needs
+  // somewhere genuinely empty to render, not a section kept barren to keep a
+  // test passing.
+  await page.goto('/en/opinion');
 
-  await expect(page.getByText('Todavía no hay publicaciones en este idioma.')).toBeVisible();
+  await expect(page.getByText('Nothing published in this language yet.')).toBeVisible();
 });
 
 test('keeps each locale to its own listing', async ({ page }) => {
@@ -111,5 +116,5 @@ test('walks to the second page and back through the links alone', async ({ page 
     .click();
 
   await expect(page).toHaveURL(/\?page=2$/);
-  await expect(page.getByRole('link', { name: 'Entrada de relleno 11' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Jugar con el mando apagado' })).toBeVisible();
 });
