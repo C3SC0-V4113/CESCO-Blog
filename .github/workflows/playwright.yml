@@ -102,8 +102,33 @@ jobs:
       # No build, migrate or seed steps here on purpose. Playwright's `webServer`
       # runs `pnpm run e2e:serve`, which does all three before booting the built
       # Worker, so the suite runs identically here and on a developer's machine.
+      # Retried **only** when the Worker died, never on a test failure.
+      #
+      # The Worker occasionally dies mid-run — an empty wrangler error, then
+      # every remaining test failing on "Connection refused". A blanket retry
+      # would hide real regressions behind a second roll of the dice, so the
+      # rerun is gated on that signature appearing in the output. A genuine
+      # failure exits on the first attempt exactly as before.
+      #
+      # One retry, not a loop: if the server dies twice the problem is not
+      # flakiness and a green run bought on the third attempt would be a lie.
       - name: Run Playwright tests
-        run: pnpm exec playwright test --project=${{ matrix.browser }}
+        run: |
+          set -o pipefail
+          run() { pnpm exec playwright test --project=${{ matrix.browser }} 2>&1 | tee playwright-output.txt; }
+
+          if run; then
+            exit 0
+          fi
+
+          if grep -q "Connection refused" playwright-output.txt; then
+            echo "::warning::The Worker died mid-run; retrying once. See the worker-logs artifact."
+            run
+            exit $?
+          fi
+
+          echo "Tests failed on their own merits — not retrying."
+          exit 1
 
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
@@ -112,3 +137,28 @@ jobs:
           name: playwright-report-${{ matrix.browser }}
           path: playwright-report/
           retention-days: 7
+
+      # The Worker occasionally dies mid-run and every test after it fails on
+      # "Connection refused". Playwright prints wrangler's error, and wrangler
+      # prints an **empty** one — the detail goes to a log file that nothing was
+      # collecting, so the only failure we cannot reproduce locally was also the
+      # only one leaving no evidence behind.
+      #
+      # `if: failure()` rather than `!cancelled()`: on a green run this is noise.
+      - name: Collect the Worker log
+        if: ${{ failure() }}
+        run: |
+          mkdir -p worker-logs
+          # Wrangler writes under XDG config; the path is stable but the file
+          # name carries a timestamp, so copy whatever is there.
+          cp -r ~/.config/.wrangler/logs/. worker-logs/ 2>/dev/null || true
+          echo "--- collected ---"
+          ls -la worker-logs/ || true
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
+        with:
+          name: worker-logs-${{ matrix.browser }}
+          path: worker-logs/
+          retention-days: 7
+          if-no-files-found: warn
