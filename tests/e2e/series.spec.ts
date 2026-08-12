@@ -49,3 +49,34 @@ test('links series from the header now that the route exists', async ({ page }) 
     page.getByRole('banner').getByRole('link', { name: 'Series', exact: true })
   ).toBeVisible();
 });
+
+test.describe('the series indicator on an article', () => {
+  test('says which series a piece belongs to, and where it sits', async ({ page }) => {
+    // Before this, a reader could land on part three of a series with nothing
+    // telling them the other three existed. The position is what turns a label
+    // into an invitation.
+    await page.goto('/es/analisis/el-peso-del-silencio');
+
+    const badge = page.getByRole('article').getByRole('link', { name: /El sonido en los juegos/ });
+
+    await expect(badge).toBeVisible();
+    await expect(badge).toContainText('1');
+    await expect(badge).toContainText('4');
+  });
+
+  test('leads straight into the series', async ({ page }) => {
+    await page.goto('/es/analisis/el-peso-del-silencio');
+    await page
+      .getByRole('article')
+      .getByRole('link', { name: /El sonido en los juegos/ })
+      .click();
+
+    await expect(page).toHaveURL(/\/es\/series\/el-sonido-en-los-juegos$/);
+  });
+
+  test('shows nothing for a piece in no series', async ({ page }) => {
+    await page.goto('/es/analisis/relleno-04');
+
+    await expect(page.getByRole('article').getByText('Serie')).toHaveCount(0);
+  });
+});

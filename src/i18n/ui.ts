@@ -41,7 +41,8 @@ const es = {
   'post.copyLink': 'Copiar enlace',
   'post.linkCopied': 'Enlace copiado',
   'post.tags': 'Etiquetas',
-  'post.partOfSeries': 'Parte de la serie',
+  'post.partOfSeries': 'Serie',
+  'post.ofSeries': 'de',
   'post.previousInSeries': 'Anterior en la serie',
   'post.nextInSeries': 'Siguiente en la serie',
 
@@ -119,7 +120,8 @@ const en = {
   'post.copyLink': 'Copy link',
   'post.linkCopied': 'Link copied',
   'post.tags': 'Tags',
-  'post.partOfSeries': 'Part of the series',
+  'post.partOfSeries': 'Series',
+  'post.ofSeries': 'of',
   'post.previousInSeries': 'Previous in series',
   'post.nextInSeries': 'Next in series',
 

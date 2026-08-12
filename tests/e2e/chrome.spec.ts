@@ -198,3 +198,33 @@ test.describe('narrow screens', () => {
     await expect(trigger).toBeFocused();
   });
 });
+
+test.describe('current page', () => {
+  test('marks the section you are in, not only its listing', async ({ page }) => {
+    // The gap this closes: the bar was blank everywhere, including on article
+    // pages — which is where a reader spends their time and most needs to know
+    // where they are.
+    await page.goto(ES_ARTICLE);
+
+    const header = page.getByRole('banner');
+
+    await expect(header.getByRole('link', { name: 'Análisis', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+  });
+
+  test('marks exactly one destination', async ({ page }) => {
+    // A prefix match would light up two at once — `/es/blog` against
+    // `/es/blogosfera` is the shape of that bug.
+    await page.goto('/es/analisis');
+
+    await expect(page.getByRole('banner').locator('a[aria-current="page"]')).toHaveCount(1);
+  });
+
+  test('marks nothing on a page outside the sections', async ({ page }) => {
+    await page.goto('/es/privacidad');
+
+    await expect(page.getByRole('banner').locator('a[aria-current="page"]')).toHaveCount(0);
+  });
+});

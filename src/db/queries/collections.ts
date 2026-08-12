@@ -1,4 +1,4 @@
-import { and, asc, eq, isNotNull } from 'drizzle-orm';
+import { and, asc, count, eq, isNotNull } from 'drizzle-orm';
 
 import { schema, type Db } from '@/db/client';
 import { resolveLocalizationUrl } from '@/lib/urls';
@@ -146,4 +146,76 @@ export async function listCollectionPosts(
       )
       .orderBy(asc(schema.collectionPosts.position))
   );
+}
+
+/** The series a post belongs to, in the locale being read. */
+export type PostSeries = {
+  slug: string;
+  title: string;
+  /** 1-based, so it reads as "part 2 of 4" rather than "index 1". */
+  position: number;
+  total: number;
+};
+
+/**
+ * Which series a post belongs to, if any.
+ *
+ * A post can sit in several collections in principle; this returns the first by
+ * position, because the indicator on an article has room for one and the
+ * alternative — listing them all above the headline — turns a helpful signal
+ * into furniture.
+ *
+ * Only **published** collections in the locale being read. An unpublished
+ * series is not something to advertise, and a series published in one language
+ * only must not appear over an article in the other.
+ *
+ * Two queries rather than one: the membership row and the size of the series.
+ * `total` cannot come from the same row without a window function, and D1
+ * budgets by query count, not by round trip (ADR-0016) — two small ones on a
+ * page that already spends several is a fair price for "part 2 of 4", which is
+ * the part that makes the indicator worth showing at all.
+ */
+export async function findPostSeries(
+  db: Db,
+  postId: string,
+  locale: Locale
+): Promise<PostSeries | null> {
+  const [membership] = await db
+    .select({
+      collectionId: schema.collectionPosts.collectionId,
+      position: schema.collectionPosts.position,
+      slug: schema.collectionLocalizations.slug,
+      title: schema.collectionLocalizations.title,
+    })
+    .from(schema.collectionPosts)
+    .innerJoin(schema.collections, eq(schema.collections.id, schema.collectionPosts.collectionId))
+    .innerJoin(
+      schema.collectionLocalizations,
+      eq(schema.collectionLocalizations.collectionId, schema.collectionPosts.collectionId)
+    )
+    .where(
+      and(
+        eq(schema.collectionPosts.postId, postId),
+        eq(schema.collectionLocalizations.locale, locale),
+        eq(schema.collectionLocalizations.status, 'published'),
+        eq(schema.collections.editorialState, 'active')
+      )
+    )
+    .orderBy(schema.collectionPosts.position)
+    .limit(1);
+
+  if (!membership) return null;
+
+  const [size] = await db
+    .select({ total: count() })
+    .from(schema.collectionPosts)
+    .where(eq(schema.collectionPosts.collectionId, membership.collectionId));
+
+  return {
+    slug: membership.slug,
+    title: membership.title,
+    // Stored positions start at zero; readers do not.
+    position: membership.position + 1,
+    total: size?.total ?? 1,
+  };
 }

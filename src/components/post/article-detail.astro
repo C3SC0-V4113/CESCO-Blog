@@ -6,10 +6,12 @@ import ArticleBody from '@/components/post/article-body.astro';
 import Byline from '@/components/post/byline.astro';
 import DisclosureNotice from '@/components/post/disclosure-notice.astro';
 import ReadingTime from '@/components/post/reading-time.astro';
+import SeriesBadge from '@/components/post/series-badge.astro';
 import TableOfContents from '@/components/post/table-of-contents.astro';
 import { getTranslations } from '@/i18n/utils';
 import { sectionPath } from '@/lib/urls';
 
+import type { PostSeries } from '@/db/queries/collections';
 import type { PublishedPost } from '@/db/queries/posts';
 import type { Locale } from '@/i18n/locales';
 
@@ -33,9 +35,11 @@ import type { Locale } from '@/i18n/locales';
 interface Props {
   locale: Locale;
   post: PublishedPost;
+  /** The series this piece belongs to, when it belongs to one. */
+  series?: PostSeries | null;
 }
 
-const { locale, post } = Astro.props;
+const { locale, post, series = null } = Astro.props;
 
 // The panel is for analysis pieces. An opinion post has no metadata row at all,
 // so this is belt and braces — but the section is the rule, not the row.
@@ -101,6 +105,8 @@ const trail = [
       */
       }
       <header class="mb-12">
+        {series && <SeriesBadge locale={locale} series={series} />}
+
         <p class="mb-4 text-[0.6875rem] font-medium tracking-[0.14em] text-primary uppercase">
           {t(post.section === 'analysis' ? 'nav.analysis' : 'nav.opinion')}
         </p>

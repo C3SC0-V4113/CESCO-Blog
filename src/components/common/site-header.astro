@@ -4,7 +4,7 @@ import MobileNav from '@/components/nav/mobile-nav';
 import ThemeToggle from '@/components/nav/theme-toggle';
 import { locales } from '@/i18n/locales';
 import { getTranslations } from '@/i18n/utils';
-import { mainNavItems } from '@/lib/navigation';
+import { isNavItemActive, mainNavItems } from '@/lib/navigation';
 import { SITE_NAME } from '@/lib/site';
 
 import type { Locale } from '@/i18n/locales';
@@ -51,6 +51,11 @@ const t = getTranslations(locale);
 
 const navItems = mainNavItems(locale);
 
+// Where the reader is, so the bar can say so. Taken from the request rather
+// than passed down, because every page would otherwise have to remember to
+// declare it and the one that forgot would silently lose the marker.
+const pathname = Astro.url.pathname;
+
 const localeOptions = locales.map((option) => ({
   locale: option,
   label: t(option === 'es' ? 'locale.es' : 'locale.en'),
@@ -81,7 +86,8 @@ const localeOptions = locales.map((option) => ({
           {navItems.map((item) => (
             <a
               href={item.href}
-              class="text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground"
+              aria-current={isNavItemActive(item.href, pathname) ? 'page' : undefined}
+              class="text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground aria-[current]:font-medium aria-[current]:text-foreground"
             >
               {t(item.key)}
             </a>
@@ -98,7 +104,11 @@ const localeOptions = locales.map((option) => ({
         <MobileNav
           client:idle
           openLabel={t('nav.menu')}
-          items={navItems.map((item) => ({ label: t(item.key), href: item.href }))}
+          items={navItems.map((item) => ({
+            label: t(item.key),
+            href: item.href,
+            current: isNavItemActive(item.href, pathname),
+          }))}
         />
       </div>
     </div>

@@ -1,0 +1,62 @@
+---
+import { Library } from 'lucide-react';
+
+import { getTranslations } from '@/i18n/utils';
+
+import type { PostSeries } from '@/db/queries/collections';
+import type { Locale } from '@/i18n/locales';
+
+/**
+ * The series a piece belongs to, and the way into it.
+ *
+ * Two jobs, and the second is the one that was missing: a reader could land on
+ * an article that is part three of a series with nothing telling them the other
+ * three existed. The position is what turns a label into an invitation —
+ * "part 3 of 4" says there is a beginning to go back to.
+ *
+ * Above the headline rather than below the article, for the same reason the
+ * disclosure sits there (ADR-0012): a reader who abandons the piece halfway
+ * should still have learned it belongs to something larger. Placed at the end
+ * it would only reach the people who least need it.
+ *
+ * The whole thing is one link. A badge with a separate "view series" control
+ * beside it gives a reader two targets for one intention.
+ */
+
+interface Props {
+  locale: Locale;
+  series: PostSeries;
+}
+
+const { locale, series } = Astro.props;
+const t = getTranslations(locale);
+---
+
+<a
+  href={`/${locale}/series/${series.slug}`}
+  class="group/series mb-5 inline-flex items-center gap-2 rounded-full border border-border py-1.5 ps-3 pe-3.5 text-xs transition-colors duration-150 hover:border-primary/40 hover:bg-muted"
+>
+  <Library aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
+
+  <span class="text-muted-foreground">
+    {t('post.partOfSeries')}
+  </span>
+
+  <span class="font-medium text-foreground group-hover/series:text-primary">
+    {series.title}
+  </span>
+
+  {
+    /*
+    Separated by a middot rather than a slash: the numbers are a position in a
+    reading order, not a fraction, and a slash invites reading it as one.
+  */
+  }
+  <span aria-hidden="true" class="text-muted-foreground">·</span>
+
+  <span class="text-muted-foreground">
+    {series.position}
+    {t('post.ofSeries')}
+    {series.total}
+  </span>
+</a>

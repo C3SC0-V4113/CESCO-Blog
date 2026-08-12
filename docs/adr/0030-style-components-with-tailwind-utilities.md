@@ -81,6 +81,40 @@ regardless of which system expresses it.
   than a lookup.
 - Converting the existing scoped components is churn that changes no behaviour.
 
+## Note, 2026-08-12: where the Prose exception actually applies
+
+Two things have been checked since this was written, and both narrow it.
+
+**The exception is weaker than stated for the article.** `ArticleBody` walks
+`content_json` and emits every element itself — `<h2>`, `<p>`, `<pre>` are
+written by us, not slotted in. Utilities would reach them. The premise "styling
+content a component does not own" is, for that path, currently false.
+
+**It is exactly true for the trust pages.** The five ADR-0018 pages pass markup
+through `<slot />`, and `Prose` has no way to reach those elements with
+utilities. The exception earns its keep there regardless of what the article
+does.
+
+That split is why `Prose` stays: converting the article alone would leave two
+typographic systems, one in utilities and one in CSS, defining the same scale.
+
+**shadcn's own answer is a CSS file.** Its typography page — "Typeset" — is not
+an installable component. It is one CSS file you copy in, applied through a
+`.typeset` container that styles everything nested inside it. Faced with this
+problem, the design system this project follows also concluded that utilities
+are the wrong tool. That is worth recording, because it means `Prose` is not a
+deviation from the system so much as the same conclusion reached independently.
+
+Adopting Typeset would not remove the CSS. It would replace forty specific lines
+with a larger vendored file, for the same shape. The moment to reconsider is
+when the editor starts producing nodes `Prose` does not style — lists, tables,
+blockquotes — since Typeset already covers those and we would otherwise be
+writing them ourselves. Until that content exists, there is nothing to gain.
+
+The article path will also stop being a counterexample: `ArticleBody` already
+throws on an `image` node, and figures, lists and tables arrive with the editor.
+The richer the tree, the more it resembles content nobody hand-wrote.
+
 ## Related Decisions
 
 - [ADR-0019](0019-render-astro-first-and-reserve-react-islands.md)
