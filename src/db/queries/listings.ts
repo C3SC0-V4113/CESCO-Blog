@@ -23,6 +23,15 @@ export type PostSummary = {
   readingTimeMinutes: number | null;
   publishedAt: string | null;
   authorName: string | null;
+  /**
+   * The editorial cover's R2 key, or `null` for a post without one.
+   *
+   * The key rather than the media id, because the delivery route is addressed
+   * by key (ADR-0033) — carrying the id would mean a second lookup per card to
+   * turn it back into an address, which is exactly the per-row query the
+   * listing is built to avoid.
+   */
+  coverKey: string | null;
 };
 
 export type ListingPage = {
@@ -73,6 +82,7 @@ export async function listPublishedPosts(db: Db, criteria: ListingCriteria): Pro
         readingTimeMinutes: schema.postRevisions.readingTimeMinutes,
         publishedAt: schema.postLocalizations.firstPublishedAt,
         authorName: schema.authors.name,
+        coverKey: schema.mediaAssets.r2Key,
       })
       .from(schema.postLocalizations)
       .innerJoin(schema.posts, eq(schema.posts.id, schema.postLocalizations.postId))
@@ -83,6 +93,8 @@ export async function listPublishedPosts(db: Db, criteria: ListingCriteria): Pro
         eq(schema.postRevisions.id, schema.postLocalizations.publishedRevisionId)
       )
       .leftJoin(schema.authors, eq(schema.authors.id, schema.posts.authorId))
+      // Left: a post without a cover still lists.
+      .leftJoin(schema.mediaAssets, eq(schema.mediaAssets.id, schema.posts.coverMediaId))
       .where(where)
       .orderBy(desc(schema.postLocalizations.firstPublishedAt))
       .limit(criteria.limit)

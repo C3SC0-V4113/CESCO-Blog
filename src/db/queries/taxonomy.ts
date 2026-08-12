@@ -42,6 +42,7 @@ const postColumns = {
   readingTimeMinutes: schema.postRevisions.readingTimeMinutes,
   publishedAt: schema.postLocalizations.firstPublishedAt,
   authorName: schema.authors.name,
+  coverKey: schema.mediaAssets.r2Key,
 };
 
 export async function findTag(db: Db, slug: string): Promise<TaxonomySubject | null> {
@@ -60,19 +61,23 @@ export async function listPostsByTag(
   tagSlug: string,
   locale: Locale
 ): Promise<PostSummary[]> {
-  return db
-    .select(postColumns)
-    .from(schema.postTags)
-    .innerJoin(schema.tags, eq(schema.tags.id, schema.postTags.tagId))
-    .innerJoin(schema.posts, eq(schema.posts.id, schema.postTags.postId))
-    .innerJoin(schema.postLocalizations, eq(schema.postLocalizations.postId, schema.posts.id))
-    .innerJoin(
-      schema.postRevisions,
-      eq(schema.postRevisions.id, schema.postLocalizations.publishedRevisionId)
-    )
-    .leftJoin(schema.authors, eq(schema.authors.id, schema.posts.authorId))
-    .where(and(eq(schema.tags.slug, tagSlug), servablePosts(locale)))
-    .orderBy(desc(schema.postLocalizations.firstPublishedAt));
+  return (
+    db
+      .select(postColumns)
+      .from(schema.postTags)
+      .innerJoin(schema.tags, eq(schema.tags.id, schema.postTags.tagId))
+      .innerJoin(schema.posts, eq(schema.posts.id, schema.postTags.postId))
+      .innerJoin(schema.postLocalizations, eq(schema.postLocalizations.postId, schema.posts.id))
+      .innerJoin(
+        schema.postRevisions,
+        eq(schema.postRevisions.id, schema.postLocalizations.publishedRevisionId)
+      )
+      .leftJoin(schema.authors, eq(schema.authors.id, schema.posts.authorId))
+      // Left: a post without a cover still lists.
+      .leftJoin(schema.mediaAssets, eq(schema.mediaAssets.id, schema.posts.coverMediaId))
+      .where(and(eq(schema.tags.slug, tagSlug), servablePosts(locale)))
+      .orderBy(desc(schema.postLocalizations.firstPublishedAt))
+  );
 }
 
 export async function findGame(db: Db, slug: string): Promise<GameFacts | null> {
@@ -96,16 +101,20 @@ export async function listPostsByGame(
   gameSlug: string,
   locale: Locale
 ): Promise<PostSummary[]> {
-  return db
-    .select(postColumns)
-    .from(schema.posts)
-    .innerJoin(schema.games, eq(schema.games.id, schema.posts.gameId))
-    .innerJoin(schema.postLocalizations, eq(schema.postLocalizations.postId, schema.posts.id))
-    .innerJoin(
-      schema.postRevisions,
-      eq(schema.postRevisions.id, schema.postLocalizations.publishedRevisionId)
-    )
-    .leftJoin(schema.authors, eq(schema.authors.id, schema.posts.authorId))
-    .where(and(eq(schema.games.slug, gameSlug), servablePosts(locale)))
-    .orderBy(desc(schema.postLocalizations.firstPublishedAt));
+  return (
+    db
+      .select(postColumns)
+      .from(schema.posts)
+      .innerJoin(schema.games, eq(schema.games.id, schema.posts.gameId))
+      .innerJoin(schema.postLocalizations, eq(schema.postLocalizations.postId, schema.posts.id))
+      .innerJoin(
+        schema.postRevisions,
+        eq(schema.postRevisions.id, schema.postLocalizations.publishedRevisionId)
+      )
+      .leftJoin(schema.authors, eq(schema.authors.id, schema.posts.authorId))
+      // Left: a post without a cover still lists.
+      .leftJoin(schema.mediaAssets, eq(schema.mediaAssets.id, schema.posts.coverMediaId))
+      .where(and(eq(schema.games.slug, gameSlug), servablePosts(locale)))
+      .orderBy(desc(schema.postLocalizations.firstPublishedAt))
+  );
 }

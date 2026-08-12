@@ -113,32 +113,37 @@ export async function listCollectionPosts(
   collectionId: string,
   locale: Locale
 ): Promise<PostSummary[]> {
-  return db
-    .select({
-      slug: schema.postLocalizations.slug,
-      section: schema.posts.section,
-      title: schema.postRevisions.title,
-      excerpt: schema.postRevisions.excerpt,
-      readingTimeMinutes: schema.postRevisions.readingTimeMinutes,
-      publishedAt: schema.postLocalizations.firstPublishedAt,
-      authorName: schema.authors.name,
-    })
-    .from(schema.collectionPosts)
-    .innerJoin(schema.posts, eq(schema.posts.id, schema.collectionPosts.postId))
-    .innerJoin(schema.postLocalizations, eq(schema.postLocalizations.postId, schema.posts.id))
-    .innerJoin(
-      schema.postRevisions,
-      eq(schema.postRevisions.id, schema.postLocalizations.publishedRevisionId)
-    )
-    .leftJoin(schema.authors, eq(schema.authors.id, schema.posts.authorId))
-    .where(
-      and(
-        eq(schema.collectionPosts.collectionId, collectionId),
-        eq(schema.postLocalizations.locale, locale),
-        eq(schema.postLocalizations.status, 'published'),
-        isNotNull(schema.postLocalizations.firstPublishedAt),
-        eq(schema.posts.editorialState, 'active')
+  return (
+    db
+      .select({
+        slug: schema.postLocalizations.slug,
+        section: schema.posts.section,
+        title: schema.postRevisions.title,
+        excerpt: schema.postRevisions.excerpt,
+        readingTimeMinutes: schema.postRevisions.readingTimeMinutes,
+        publishedAt: schema.postLocalizations.firstPublishedAt,
+        authorName: schema.authors.name,
+        coverKey: schema.mediaAssets.r2Key,
+      })
+      .from(schema.collectionPosts)
+      .innerJoin(schema.posts, eq(schema.posts.id, schema.collectionPosts.postId))
+      .innerJoin(schema.postLocalizations, eq(schema.postLocalizations.postId, schema.posts.id))
+      .innerJoin(
+        schema.postRevisions,
+        eq(schema.postRevisions.id, schema.postLocalizations.publishedRevisionId)
       )
-    )
-    .orderBy(asc(schema.collectionPosts.position));
+      .leftJoin(schema.authors, eq(schema.authors.id, schema.posts.authorId))
+      // Left: a post without a cover still lists.
+      .leftJoin(schema.mediaAssets, eq(schema.mediaAssets.id, schema.posts.coverMediaId))
+      .where(
+        and(
+          eq(schema.collectionPosts.collectionId, collectionId),
+          eq(schema.postLocalizations.locale, locale),
+          eq(schema.postLocalizations.status, 'published'),
+          isNotNull(schema.postLocalizations.firstPublishedAt),
+          eq(schema.posts.editorialState, 'active')
+        )
+      )
+      .orderBy(asc(schema.collectionPosts.position))
+  );
 }
