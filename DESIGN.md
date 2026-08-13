@@ -395,8 +395,8 @@ including its route-model extension.
 | `/admin`                 | Dashboard: drafts in progress, unpublished locales, recent activity | —                                                                            |
 | `/admin/posts`           | Post list with locale status per row, featuring controls            | `post_localizations.featured_at`, `posts.editorial_state`                    |
 | `/admin/posts/new`       | Create the aggregate and its first localization                     | `posts`, `post_localizations`                                                |
-| `/admin/posts/[id]/edit` | Rich text editing — see below                                       | `post_revisions`, `post_revision_media`, `post_analysis_metadata`            |
-| `/admin/posts/[id]/seo`  | SEO and social metadata — see below                                 | `post_revisions` SEO/OG fields                                               |
+| `/admin/posts/[id]/edit` | Rich text draft editing — see below                                 | `post_drafts`                                                                |
+| `/admin/posts/[id]/seo`  | SEO and social metadata — see below                                 | `post_drafts` SEO/OG fields                                                  |
 | `/admin/media`           | R2-backed asset library with attribution fields                     | `media_assets`                                                               |
 | `/admin/review`          | Draft review before publishing; publish action                      | `post_localizations` status and timestamps, `post_localization_slug_history` |
 | `/admin/collections`     | Series list and ordering                                            | `collections`, `collection_localizations`, `collection_posts`                |
@@ -404,22 +404,24 @@ including its route-model extension.
 
 ### `/admin/posts/[id]/edit`
 
-The editor. Governed by
-[ADR-0024](docs/adr/0024-adopt-tiptap-for-the-editorial-content-pipeline.md).
+The editor is governed by
+[ADR-0024](docs/adr/0024-adopt-tiptap-for-the-editorial-content-pipeline.md),
+[ADR-0032](docs/adr/0032-separate-drafts-from-revisions.md), and
+[ADR-0035](docs/adr/0035-coordinate-draft-autosave-with-compare-and-swap.md).
 
-| Component              | Role                                                                                                     |
-| ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| `LocalizationSwitcher` | Selects which localization is being edited — a revision belongs to **one** localization, not to the post |
-| `EditorToolbar`        | Base UI buttons wired to Tiptap commands; Tiptap ships no UI                                             |
-| `EditorCanvas`         | The Tiptap instance                                                                                      |
-| `ImageUploadHandler`   | Paste and drop → admin upload endpoint → R2 → `media_assets` row → node gets `mediaAssetId`              |
-| `MediaPlacementPanel`  | Per-placement `alt_text`, `caption`, `credit_override` — the columns `post_revision_media` already has   |
-| `AnalysisMetaForm`     | Platform (FK to `platforms`), playtime, completion state, review-copy flag and provider                  |
-| `SlugField`            | Editing a **published** slug triggers the history flow, not a plain update                               |
+| Component              | Role                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| `LocalizationSwitcher` | Selects which existing localization draft is edited; missing locales remain unavailable                |
+| `EditorToolbar`        | Base UI buttons wired to Tiptap commands; Tiptap ships no UI                                           |
+| `EditorCanvas`         | The Tiptap instance                                                                                    |
+| `ImageUploadHandler`   | Paste and drop → admin upload endpoint → R2 → `media_assets` row → node gets `mediaAssetId`            |
+| `MediaPlacementPanel`  | Per-placement `alt_text`, `caption`, `credit_override` — the columns `post_revision_media` already has |
+| `AnalysisMetaForm`     | Platform (FK to `platforms`), playtime, completion state, review-copy flag and provider                |
+| `SlugField`            | Editing a **published** slug triggers the history flow, not a plain update                             |
 
-On save, the `content_json` is walked to collect image nodes and upsert
-`post_revision_media` rows with their `block_id`, `position`, and
-`media_asset_id`. Reading time and TOC are derived through the shared module.
+Core autosave mutates one `post_drafts` row with token compare-and-swap; it never
+creates revisions or media placements. Media walking, reading time, and TOC are
+publish-time work delivered by later plan items.
 
 ### `/admin/posts/[id]/seo`
 
@@ -599,10 +601,8 @@ access, and the D1 test harness are in place.
   ([schema](docs/database/schema.md)); the shared module that fills them is part
   of the seed script work in
   [ADR-0017](docs/adr/0017-bootstrap-content-with-seed-script.md).
-- **Editor autosave is undesigned.** Revisions are immutable, so every save
-  creating a revision would flood the table, while saving only on demand risks
-  losing work. The draft-versus-revision boundary needs deciding before the
-  editor is built.
+- **Editor autosave is conflict-safe.** One mutable draft per localization uses
+  serialized, debounced compare-and-swap saves; see ADR-0032 and ADR-0035.
 - **No bundle guard.** Nothing detects an admin import leaking into a public
   route. That boundary is currently a convention, and a size check on the public
   bundles would make it enforceable.
