@@ -9,6 +9,20 @@ import type { AdminLocaleStatus, AdminPostSummary } from '@/db/queries/admin-pos
 import type { UiKey } from '@/i18n/ui';
 const t = getTranslations('es');
 const statusKey = (status: AdminLocaleStatus) => `admin.posts.locale.${status}` as UiKey;
+function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | 'en' }) {
+  const id = post.localizationIds[locale];
+  const label = t(statusKey(post.locales[locale]));
+  return id ? (
+    <a
+      className="underline underline-offset-4"
+      href={`/admin/posts/${post.id}/edit?localization=${id}`}
+    >
+      {label}
+    </a>
+  ) : (
+    <span aria-disabled="true">{label}</span>
+  );
+}
 type AdminPostListProps = { posts: AdminPostSummary[]; page: number; total: number };
 export function AdminPostList({ posts, page, total }: AdminPostListProps) {
   const totalPages = pageCount(total);
@@ -42,8 +56,12 @@ export function AdminPostList({ posts, page, total }: AdminPostListProps) {
                   <td className="px-4 py-4">
                     {t(post.section === 'analysis' ? 'nav.analysis' : 'nav.opinion')}
                   </td>
-                  <td className="px-4 py-4">{t(statusKey(post.locales.es))}</td>
-                  <td className="px-4 py-4">{t(statusKey(post.locales.en))}</td>
+                  <td className="px-4 py-4">
+                    <LocaleCell post={post} locale="es" />
+                  </td>
+                  <td className="px-4 py-4">
+                    <LocaleCell post={post} locale="en" />
+                  </td>
                   <td className="px-4 py-4">
                     {t(`admin.posts.state.${post.editorialState}` as UiKey)}
                   </td>

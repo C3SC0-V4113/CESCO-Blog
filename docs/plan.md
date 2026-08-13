@@ -249,7 +249,7 @@ no en el PR 6. Adelantarlo es lo que le da al guard toda la cadena de vigencia.
 | --- | ---------------- | -------------------------------------------------------------------------------------------- | -------------------- | ----------------- | ------ |
 | 13  | `admin-shell`    | Layout de admin, isla `client:load`, dashboard, límite de Access                             | 0003, 0023           | —                 | ~300   |
 | 14  | `admin-posts`    | Listado, creación, formularios de metadata con Zod + react-hook-form                         | 0023, 0012           | `react-hook-form` | ~400   |
-| 15  | `editor-core`    | Tiptap headless, toolbar sobre Base UI, `unique-id`, guardado de revisión                    | 0024                 | `@tiptap/*`       | ~400   |
+| 15  | `editor-core`    | Tiptap headless, toolbar, IDs estables y autosave CAS en `post_drafts`                       | 0024, 0032, 0035     | `@tiptap/*`       | ~400   |
 | 16  | `media-uploads`  | Normalización en cliente, endpoint R2, `media_assets`, sync de `post_revision_media`         | 0024, 0028, **0006** | —                 | ~400   |
 | 17  | `publish-flow`   | Publicar, despublicar, cambio de slug con historial, purga de caché                          | 0010, 0011           | —                 | ~350   |
 | 18  | `admin-taxonomy` | Colecciones, autores, destacados, SEO/OG con preview de card social. **Slug bloqueado (C7)** | 0012, 0015, **0010** | —                 | ~400   |
@@ -334,9 +334,7 @@ benchmark `.astro` vs `.tsx` de ADR-0019. Ambos necesitaban páginas reales.
 tomadas. La clave `nav.search` ya existe en `ui.ts` y **queda deliberadamente sin
 consumidor** — se documenta en el PR 4, no se borra.
 
-**Frontera draft/revisión** —¿cada guardado crea versión o solo el publish?— se
-decide **antes del PR 15**. Define la arquitectura del editor y todavía no hay
-evidencia para elegir.
+**Frontera draft/revisión:** resuelta antes del PR 15.
 
 > **Resuelto el 2026-08-07** en
 > [ADR-0032](adr/0032-separate-drafts-from-revisions.md): una revisión es un
