@@ -9,9 +9,7 @@ export const saveDraftSchema = z.strictObject({
   excerpt: z.string().max(1000).nullable(),
   contentJson: contentDocSchema.refine((doc) =>
     doc.content.every(
-      (node) =>
-        node.type !== 'image' &&
-        (node.type !== 'heading' || node.attrs.level === 2 || node.attrs.level === 3)
+      (node) => node.type !== 'heading' || node.attrs.level === 2 || node.attrs.level === 3
     )
   ),
 });

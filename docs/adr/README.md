@@ -44,6 +44,7 @@ This directory records durable architecture decisions for Cesco Blog.
 | [0033](0033-serve-media-from-r2-through-the-worker.md) | Serve media from R2 through the Worker | Accepted | 2026-08-07 |
 | [0034](0034-protect-admin-actions-with-cloudflare-access.md) | Protect admin actions with Cloudflare Access | Accepted | 2026-08-12 |
 | [0035](0035-coordinate-draft-autosave-with-compare-and-swap.md) | Coordinate draft autosave with compare-and-swap | Accepted | 2026-08-13 |
+| [0036](0036-bound-media-normalization-and-storage.md) | Bound media normalization and storage | Accepted | 2026-08-13 |
 
 ## Status values
 

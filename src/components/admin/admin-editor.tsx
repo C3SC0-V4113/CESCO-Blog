@@ -16,7 +16,12 @@ import { getTranslations } from '@/i18n/utils';
 import { callSaveDraft } from '@/lib/admin-actions';
 import { parseContentDoc } from '@/lib/content/schema';
 import { DraftAutosave } from '@/lib/draft-autosave';
+import { imageNode, mediaPath } from '@/lib/media';
 
+import { AdminMedia } from './admin-media';
+import { MediaImage } from './media-image-extension';
+
+import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { EditorDraft, EditorLocalizations, SaveDraftInput } from '@/lib/drafts';
 
 const t = getTranslations('es');
@@ -25,16 +30,32 @@ type Props = {
   localizationId: string;
   localizations: EditorLocalizations;
   draft: EditorDraft;
+  mediaAssets: AdminMediaAsset[];
+  referencedAssets: AdminMediaAsset[];
+  mediaTotal: number;
 };
 type SaveValue = Omit<SaveDraftInput, 'draftToken'>;
 type Status = 'saved' | 'dirty' | 'saving' | 'failed' | 'conflict';
 const localeLabel = (locale: 'es' | 'en') => t(`admin.editor.locale.${locale}`);
 
-export function AdminEditor({ postId, localizationId, localizations, draft }: Props) {
+export function AdminEditor({
+  postId,
+  localizationId,
+  localizations,
+  draft,
+  mediaAssets,
+  referencedAssets,
+  mediaTotal,
+}: Props) {
   const [status, setStatus] = useState<Status>('saved');
   const statusRef = useRef<Status>('saved');
   const token = useRef(draft.draftToken);
   const fields = useRef({ title: draft.title, excerpt: draft.excerpt ?? '' });
+  const [mediaUrls] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      [...mediaAssets, ...referencedAssets].map((asset) => [asset.id, mediaPath(asset.r2Key)])
+    )
+  );
   const autosave = useRef<DraftAutosave<SaveValue> | null>(null);
   autosave.current ??= new DraftAutosave(
     async (value) => {
@@ -88,9 +109,10 @@ export function AdminEditor({ postId, localizationId, localizations, draft }: Pr
       }),
       UniqueID.configure({
         attributeName: 'blockId',
-        types: ['paragraph', 'heading', 'codeBlock'],
+        types: ['paragraph', 'heading', 'codeBlock', 'image'],
         generateID: () => crypto.randomUUID(),
       }),
+      MediaImage.configure({ resolveUrl: (id) => mediaUrls[id] }),
     ],
     onUpdate: ({ editor: instance }) => enqueue(instance.getJSON()),
   });
@@ -206,6 +228,23 @@ export function AdminEditor({ postId, localizationId, localizations, draft }: Pr
         editor={editor}
         className="min-h-72 rounded-xl border bg-background p-4 [&_.ProseMirror]:min-h-64 [&_.ProseMirror]:outline-none"
       />
+      <details className="rounded-xl border bg-background p-4">
+        <summary className="cursor-pointer font-medium">{t('admin.editor.insertImage')}</summary>
+        <div className="mt-4">
+          <AdminMedia
+            assets={mediaAssets}
+            total={mediaTotal}
+            onSelect={(asset) => {
+              mediaUrls[asset.id] = mediaPath(asset.r2Key);
+              editor
+                .chain()
+                .focus()
+                .insertContent(imageNode(asset.id, crypto.randomUUID(), asset.altText ?? ''))
+                .run();
+            }}
+          />
+        </div>
+      </details>
       <div className="flex items-center gap-3">
         <p role="status">{t(`admin.editor.status.${status}`)}</p>
         <Button type="button" variant="outline" onClick={() => void autosave.current?.flush()}>

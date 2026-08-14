@@ -408,6 +408,8 @@ The editor is governed by
 [ADR-0024](docs/adr/0024-adopt-tiptap-for-the-editorial-content-pipeline.md),
 [ADR-0032](docs/adr/0032-separate-drafts-from-revisions.md), and
 [ADR-0035](docs/adr/0035-coordinate-draft-autosave-with-compare-and-swap.md).
+Media normalization, bounded upload, and R2/D1 compensation follow
+[ADR-0036](docs/adr/0036-bound-media-normalization-and-storage.md).
 
 | Component              | Role                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -468,7 +470,7 @@ matching the design system.
 | Admin        | `react-hook-form`, `@hookform/resolvers` | Form state and per-field errors. shadcn's `form` component already assumes this pairing                                                                                                                                   |
 | Shared       | `content_json` Zod schema                | The contract between the editor, the seed script, and `ArticleBody`. Ours to write; lives outside `admin/` so all three can import it                                                                                     |
 | Shared       | Reading time + TOC module                | Derived at publish, per [ADR-0012](docs/adr/0012-extend-editorial-schema-for-authors-series-and-analysis.md) and [ADR-0017](docs/adr/0017-bootstrap-content-with-seed-script.md). Shared by the seed script and the admin |
-| Admin        | Browser canvas APIs                      | Resize and convert to WebP before upload ([ADR-0028](docs/adr/0028-normalize-and-validate-media-uploads-before-storage.md)). Native; no package                                                                           |
+| Admin        | Browser canvas APIs                      | Resize and convert to static WebP before upload ([ADR-0036](docs/adr/0036-bound-media-normalization-and-storage.md)). Native; no package                                                                                  |
 | Shared       | `src/i18n/`                              | Typed string dictionary, no dependency ([ADR-0027](docs/adr/0027-localize-ui-strings-with-a-typed-dictionary.md)). English is typed against Spanish, so a missing key is a compile error                                  |
 | Shared       | `src/lib/ids.ts`                         | `crypto.randomUUID()` wrappers ([ADR-0026](docs/adr/0026-generate-identifiers-with-crypto-randomuuid.md)). Native in Worker, Node, and browser                                                                            |
 | Shared       | `src/lib/timestamps.ts`                  | Canonical date format for text columns ([ADR-0029](docs/adr/0029-store-timestamps-in-sqlite-current-timestamp-format.md)). Deliberately not ISO                                                                           |

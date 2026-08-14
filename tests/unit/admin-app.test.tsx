@@ -26,7 +26,10 @@ describe('AdminApp', () => {
     expect(screen.getByRole('link', { name: 'Publicaciones' }).getAttribute('href')).toBe(
       '/admin/posts'
     );
-    for (const label of ['Multimedia', 'Revisión', 'Series', 'Autores']) {
+    expect(screen.getByRole('link', { name: 'Multimedia' }).getAttribute('href')).toBe(
+      '/admin/media'
+    );
+    for (const label of ['Revisión', 'Series', 'Autores']) {
       expect(screen.getByRole('button', { name: label })).toHaveProperty('disabled', true);
     }
   });

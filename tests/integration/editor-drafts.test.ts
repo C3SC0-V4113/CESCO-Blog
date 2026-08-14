@@ -97,6 +97,25 @@ describe('editor drafts', () => {
     expect(
       await saveDraft(db, { ...input, draftToken: 'token-1', title: 'Updated' }, 'token-2')
     ).toEqual({ draftToken: 'token-2' });
+    expect(
+      await saveDraft(
+        db,
+        {
+          ...input,
+          draftToken: 'token-2',
+          contentJson: {
+            type: 'doc',
+            content: [
+              {
+                type: 'image',
+                attrs: { blockId: crypto.randomUUID(), mediaAssetId: crypto.randomUUID(), alt: '' },
+              },
+            ],
+          },
+        },
+        'token-3'
+      )
+    ).toEqual({ draftToken: 'token-3' });
     await expect(saveDraft(db, { ...input, draftToken: 'token-1' }, 'stale')).rejects.toThrow(
       'draft-conflict'
     );
