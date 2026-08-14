@@ -21,11 +21,11 @@ export type PageWindow = {
  * a whole number above zero becomes page one rather than an error: a bad page
  * parameter is a reader following a broken link, not something worth a `500`.
  */
-export function readPageWindow(param: string | null): PageWindow {
+export function readPageWindow(param: string | null, limit = POSTS_PER_PAGE): PageWindow {
   const parsed = Number(param);
   const page = Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 
-  return { page, offset: (page - 1) * POSTS_PER_PAGE, limit: POSTS_PER_PAGE };
+  return { page, offset: (page - 1) * limit, limit };
 }
 
 /** Total pages for a result count. Always at least one, so an empty listing still renders page 1 of 1. */

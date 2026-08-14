@@ -1,12 +1,26 @@
 ﻿import { ActionError, defineAction } from 'astro:actions';
 
 import { saveDraft } from '@/actions/drafts';
+import { mediaMetadataSchema, updateMediaAsset } from '@/actions/media';
 import { adminPostError, createAdminPost } from '@/actions/posts';
 import { createPostSchema } from '@/lib/admin-posts';
 import { saveDraftSchema } from '@/lib/drafts';
 import { getDb } from '@/lib/runtime';
 export const server = {
   admin: {
+    updateMediaAsset: defineAction({
+      input: mediaMetadataSchema,
+      async handler(input, context) {
+        try {
+          return await updateMediaAsset(getDb(), input);
+        } catch (error) {
+          context.logger.error(
+            `Media metadata update failed: ${error instanceof Error ? error.stack : String(error)}`
+          );
+          throw new ActionError({ code: 'INTERNAL_SERVER_ERROR' });
+        }
+      },
+    }),
     saveDraft: defineAction({
       input: saveDraftSchema,
       async handler(input, context) {
