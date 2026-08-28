@@ -84,6 +84,9 @@ importers:
       react-hook-form:
         specifier: ^7.85.0
         version: 7.85.0(react@19.2.8)
+      shiki:
+        specifier: 4.4.1
+        version: 4.4.1
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0
@@ -136,6 +139,9 @@ importers:
       '@vitest/eslint-plugin':
         specifier: 1.6.20
         version: 1.6.20(@typescript-eslint/eslint-plugin@8.63.0(@typescript-eslint/parser@8.63.0(eslint@9.39.4(jiti@2.7.0))(typescript@6.0.3))(eslint@9.39.4(jiti@2.7.0))(typescript@6.0.3))(eslint@9.39.4(jiti@2.7.0))(typescript@6.0.3)(vitest@4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.0)(jsdom@29.1.1)(vite@8.2.0(@types/node@26.1.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0)))
+      devalue:
+        specifier: 5.9.0
+        version: 5.9.0
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
@@ -10860,12 +10866,12 @@ snapshots:
 
   ini@6.0.0: {}
 
-  ink-link@5.0.0(ink@7.1.1(@types/react@19.2.18)(react@19.2.5)):
+  ink-link@5.0.0(ink@7.1.1(@types/react@19.2.18)(react@19.2.8)):
     dependencies:
       ink: 7.1.1(@types/react@19.2.18)(react@19.2.5)
       terminal-link: 5.0.0
 
-  ink-spinner@5.0.0(ink@7.1.1(@types/react@19.2.18)(react@19.2.5))(react@19.2.5):
+  ink-spinner@5.0.0(ink@7.1.1(@types/react@19.2.18)(react@19.2.8))(react@19.2.5):
     dependencies:
       cli-spinners: 2.9.2
       ink: 7.1.1(@types/react@19.2.18)(react@19.2.5)
@@ -11942,8 +11948,8 @@ snapshots:
       eslint-plugin-react-hooks: 7.1.1(eslint@9.39.4(jiti@2.7.0))
       figures: 6.1.0
       ink: 7.1.1(@types/react@19.2.18)(react@19.2.5)
-      ink-link: 5.0.0(ink@7.1.1(@types/react@19.2.18)(react@19.2.5))
-      ink-spinner: 5.0.0(ink@7.1.1(@types/react@19.2.18)(react@19.2.5))(react@19.2.5)
+      ink-link: 5.0.0(ink@7.1.1(@types/react@19.2.18)(react@19.2.8))
+      ink-spinner: 5.0.0(ink@7.1.1(@types/react@19.2.18)(react@19.2.8))(react@19.2.5)
       jiti: 2.7.0
       magicast: 0.5.4
       oxc-resolver: 11.24.2

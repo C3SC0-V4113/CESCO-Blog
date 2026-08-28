@@ -45,7 +45,7 @@ export default defineConfig(async () => {
               miniflare: {
                 compatibilityDate: '2026-07-18',
                 compatibilityFlags: ['nodejs_compat'],
-                d1Databases: ['DB'],
+                d1Databases: ['DB', 'MIGRATION_DB'],
                 r2Buckets: ['BUCKET'],
                 // Test-only binding so the setup file can apply migrations.
                 bindings: { TEST_MIGRATIONS: migrations },

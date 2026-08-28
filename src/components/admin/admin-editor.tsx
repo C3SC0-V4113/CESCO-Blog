@@ -145,6 +145,7 @@ export function AdminEditor({
     enqueue(editor.getJSON());
   };
   const currentLocale = localizations.es === localizationId ? 'es' : 'en';
+  const reviewHref = `/admin/review?post=${postId}&localization=${localizationId}`;
   return (
     <div className="grid max-w-4xl gap-4">
       <div>
@@ -250,6 +251,19 @@ export function AdminEditor({
         <Button type="button" variant="outline" onClick={() => void autosave.current?.flush()}>
           {t('admin.editor.save')}
         </Button>
+        <a
+          className={buttonVariants()}
+          href={reviewHref}
+          onClick={(event) => {
+            event.preventDefault();
+            void autosave.current
+              ?.flush()
+              .then((saved) => saved && window.location.assign(reviewHref))
+              .catch(() => undefined);
+          }}
+        >
+          {t('admin.editor.review')}
+        </a>
       </div>
     </div>
   );

@@ -3,7 +3,9 @@ import { z } from 'zod';
 
 import { schema, type Db } from '@/db/client';
 import { newMediaAssetId } from '@/lib/ids';
-import { mediaKey, parseWebp } from '@/lib/media';
+import { mediaKey, parseWebp, safeExternalUrl } from '@/lib/media';
+
+const externalUrlSchema = z.url().refine((value) => safeExternalUrl(value) !== null);
 
 export const mediaMetadataSchema = z
   .strictObject({
@@ -14,9 +16,9 @@ export const mediaMetadataSchema = z
     description: z.string().max(5000).nullish(),
     isOwnWork: z.boolean().optional(),
     creatorName: z.string().max(500).nullish(),
-    sourceUrl: z.url().nullish(),
+    sourceUrl: externalUrlSchema.nullish(),
     licenseLabel: z.string().max(500).nullish(),
-    licenseUrl: z.url().nullish(),
+    licenseUrl: externalUrlSchema.nullish(),
   })
   .refine(({ decorative, altText }) => decorative || altText.trim().length > 0, {
     path: ['altText'],

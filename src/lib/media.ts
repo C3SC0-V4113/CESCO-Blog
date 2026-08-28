@@ -70,6 +70,17 @@ export function mediaPath(r2Key: string): string {
   return `/${r2Key}`;
 }
 
+/** Allows only navigable web URLs at persistence and rendering boundaries. */
+export function safeExternalUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === 'http:' || protocol === 'https:' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 export const MEDIA_UPLOAD_LIMIT = 5 * 1024 * 1024;
 export const MEDIA_SOURCE_LIMIT = 25 * 1024 * 1024;
 export const MEDIA_MAX_WIDTH = 2400;

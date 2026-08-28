@@ -7,6 +7,7 @@ import {
   mediaAssetIds,
   mediaKey,
   mediaPath,
+  safeExternalUrl,
   parseWebp,
   readBoundedBody,
 } from '@/lib/media';
@@ -81,6 +82,17 @@ describe('mediaPath', () => {
       '/media/2026/08/9c2f0a51-6d3e-4b52-9c0f-1a7e5d8b3c40.webp'
     );
   });
+});
+
+describe('safeExternalUrl', () => {
+  it.each(['javascript:alert(1)', 'data:text/html,x', 'ftp://example.com/file'])(
+    'rejects unsafe %s URLs',
+    (value) => expect(safeExternalUrl(value)).toBeNull()
+  );
+
+  it.each(['https://example.com/source', 'http://example.com/license'])('accepts %s', (value) =>
+    expect(safeExternalUrl(value)).toBe(value)
+  );
 });
 
 describe('media uploads', () => {

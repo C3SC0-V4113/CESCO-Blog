@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import { createDb, schema, type Db } from '@/db/client';
 import {
@@ -121,9 +121,9 @@ export async function seedPost(db: Db, spec: PostSpec): Promise<SeededPost> {
 }
 
 /**
- * Renames a published slug the way the admin must: record the old slug, then
- * rewrite every history row that pointed at it so retired slugs always resolve
- * in a single hop (ADR-0010).
+ * Renames a published slug the way the admin must: append the old slug. Every
+ * history row points to the localization, so it resolves the current slug in
+ * one hop.
  */
 export async function renameSlug(
   db: Db,
@@ -143,18 +143,6 @@ export async function renameSlug(
     locale,
     oldSlug: fromSlug,
   });
-
-  // No chains: every retired slug for this localization points at the current
-  // one, so A -> B -> C resolves A -> C directly.
-  await db
-    .update(schema.postLocalizationSlugHistory)
-    .set({ postLocalizationId: localizationId })
-    .where(
-      and(
-        eq(schema.postLocalizationSlugHistory.postLocalizationId, localizationId),
-        eq(schema.postLocalizationSlugHistory.locale, locale)
-      )
-    );
 }
 
 /** Withdraws a published localization: status drops, history is preserved. */

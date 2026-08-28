@@ -159,9 +159,8 @@ export const postLocalizations = sqliteTable(
 
 /**
  * Retired slugs, kept so old URLs can answer 301 instead of breaking. Entries are
- * never deleted: ADR-0010 reserves retired slugs permanently. On a second rename
- * every row pointing at the previous slug is rewritten to the current one, so a
- * retired slug always resolves in a single hop.
+ * never deleted: ADR-0010 reserves retired slugs permanently. Each row points
+ * to its localization, whose current slug makes every redirect a single hop.
  *
  * Reuse prevention is an application invariant, not a database constraint —
  * SQLite cannot express uniqueness spanning this table and `post_localizations`.
@@ -265,12 +264,20 @@ export const postRevisionMedia = sqliteTable(
       .references(() => postRevisions.id, { onDelete: 'cascade' }),
     mediaAssetId: text('media_asset_id')
       .notNull()
-      .references(() => mediaAssets.id, { onDelete: 'cascade' }),
+      .references(() => mediaAssets.id, { onDelete: 'restrict' }),
     blockId: text('block_id').notNull(),
     position: integer('position').notNull(),
     altText: text('alt_text'),
     caption: text('caption'),
     creditOverride: text('credit_override'),
+    assetR2Key: text('asset_r2_key'),
+    assetWidth: integer('asset_width'),
+    assetHeight: integer('asset_height'),
+    assetCaption: text('asset_caption'),
+    assetCreatorName: text('asset_creator_name'),
+    assetSourceUrl: text('asset_source_url'),
+    assetLicenseLabel: text('asset_license_label'),
+    assetLicenseUrl: text('asset_license_url'),
   },
   (table) => [
     primaryKey({ columns: [table.revisionId, table.blockId, table.mediaAssetId] }),

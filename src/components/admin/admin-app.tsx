@@ -19,9 +19,11 @@ import { AdminEditor } from './admin-editor';
 import { AdminMedia } from './admin-media';
 import { AdminPostForm } from './admin-post-form';
 import { AdminPostList } from './admin-post-list';
+import { AdminReview } from './admin-review';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { AdminPostSummary } from '@/db/queries/admin-posts';
+import type { ReviewDetail, ReviewQueueItem } from '@/db/queries/admin-review';
 import type { UiKey } from '@/i18n/ui';
 import type { EditorDraft, EditorLocalizations } from '@/lib/drafts';
 import type { LucideIcon } from 'lucide-react';
@@ -34,6 +36,14 @@ type Screen =
   | { name: 'new-post' }
   | { name: 'media'; assets: AdminMediaAsset[]; page: number; total: number }
   | {
+      name: 'review';
+      items: ReviewQueueItem[];
+      detail: ReviewDetail | null;
+      page: number;
+      pageSize: number;
+      total: number;
+    }
+  | {
       name: 'editor';
       postId: string;
       localizationId: string;
@@ -45,7 +55,6 @@ type Screen =
     };
 
 const laterDestinations: Array<{ label: UiKey; icon: LucideIcon }> = [
-  { label: 'admin.navigation.review', icon: SearchCheckIcon },
   { label: 'admin.navigation.collections', icon: BookOpenIcon },
   { label: 'admin.navigation.authors', icon: UsersIcon },
 ];
@@ -55,6 +64,7 @@ const screenCopy = {
   'new-post': ['admin.posts.new', 'admin.posts.newSubtitle'],
   editor: ['admin.editor.title', 'admin.editor.subtitle'],
   media: ['admin.media.title', 'admin.media.subtitle'],
+  review: ['admin.review.title', 'admin.review.subtitle'],
 } as const;
 
 export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }) {
@@ -65,6 +75,7 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
   const NavigationIcon = isNavigationOpen ? XIcon : MenuIcon;
   const isPosts = ['posts', 'new-post', 'editor'].includes(screen.name);
   const isMedia = screen.name === 'media';
+  const isReview = screen.name === 'review';
   const [title, subtitle] = screenCopy[screen.name];
 
   return (
@@ -133,6 +144,18 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
               <FileTextIcon data-icon="inline-start" />
               {t('admin.navigation.posts')}
             </a>
+            <a
+              href="/admin/review"
+              aria-current={isReview ? 'page' : undefined}
+              className={cn(
+                buttonVariants({ variant: 'ghost' }),
+                'justify-start',
+                isReview && 'bg-sidebar-accent text-sidebar-accent-foreground'
+              )}
+            >
+              <SearchCheckIcon data-icon="inline-start" />
+              {t('admin.navigation.review')}
+            </a>
             {laterDestinations.map(({ label, icon: Icon }) => (
               <Button
                 key={label}
@@ -163,6 +186,7 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
           {screen.name === 'media' && (
             <AdminMedia assets={screen.assets} page={screen.page} total={screen.total} />
           )}
+          {screen.name === 'review' && <AdminReview {...screen} />}
         </main>
       </div>
     </div>

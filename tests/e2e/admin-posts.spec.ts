@@ -20,7 +20,11 @@ test('lists post aggregates and keeps implemented destinations live', async ({ p
     'href',
     '/admin/media'
   );
-  for (const label of ['Revisión', 'Series', 'Autores'])
+  await expect(page.getByRole('link', { name: 'Revisión' })).toHaveAttribute(
+    'href',
+    '/admin/review'
+  );
+  for (const label of ['Series', 'Autores'])
     await expect(page.getByRole('button', { name: label })).toBeDisabled();
 });
 

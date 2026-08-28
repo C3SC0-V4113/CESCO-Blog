@@ -1,0 +1,39 @@
+---
+import { AdminApp } from '@/components/admin/admin-app';
+import { listReviewQueue, loadReviewDetail } from '@/db/queries/admin-review';
+import { getTranslations } from '@/i18n/utils';
+import AdminLayout from '@/layouts/admin.astro';
+import { getDb } from '@/lib/runtime';
+
+const t = getTranslations('es');
+const db = getDb();
+const postId = Astro.url.searchParams.get('post');
+const localizationId = Astro.url.searchParams.get('localization');
+const pageParam = Astro.url.searchParams.get('page');
+const [listing, detail] = await Promise.all([
+  listReviewQueue(db, pageParam, 50),
+  postId && localizationId ? loadReviewDetail(db, postId, localizationId) : null,
+]);
+if (listing.requestedPage > listing.lastPage) {
+  const params = new URLSearchParams({ page: String(listing.lastPage) });
+  if (postId && localizationId) {
+    params.set('post', postId);
+    params.set('localization', localizationId);
+  }
+  return Astro.redirect(`/admin/review?${params}`);
+}
+---
+
+<AdminLayout title={`${t('admin.review.title')} | ${t('admin.brand')}`}>
+  <AdminApp
+    screen={{
+      name: 'review',
+      items: listing.items,
+      detail,
+      page: listing.page,
+      pageSize: listing.limit,
+      total: listing.total,
+    }}
+    client:load
+  />
+</AdminLayout>

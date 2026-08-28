@@ -100,12 +100,13 @@ describe('resolveArticleUrl', () => {
     expect(await resolveArticleUrl(db, { ...ES_ANALYSIS, slug: 'nombre-viejo' })).toEqual({
       kind: 'redirect',
       slug: 'nombre-nuevo',
+      postId: seeded.postId,
     });
   });
 
   it('resolves a twice-renamed slug in a single hop', async () => {
     // ADR-0010 forbids redirect chains: renaming A→B→C must send A straight to
-    // C, never to B. This is the case the fixture's history rewrite exists for.
+    // C, never to B. Every history row joins the localization's current slug.
     const db = testDb();
     const seeded = await seedPost(db, {
       localizations: [{ locale: 'es', slug: 'nombre-a', publishedAt: PUBLISHED }],
@@ -118,10 +119,12 @@ describe('resolveArticleUrl', () => {
     expect(await resolveArticleUrl(db, { ...ES_ANALYSIS, slug: 'nombre-a' })).toEqual({
       kind: 'redirect',
       slug: 'nombre-c',
+      postId: seeded.postId,
     });
     expect(await resolveArticleUrl(db, { ...ES_ANALYSIS, slug: 'nombre-b' })).toEqual({
       kind: 'redirect',
       slug: 'nombre-c',
+      postId: seeded.postId,
     });
   });
 
@@ -193,6 +196,97 @@ describe('resolveArticleUrl', () => {
     const resolution = await resolveArticleUrl(db, { ...ES_ANALYSIS, slug: 'revisado' });
 
     expect(resolution.kind === 'render' && resolution.post.title).toBe('Publicada');
+  });
+
+  it('hydrates inline media from the immutable published placement', async () => {
+    const db = testDb();
+    const seeded = await seedPost(db, {
+      localizations: [{ locale: 'es', slug: 'con-imagen', publishedAt: PUBLISHED }],
+    });
+    const assetId = crypto.randomUUID();
+    const blockId = crypto.randomUUID();
+    await db.insert(schema.mediaAssets).values({
+      id: assetId,
+      r2Key: `media/2026/03/${assetId}.webp`,
+      contentType: 'image/webp',
+      width: 1200,
+      height: 800,
+      caption: 'Pie del activo',
+      creatorName: 'Autora',
+    });
+    await db
+      .update(schema.postRevisions)
+      .set({
+        contentJson: {
+          type: 'doc',
+          content: [
+            { type: 'image', attrs: { blockId, mediaAssetId: assetId, alt: 'Alt del nodo' } },
+          ],
+        },
+      })
+      .where(eq(schema.postRevisions.id, seeded.localizations[0]!.revisionId));
+    await db.insert(schema.postRevisionMedia).values({
+      revisionId: seeded.localizations[0]!.revisionId,
+      mediaAssetId: assetId,
+      blockId,
+      position: 0,
+      altText: 'Alt del nodo',
+      assetR2Key: `media/2026/03/${assetId}.webp`,
+      assetWidth: 1200,
+      assetHeight: 800,
+      assetCaption: 'Pie del activo',
+      assetCreatorName: 'Autora',
+    });
+    await db
+      .update(schema.mediaAssets)
+      .set({ caption: 'Pie mutado', creatorName: 'Otra autora' })
+      .where(eq(schema.mediaAssets.id, assetId));
+    await expect(
+      db.delete(schema.mediaAssets).where(eq(schema.mediaAssets.id, assetId))
+    ).rejects.toThrow();
+
+    const resolution = await resolveArticleUrl(db, { ...ES_ANALYSIS, slug: 'con-imagen' });
+    expect(resolution.kind).toBe('render');
+    expect(resolution.kind === 'render' && resolution.post.media).toEqual([
+      expect.objectContaining({
+        blockId,
+        altText: 'Alt del nodo',
+        caption: 'Pie del activo',
+        credit: 'Autora',
+      }),
+    ]);
+  });
+
+  it('rejects hostile highlighted token colors before public rendering', async () => {
+    const db = testDb();
+    const seeded = await seedPost(db, {
+      localizations: [{ locale: 'es', slug: 'codigo-hostil', publishedAt: PUBLISHED }],
+    });
+    await db
+      .update(schema.postRevisions)
+      .set({
+        contentJson: {
+          type: 'doc',
+          content: [
+            {
+              type: 'codeBlock',
+              attrs: {
+                blockId: 'code',
+                language: 'text',
+                highlighted: [
+                  [{ content: 'texto', color: 'red;background:url(javascript:alert(1))' }],
+                ],
+              },
+              content: [{ type: 'text', text: 'texto' }],
+            },
+          ],
+        },
+      })
+      .where(eq(schema.postRevisions.id, seeded.localizations[0]!.revisionId));
+
+    await expect(
+      resolveArticleUrl(db, { ...ES_ANALYSIS, slug: 'codigo-hostil' })
+    ).rejects.toThrow();
   });
 });
 

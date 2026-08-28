@@ -10,6 +10,7 @@ vi.mock('@/lib/image-normalize', () => ({
 }));
 vi.mock('@/lib/admin-actions', () => ({ callUpdateMediaAsset: vi.fn() }));
 
+import { mediaMetadataSchema } from '@/actions/media';
 import { AdminMedia } from '@/components/admin/admin-media';
 import { callUpdateMediaAsset } from '@/lib/admin-actions';
 
@@ -35,6 +36,17 @@ const asset = {
 describe('AdminMedia', () => {
   beforeEach(() => vi.stubGlobal('fetch', vi.fn()));
   afterEach(() => document.body.replaceChildren());
+
+  it.each(['javascript:alert(1)', 'data:text/html,x'])('rejects unsafe metadata URL %s', (url) => {
+    expect(() =>
+      mediaMetadataSchema.parse({
+        id: asset.id,
+        decorative: false,
+        altText: 'Mapa',
+        sourceUrl: url,
+      })
+    ).toThrow();
+  });
 
   it('renders a genuine empty first page', () => {
     render(<AdminMedia assets={[]} page={1} total={0} />);
