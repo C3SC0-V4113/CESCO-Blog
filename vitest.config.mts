@@ -47,8 +47,13 @@ export default defineConfig(async () => {
                 compatibilityFlags: ['nodejs_compat'],
                 d1Databases: ['DB'],
                 r2Buckets: ['BUCKET'],
-                // Test-only binding so the setup file can apply migrations.
-                bindings: { TEST_MIGRATIONS: migrations },
+                bindings: {
+                  // Test-only binding so the setup file can apply migrations.
+                  TEST_MIGRATIONS: migrations,
+                  ACCESS_MODE: 'local',
+                  ACCESS_TEAM_DOMAIN: '',
+                  ACCESS_AUD: '',
+                },
               },
             }),
           ],

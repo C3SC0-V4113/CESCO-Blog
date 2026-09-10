@@ -28,6 +28,15 @@ export function getBucket(): R2Bucket {
 }
 
 /**
+ * Cloudflare Access settings for the admin boundary (ADR-0039). Widened to
+ * `string` because the generated types pin them to the local defaults in
+ * wrangler.jsonc, which a deployment overrides.
+ */
+export function getAccessConfig(): { mode: string; teamDomain: string; audience: string } {
+  return { mode: env.ACCESS_MODE, teamDomain: env.ACCESS_TEAM_DOMAIN, audience: env.ACCESS_AUD };
+}
+
+/**
  * Work that should outlive the response — cache purges (ADR-0011), analytics
  * writes. Without it the Worker may be torn down before the promise settles.
  *

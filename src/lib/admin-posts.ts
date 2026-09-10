@@ -1,4 +1,4 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 export function normalizeSlug(value: string): string {
   return value
     .normalize('NFD')

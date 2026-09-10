@@ -1,4 +1,4 @@
-﻿import { actions } from 'astro:actions';
+import { actions } from 'astro:actions';
 
 import type { ValidCreatePostInput } from '@/lib/admin-posts';
 import type { SaveDraftInput } from '@/lib/drafts';

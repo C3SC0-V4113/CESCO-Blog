@@ -1,4 +1,4 @@
-﻿import { zodResolver } from '@hookform/resolvers/zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, useSyncExternalStore } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -14,7 +14,14 @@ import { cn } from '@/lib/utils';
 const t = getTranslations('es');
 const fieldsClass = 'grid gap-5 rounded-xl border bg-card p-5 shadow-sm sm:grid-cols-2';
 type CreatePost = (input: ValidCreatePostInput) => ReturnType<typeof callCreatePost>;
-export function AdminPostForm({ createPost = callCreatePost }: { createPost?: CreatePost }) {
+const assignLocation = (href: string) => window.location.assign(href);
+export function AdminPostForm({
+  createPost = callCreatePost,
+  navigate = assignLocation,
+}: {
+  createPost?: CreatePost;
+  navigate?: (href: string) => void;
+}) {
   const [serverError, setServerError] = useState<string>();
   const ready = useSyncExternalStore(
     () => () => {},
@@ -32,7 +39,7 @@ export function AdminPostForm({ createPost = callCreatePost }: { createPost?: Cr
   const submit = handleSubmit(async (input) => {
     const result = await createPost(input).catch(() => undefined);
     if (result && !result.error) {
-      window.location.assign('/admin/posts');
+      navigate('/admin/posts');
       return;
     }
     const errorKey = result?.error?.code === 'CONFLICT' ? 'slugReserved' : 'createError';
@@ -70,7 +77,7 @@ export function AdminPostForm({ createPost = callCreatePost }: { createPost?: Cr
           <input
             {...register('slug')}
             aria-invalid={Boolean(errors.slug)}
-            aria-describedby="slug-error"
+            aria-describedby={errors.slug ? 'slug-error' : undefined}
             className="h-9 rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive"
             autoComplete="off"
           />
