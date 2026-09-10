@@ -3,22 +3,21 @@ import { ActionError, defineAction } from 'astro:actions';
 import { createCachePurger } from '@/actions/cache-purge';
 import { saveDraft } from '@/actions/drafts';
 import { mediaMetadataSchema, updateMediaAsset } from '@/actions/media';
+import { retryPendingPurges } from '@/actions/pending-purges';
 import { adminPostError, createAdminPost } from '@/actions/posts';
 import {
   publicationErrorCode,
   publishLocalization,
   renameLocalizationSlug,
-  retryLocalizationPurge,
-  retryPublicationPurge,
   unpublishLocalization,
 } from '@/actions/publishing';
 import { createPostSchema } from '@/lib/admin-posts';
 import { saveDraftSchema } from '@/lib/drafts';
 import {
-  localizationMutationSchema,
   PERMANENT_REDIRECT_ACKNOWLEDGEMENT_REQUIRED,
   publishSchema,
   renameLocalizationSchema,
+  unpublishSchema,
 } from '@/lib/publishing';
 import { getDb } from '@/lib/runtime';
 
@@ -42,28 +41,17 @@ export const server = {
         }
       },
     }),
-    retryPublicationPurge: defineAction({
-      input: publishSchema,
-      async handler(input, context) {
+    retryPendingPurges: defineAction({
+      async handler(_input, context) {
         try {
-          return await retryPublicationPurge(getDb(), input, createCachePurger(context.request));
-        } catch (error) {
-          throw publicationError(error, context.logger);
-        }
-      },
-    }),
-    retryLocalizationPurge: defineAction({
-      input: localizationMutationSchema,
-      async handler(input, context) {
-        try {
-          return await retryLocalizationPurge(getDb(), input, createCachePurger(context.request));
+          return await retryPendingPurges(getDb(), createCachePurger(context.request));
         } catch (error) {
           throw publicationError(error, context.logger);
         }
       },
     }),
     unpublish: defineAction({
-      input: localizationMutationSchema,
+      input: unpublishSchema,
       async handler(input, context) {
         try {
           return await unpublishLocalization(getDb(), input, createCachePurger(context.request));

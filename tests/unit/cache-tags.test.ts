@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   cacheTagHeader,
+  chunkPurgeTags,
   fullListingTags,
   homeTags,
+  PURGE_TAGS_PER_REQUEST,
   postDetailTags,
   sectionListingTags,
 } from '@/lib/cache-tags';
@@ -60,5 +62,26 @@ describe('cacheTagHeader', () => {
 
   it('drops duplicates so composed sets do not spend the budget twice', () => {
     expect(cacheTagHeader(['locale-es', 'featured', 'locale-es'])).toBe('locale-es,featured');
+  });
+});
+
+describe('chunkPurgeTags', () => {
+  it('keeps each purge request within the per-request tag limit', () => {
+    const tags = Array.from({ length: 65 }, (_, index) => `post-${index}`);
+    const chunks = chunkPurgeTags(tags);
+
+    expect(PURGE_TAGS_PER_REQUEST).toBe(30);
+    expect(chunks.map((chunk) => chunk.length)).toEqual([30, 30, 5]);
+    expect(chunks.flat()).toEqual(tags);
+  });
+
+  it('sends a tag once even when several pending changes share it', () => {
+    expect(chunkPurgeTags(['post-1', 'rss', 'post-2', 'rss', 'post-1'])).toEqual([
+      ['post-1', 'rss', 'post-2'],
+    ]);
+  });
+
+  it('asks for no request when there is nothing to purge', () => {
+    expect(chunkPurgeTags([])).toEqual([]);
   });
 });

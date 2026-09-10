@@ -32,6 +32,14 @@ Local/test purge mode is valid only for loopback requests and records tags. Prod
 - Report purge failure as publish failure: rejected because D1 has already committed.
 - Silently skip purge outside production: rejected because configuration mistakes would serve stale content.
 
+## Amendment — 2026-09-10: durable purge recovery
+
+The retry above lived only in the reviewer's browser tab. After a reload nothing recorded that pages were stale, and article HTML cached by the dashboard Cache Rule, which sets no `Cache-Control` from code, could stay stale indefinitely.
+
+Publish, republish, unpublish and rename now insert their tag set into `pending_cache_purges` in the same D1 batch as the change, conditional on the change applying. Every purge then drains the whole backlog in requests of at most 30 tags and deletes the rows it fully covered; rows it could not purge keep an attempt count and the last error. The review queue shows a notice while rows remain, and `admin.retryPendingPurges` drains them on demand, replacing the per-tab retry actions.
+
+The decision itself is unchanged: D1 still commits first, and a failed purge is still a warning, never a rollback.
+
 ## Related decisions
 
 ADR-0011 defines cache tags; ADR-0024 defines strict editor content; ADR-0032 separates drafts from revisions; ADR-0034 protects admin actions.

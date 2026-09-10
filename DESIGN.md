@@ -456,7 +456,8 @@ The publish surface, and the one with the most rules behind a single button:
   including the **other locale's** page, whose `hreflang` just changed
 - Refuses to publish a post with no cover image
 - Commits D1 before cache invalidation and reports a truthful cache-warning
-  outcome that can retry the purge without creating another revision (ADR-0037)
+  outcome; the change's tags are recorded with the commit and stay pending until
+  a later purge or the review queue's retry drains them (ADR-0037)
 - Appends retired slug history without rewriting it; redirect reads join the
   localization's current slug, so A→B→C resolves in one hop (ADR-0038)
 - Loads at most eight distinct supported Shiki grammars per publication;
@@ -465,10 +466,12 @@ The publish surface, and the one with the most rules behind a single button:
 
 Production deploys never edit or commit binding identifiers. Operators and CI
 provide `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`,
-`CLOUDFLARE_KV_NAMESPACE_ID`, `CLOUDFLARE_R2_BUCKET_NAME`, and
-`CLOUDFLARE_ZONE_ID`; the deployment script rejects missing, malformed, and
-all-zero values before adapting Astro's generated Worker config into the ignored
-`dist/server/wrangler.production.json`.
+`CLOUDFLARE_KV_NAMESPACE_ID`, `CLOUDFLARE_R2_BUCKET_NAME`,
+`CLOUDFLARE_ZONE_ID`, and the Cloudflare Access `ACCESS_TEAM_DOMAIN` (a bare
+`*.cloudflareaccess.com` hostname) and `ACCESS_AUD` (ADR-0039); the deployment
+script rejects missing, malformed, and all-zero values before adapting Astro's
+generated Worker config into the ignored `dist/server/wrangler.production.json`,
+which sets `ACCESS_MODE` to `cloudflare`.
 Provision the purge credential as a remote Worker secret, never a Wrangler var:
 
 ```sh

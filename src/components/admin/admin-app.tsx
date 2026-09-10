@@ -42,6 +42,7 @@ type Screen =
       page: number;
       pageSize: number;
       total: number;
+      pendingPurges: number;
     }
   | {
       name: 'editor';

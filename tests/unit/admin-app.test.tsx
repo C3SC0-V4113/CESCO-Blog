@@ -6,14 +6,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/lib/admin-actions', () => ({
   callCreatePost: vi.fn(),
   callPublish: vi.fn(),
-  callRetryPublicationPurge: vi.fn(),
-  callRetryLocalizationPurge: vi.fn(),
+  callRetryPendingPurges: vi.fn(),
   callUnpublish: vi.fn(),
   callRenameLocalization: vi.fn(),
 }));
 
 import { AdminApp } from '@/components/admin/admin-app';
-import { callPublish, callRenameLocalization } from '@/lib/admin-actions';
+import { callPublish, callRenameLocalization, callRetryPendingPurges } from '@/lib/admin-actions';
 
 afterEach(cleanup);
 
@@ -41,11 +40,8 @@ describe('AdminApp', () => {
       expect(screen.getByRole('button', { name: label })).toHaveProperty('disabled', true);
   });
 
-  it('shows server-owned review detail and a truthful cache warning', async () => {
-    vi.mocked(callPublish).mockResolvedValue({
-      data: { status: 'published-with-cache-warning', revisionId: crypto.randomUUID() },
-      error: undefined,
-    } as never);
+  it('shows server-owned review detail and publishes it with a stable operation id', async () => {
+    vi.mocked(callPublish).mockResolvedValue({ data: undefined, error: Error('offline') } as never);
     const postId = crypto.randomUUID(),
       localizationId = crypto.randomUUID();
     render(
@@ -55,6 +51,7 @@ describe('AdminApp', () => {
           page: 2,
           total: 51,
           pageSize: 50,
+          pendingPurges: 0,
           items: [
             {
               postId,
@@ -140,11 +137,17 @@ describe('AdminApp', () => {
     );
     expect(screen.queryByRole('checkbox', { name: /Confirmo/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'Cambiar slug' })).toHaveProperty('disabled', false);
+    // Nothing is pending, so there is nothing to retry.
+    expect(screen.queryByRole('button', { name: /Reintentar actualizaci/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Publicar' }));
-    await waitFor(() =>
-      expect(screen.getByRole('status').textContent).toContain('El cambio se guard')
-    );
-    expect(screen.getByRole('button', { name: /Reintentar actualizaci/ })).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('No se pudo'));
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar' }));
+    await waitFor(() => expect(callPublish).toHaveBeenCalledTimes(2));
+    // A retry after a lost response replays the same operation instead of
+    // publishing a second revision.
+    const [[first], [second]] = vi.mocked(callPublish).mock.calls;
+    expect(second).toEqual(first);
+    expect(first).toMatchObject({ postId, localizationId, draftToken: 'token' });
     expect(screen.getByText(/51–51 de 51/)).toBeTruthy();
     const previous = screen.getByRole('link', { name: 'Anterior' }).getAttribute('href');
     expect(previous).toContain('page=1');
@@ -166,6 +169,7 @@ describe('AdminApp', () => {
           page: 1,
           total: 0,
           pageSize: 50,
+          pendingPurges: 0,
           detail: {
             postId,
             localizationId,
@@ -232,6 +236,7 @@ describe('AdminApp', () => {
           page: 1,
           total: 0,
           pageSize: 50,
+          pendingPurges: 0,
           detail: {
             postId: crypto.randomUUID(),
             localizationId: crypto.randomUUID(),
@@ -268,5 +273,32 @@ describe('AdminApp', () => {
     expect(callRenameLocalization).toHaveBeenCalledWith(
       expect.objectContaining({ acknowledgePermanentRedirect: false })
     );
+  });
+
+  it('offers a retry for cache purges that earlier changes left pending', async () => {
+    vi.mocked(callRetryPendingPurges).mockResolvedValue({
+      data: { status: 'pending' },
+      error: undefined,
+    } as never);
+    render(
+      <AdminApp
+        screen={{
+          name: 'review',
+          items: [],
+          detail: null,
+          page: 1,
+          total: 0,
+          pageSize: 50,
+          pendingPurges: 2,
+        }}
+      />
+    );
+
+    expect(screen.getByText(/caché no se actualizó/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Reintentar actualizaci/ }));
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toContain('sigue sin actualizarse')
+    );
+    expect(callRetryPendingPurges).toHaveBeenCalledOnce();
   });
 });

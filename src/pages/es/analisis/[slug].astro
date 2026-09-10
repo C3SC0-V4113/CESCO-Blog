@@ -33,13 +33,9 @@ const redirectTo =
   resolution.kind === 'redirect' ? articlePath(locale, section, resolution.slug) : null;
 
 if (redirectTo && resolution.kind === 'redirect') {
-  Astro.response.headers.set(
-    'Cache-Tag',
-    cacheTagHeader(postDetailTags(resolution.postId, locale, section))
-  );
-  Astro.response.headers.set('Cache-Control', `public, max-age=${ERROR_RESPONSE_MAX_AGE}`);
   // 301, not 302: the old address is retired permanently, and a temporary
-  // redirect would keep crawlers coming back to it (ADR-0010).
+  // redirect would keep crawlers coming back to it (ADR-0010). A returned
+  // Response replaces `Astro.response`, so its own headers are the only ones sent.
   return new Response(null, {
     status: 301,
     headers: {

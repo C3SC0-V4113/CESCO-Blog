@@ -1,15 +1,17 @@
 import { env } from 'cloudflare:test';
 import { and, eq } from 'drizzle-orm';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { retryPendingPurges } from '@/actions/pending-purges';
 import {
   publicationErrorCode,
   publishLocalization,
   renameLocalizationSlug,
-  retryPublicationPurge,
   unpublishLocalization,
+  type PurgeTags,
 } from '@/actions/publishing';
 import { createDb, schema } from '@/db/client';
+import { countPendingPurges } from '@/db/queries/admin-review';
 
 import type { ContentDoc } from '@/lib/content/schema';
 
@@ -129,10 +131,7 @@ describe('publish flow', () => {
         .where(eq(schema.postDrafts.postLocalizationId, seeded.localizationId))
     ).toMatchObject([{ draftToken: 'reviewed-token', title: 'Publicable' }]);
     const purge = vi.fn().mockResolvedValue(undefined);
-    await expect(retryPublicationPurge(seeded.db, input, purge)).resolves.toEqual({
-      status: 'published',
-      revisionId: operationId,
-    });
+    await expect(retryPendingPurges(seeded.db, purge)).resolves.toEqual({ status: 'purged' });
     await expect(publishLocalization(seeded.db, input, purge, now)).resolves.toMatchObject({
       status: 'published',
       revisionId: operationId,
@@ -169,7 +168,7 @@ describe('publish flow', () => {
     );
     await seeded.db
       .update(schema.postDrafts)
-      .set({ title: 'Segunda versiÃ³n', draftToken: 'token-2' })
+      .set({ title: 'Segunda versión', draftToken: 'token-2' })
       .where(eq(schema.postDrafts.postLocalizationId, seeded.localizationId));
     const second = crypto.randomUUID();
     await publishLocalization(
@@ -311,7 +310,9 @@ describe('publish flow', () => {
         now
       )
     ).resolves.toMatchObject({ status: 'published' });
-    expect(batchSizes).toEqual([3]);
+    // Revision, placements, pointer, and the pending purge that records the
+    // change's tags in the same transaction.
+    expect(batchSizes).toEqual([4]);
     expect(
       await seeded.db
         .select()
@@ -571,5 +572,261 @@ describe('publish flow', () => {
         .from(schema.postLocalizationSlugHistory)
         .where(eq(schema.postLocalizationSlugHistory.postLocalizationId, seeded.localizationId))
     ).toEqual([expect.objectContaining({ oldSlug: `slug-${seeded.postId}` })]);
+  });
+
+  it('leaves a never-published localization alone and purges nothing on unpublish', async () => {
+    const seeded = await seedDraft();
+    const purge = vi.fn().mockResolvedValue(undefined);
+    await expect(
+      unpublishLocalization(
+        seeded.db,
+        { postId: seeded.postId, localizationId: seeded.localizationId },
+        purge
+      )
+    ).resolves.toEqual({ status: 'unchanged' });
+    expect(purge).not.toHaveBeenCalled();
+  });
+
+  it('refuses to withdraw a revision other than the one the reviewer saw', async () => {
+    const seeded = await seedDraft();
+    const publishPurge = vi.fn().mockResolvedValue(undefined);
+    const seen = crypto.randomUUID();
+    await publishLocalization(
+      seeded.db,
+      {
+        postId: seeded.postId,
+        localizationId: seeded.localizationId,
+        draftToken: 'reviewed-token',
+        operationId: seen,
+      },
+      publishPurge,
+      now
+    );
+    const newer = crypto.randomUUID();
+    await publishLocalization(
+      seeded.db,
+      {
+        postId: seeded.postId,
+        localizationId: seeded.localizationId,
+        draftToken: 'reviewed-token',
+        operationId: newer,
+      },
+      publishPurge,
+      now
+    );
+    const purge = vi.fn().mockResolvedValue(undefined);
+    await expect(
+      unpublishLocalization(
+        seeded.db,
+        {
+          postId: seeded.postId,
+          localizationId: seeded.localizationId,
+          publishedRevisionId: seen,
+        },
+        purge
+      )
+    ).resolves.toEqual({ status: 'unchanged' });
+    expect(purge).not.toHaveBeenCalled();
+    expect(
+      await seeded.db
+        .select({
+          status: schema.postLocalizations.status,
+          revision: schema.postLocalizations.publishedRevisionId,
+        })
+        .from(schema.postLocalizations)
+        .where(eq(schema.postLocalizations.id, seeded.localizationId))
+    ).toEqual([{ status: 'published', revision: newer }]);
+  });
+
+  it('withdraws and purges once when two unpublishes race', async () => {
+    const seeded = await seedDraft();
+    const revisionId = crypto.randomUUID();
+    await publishLocalization(
+      seeded.db,
+      {
+        postId: seeded.postId,
+        localizationId: seeded.localizationId,
+        draftToken: 'reviewed-token',
+        operationId: revisionId,
+      },
+      vi.fn().mockResolvedValue(undefined),
+      now
+    );
+    const purge = vi.fn().mockResolvedValue(undefined);
+    const mutation = {
+      postId: seeded.postId,
+      localizationId: seeded.localizationId,
+      publishedRevisionId: revisionId,
+    };
+    const results = await Promise.all([
+      unpublishLocalization(seeded.db, mutation, purge),
+      unpublishLocalization(seeded.db, mutation, purge),
+    ]);
+    expect(results.map(({ status }) => status).sort()).toEqual(['unchanged', 'unpublished']);
+    expect(purge).toHaveBeenCalledTimes(1);
+  });
+
+  it('answers a conflict when a replay of the same operation races the original', async () => {
+    const seeded = await seedDraft();
+    const input = {
+      postId: seeded.postId,
+      localizationId: seeded.localizationId,
+      draftToken: 'reviewed-token',
+      operationId: crypto.randomUUID(),
+    };
+    const purge = vi.fn().mockResolvedValue(undefined);
+    const client = seeded.db.$client;
+    const descriptor = Object.getOwnPropertyDescriptor(client, 'batch');
+    const originalBatch = client.batch.bind(client);
+    let replay: Promise<unknown> | undefined;
+    // The replay reads before the original writes and then commits first, which
+    // is what two tabs retrying the same click look like to the database.
+    Object.defineProperty(client, 'batch', {
+      configurable: true,
+      value: async (statements: Parameters<typeof originalBatch>[0]) => {
+        if (!replay) {
+          replay = publishLocalization(seeded.db, input, purge, now);
+          await replay;
+        }
+        return originalBatch(statements);
+      },
+    });
+    try {
+      const error = await publishLocalization(seeded.db, input, purge, now).then(
+        () => null,
+        (reason: unknown) => reason
+      );
+      await expect(replay).resolves.toMatchObject({ status: 'published' });
+      expect(publicationErrorCode(error)).toBe('CONFLICT');
+    } finally {
+      if (descriptor) Object.defineProperty(client, 'batch', descriptor);
+      else Reflect.deleteProperty(client, 'batch');
+    }
+    expect(
+      await seeded.db
+        .select()
+        .from(schema.postRevisions)
+        .where(eq(schema.postRevisions.postLocalizationId, seeded.localizationId))
+    ).toHaveLength(1);
+  });
+
+  describe('durable cache purge recovery', () => {
+    const tagsOf = (postId: string) => [
+      `post-${postId}`,
+      'section-analysis',
+      'locale-es',
+      'rss',
+      'sitemap',
+    ];
+    const pendingPurges = () => createDb(env.DB).select().from(schema.pendingCachePurges);
+    const unavailable = () => vi.fn<PurgeTags>().mockRejectedValue(Error('purge unavailable'));
+    const publishInput = (seeded: { postId: string; localizationId: string }) => ({
+      postId: seeded.postId,
+      localizationId: seeded.localizationId,
+      draftToken: 'reviewed-token',
+      operationId: crypto.randomUUID(),
+    });
+
+    beforeEach(async () => {
+      // Each test reasons about the whole backlog, so none may inherit one.
+      await createDb(env.DB).delete(schema.pendingCachePurges);
+    });
+
+    it('records every committed change whose purge failed', async () => {
+      const seeded = await seedDraft();
+      const mutation = { postId: seeded.postId, localizationId: seeded.localizationId };
+      const purge = unavailable();
+      await expect(
+        publishLocalization(seeded.db, publishInput(seeded), purge, now)
+      ).resolves.toMatchObject({ status: 'published-with-cache-warning' });
+      expect(await pendingPurges()).toEqual([
+        expect.objectContaining({
+          tags: tagsOf(seeded.postId),
+          action: 'publish',
+          attempts: 1,
+          lastError: 'purge unavailable',
+          createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/),
+        }),
+      ]);
+      expect(await countPendingPurges(seeded.db)).toBe(1);
+
+      await expect(
+        publishLocalization(seeded.db, publishInput(seeded), purge, now)
+      ).resolves.toMatchObject({ status: 'published-with-cache-warning' });
+      await expect(
+        renameLocalizationSlug(
+          seeded.db,
+          { ...mutation, slug: `renamed-${seeded.postId}`, acknowledgePermanentRedirect: true },
+          purge
+        )
+      ).resolves.toMatchObject({ status: 'renamed-with-cache-warning' });
+      await expect(unpublishLocalization(seeded.db, mutation, purge)).resolves.toEqual({
+        status: 'unpublished-with-cache-warning',
+      });
+      expect((await pendingPurges()).map(({ action }) => action).sort()).toEqual([
+        'publish',
+        'rename',
+        'republish',
+        'unpublish',
+      ]);
+    });
+
+    it('drains the backlog with the next successful purge', async () => {
+      const stale = await seedDraft();
+      await publishLocalization(stale.db, publishInput(stale), unavailable(), now);
+      const fresh = await seedDraft();
+      const purge = vi.fn<PurgeTags>().mockResolvedValue(undefined);
+      await expect(
+        publishLocalization(fresh.db, publishInput(fresh), purge, now)
+      ).resolves.toMatchObject({ status: 'published' });
+      expect(purge).toHaveBeenCalledOnce();
+      expect(purge.mock.calls[0]![0].toSorted()).toEqual(
+        [...new Set([...tagsOf(stale.postId), ...tagsOf(fresh.postId)])].sort()
+      );
+      expect(await pendingPurges()).toEqual([]);
+    });
+
+    it('drains the backlog through the retry action and keeps it while the purge fails', async () => {
+      const seeded = await seedDraft();
+      await publishLocalization(seeded.db, publishInput(seeded), unavailable(), now);
+      await expect(
+        retryPendingPurges(seeded.db, vi.fn<PurgeTags>().mockRejectedValue(Error('still down')))
+      ).resolves.toEqual({ status: 'pending' });
+      expect(await pendingPurges()).toEqual([
+        expect.objectContaining({ attempts: 2, lastError: 'still down' }),
+      ]);
+
+      const purge = vi.fn<PurgeTags>().mockResolvedValue(undefined);
+      await expect(retryPendingPurges(seeded.db, purge)).resolves.toEqual({ status: 'purged' });
+      expect(purge).toHaveBeenCalledExactlyOnceWith(tagsOf(seeded.postId));
+      expect(await countPendingPurges(seeded.db)).toBe(0);
+    });
+
+    it('purges at most 30 tags per request and keeps only what a failed request left', async () => {
+      const db = createDb(env.DB);
+      const rows = Array.from({ length: 40 }, (_, index) => ({
+        id: crypto.randomUUID(),
+        tags: tagsOf(crypto.randomUUID()),
+        action: 'publish' as const,
+        createdAt: `2026-09-10 12:${String(index).padStart(2, '0')}:00`,
+      }));
+      for (let start = 0; start < rows.length; start += 10)
+        await db.insert(schema.pendingCachePurges).values(rows.slice(start, start + 10));
+      const purge = vi
+        .fn<PurgeTags>()
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(Error('rate limited'));
+
+      await expect(retryPendingPurges(db, purge)).resolves.toEqual({ status: 'pending' });
+      // 40 post tags plus 4 shared ones. The first request carries the shared
+      // tags and the 26 oldest posts, so exactly those rows are done.
+      expect(purge.mock.calls.map(([tags]) => tags.length)).toEqual([30, 14]);
+      expect((await pendingPurges()).map(({ id }) => id).sort()).toEqual(
+        rows
+          .slice(26)
+          .map(({ id }) => id)
+          .sort()
+      );
+    });
   });
 });

@@ -1,19 +1,20 @@
 import { eq } from 'drizzle-orm';
 
+import { drainPendingPurges, recordPendingPurge } from '@/actions/pending-purges';
 import { schema, type Db } from '@/db/client';
 import { findPublicationMedia, loadPublicationSource } from '@/db/queries/admin-review';
 import { deriveReadingTime, deriveToc } from '@/lib/content/derive';
 import { safeExternalUrl } from '@/lib/media';
 import {
   collectPublicationMedia,
-  localizationMutationSchema,
   preparePublishedContent,
   publicationTags,
   publishSchema,
   renameLocalizationSchema,
-  type LocalizationMutationInput,
+  unpublishSchema,
   type PublishInput,
   type RenameLocalizationInput,
+  type UnpublishInput,
 } from '@/lib/publishing';
 import { toDbTimestamp } from '@/lib/timestamps';
 
@@ -27,8 +28,7 @@ export function publicationErrorCode(error: unknown) {
   const message = error instanceof Error ? error.message : '';
   if (['draft-conflict', 'publish-conflict', 'slug-reserved'].includes(message))
     return 'CONFLICT' as const;
-  if (message === 'localization-not-found' || message === 'publication-not-found')
-    return 'NOT_FOUND' as const;
+  if (message === 'localization-not-found') return 'NOT_FOUND' as const;
   if (
     [
       'post-inactive',
@@ -46,18 +46,19 @@ export function publicationErrorCode(error: unknown) {
   return null;
 }
 
+function isUniqueViolation(error: unknown) {
+  const cause = error instanceof Error ? error.cause : undefined;
+  return /UNIQUE constraint failed/.test(`${String(error)} ${String(cause ?? '')}`);
+}
+
 async function purgePublication(
-  tags: string[],
+  db: Db,
   purge: PurgeTags,
   revisionId: string
 ): Promise<PublicationOutcome> {
-  try {
-    await purge(tags);
-    return { status: 'published', revisionId };
-  } catch (error) {
-    console.error('Publication committed but cache purge failed', error);
-    return { status: 'published-with-cache-warning', revisionId };
-  }
+  return (await drainPendingPurges(db, purge))
+    ? { status: 'published', revisionId }
+    : { status: 'published-with-cache-warning', revisionId };
 }
 
 export async function publishLocalization(
@@ -80,7 +81,9 @@ export async function publishLocalization(
       source.publishedRevisionId !== input.operationId
     )
       throw Error('publish-conflict');
-    return purgePublication(tags, purge, input.operationId);
+    // The original attempt recorded its tags with the commit, so a replay only
+    // has to settle whatever is still owed.
+    return purgePublication(db, purge, input.operationId);
   }
   if (source.editorialState !== 'active') throw Error('post-inactive');
   if (source.draftToken !== input.draftToken) throw Error('draft-conflict');
@@ -165,57 +168,56 @@ WHERE id = ? AND post_id = ? AND published_revision_id IS ? AND EXISTS (SELECT 1
         source.publishedRevisionId,
         input.operationId
       ),
+    recordPendingPurge(
+      db,
+      tags,
+      source.publishedRevisionId ? 'republish' : 'publish',
+      'EXISTS (SELECT 1 FROM post_localizations WHERE id = ? AND published_revision_id = ?)',
+      input.localizationId,
+      input.operationId
+    ),
   ];
-  const results = await db.$client.batch(statements);
-  if (results[0]!.meta.changes !== 1 || results.at(-1)!.meta.changes !== 1)
-    throw Error('publish-conflict');
-  return purgePublication(tags, purge, input.operationId);
-}
-
-export async function retryPublicationPurge(
-  db: Db,
-  raw: PublishInput,
-  purge: PurgeTags
-): Promise<PublicationOutcome> {
-  const input = publishSchema.parse(raw);
-  const source = await loadPublicationSource(db, input.postId, input.localizationId);
-  if (!source || source.publishedRevisionId !== input.operationId)
-    throw Error('publication-not-found');
-  await purge(publicationTags(source.postId, source.section, source.locale));
-  return { status: 'published', revisionId: input.operationId };
-}
-
-export async function unpublishLocalization(
-  db: Db,
-  raw: LocalizationMutationInput,
-  purge: PurgeTags
-) {
-  const input = localizationMutationSchema.parse(raw);
-  const source = await loadPublicationSource(db, input.postId, input.localizationId);
-  if (!source) throw Error('localization-not-found');
-  await db
-    .update(schema.postLocalizations)
-    .set({ status: 'draft', publishedRevisionId: null, updatedAt: toDbTimestamp() })
-    .where(eq(schema.postLocalizations.id, input.localizationId));
+  let results: D1Result[];
   try {
-    await purge(publicationTags(source.postId, source.section, source.locale));
-    return { status: 'unpublished' as const };
+    results = await db.$client.batch(statements);
   } catch (error) {
-    console.error('Unpublish committed but cache purge failed', error);
-    return { status: 'unpublished-with-cache-warning' as const };
+    // A replay of this operation that committed between our read and our write
+    // collides on the revision's keys. The batch rolled back as a unit, so this
+    // is the same lost race as the checks below, not a server fault.
+    if (isUniqueViolation(error)) throw Error('publish-conflict');
+    throw error;
   }
+  if (results[0]!.meta.changes !== 1 || results[2]!.meta.changes !== 1)
+    throw Error('publish-conflict');
+  return purgePublication(db, purge, input.operationId);
 }
 
-export async function retryLocalizationPurge(
-  db: Db,
-  raw: LocalizationMutationInput,
-  purge: PurgeTags
-) {
-  const input = localizationMutationSchema.parse(raw);
+export async function unpublishLocalization(db: Db, raw: UnpublishInput, purge: PurgeTags) {
+  const input = unpublishSchema.parse(raw);
   const source = await loadPublicationSource(db, input.postId, input.localizationId);
   if (!source) throw Error('localization-not-found');
-  await purge(publicationTags(source.postId, source.section, source.locale));
-  return { status: 'purged' as const };
+  // Conditional, so withdrawing something that is not public — never
+  // published, withdrawn by another tab, or republished since the reviewer
+  // looked — changes nothing and owes no purge.
+  const expected = input.publishedRevisionId ?? null;
+  const [withdrawn] = await db.$client.batch([
+    db.$client
+      .prepare(
+        `UPDATE post_localizations SET status = 'draft', published_revision_id = NULL, updated_at = ?
+WHERE id = ? AND post_id = ? AND published_revision_id IS NOT NULL AND (? IS NULL OR published_revision_id = ?)`
+      )
+      .bind(toDbTimestamp(), input.localizationId, input.postId, expected, expected),
+    recordPendingPurge(
+      db,
+      publicationTags(source.postId, source.section, source.locale),
+      'unpublish',
+      'changes() = 1'
+    ),
+  ]);
+  if (withdrawn.meta.changes !== 1) return { status: 'unchanged' as const };
+  return (await drainPendingPurges(db, purge))
+    ? { status: 'unpublished' as const }
+    : { status: 'unpublished-with-cache-warning' as const };
 }
 
 export async function renameLocalizationSlug(
@@ -257,6 +259,17 @@ SELECT ?, l.id, l.locale, ? FROM post_localizations l
 WHERE l.id = ? AND l.post_id = ? AND l.first_published_at IS NOT NULL AND changes() = 1`
       )
       .bind(crypto.randomUUID(), source.slug, input.localizationId, input.postId),
+    // Keyed on the resulting slug because `changes()` now describes the history
+    // insert. A concurrent rename to the same slug can record twice, which only
+    // repeats an idempotent purge.
+    recordPendingPurge(
+      db,
+      publicationTags(source.postId, source.section, source.locale),
+      'rename',
+      'EXISTS (SELECT 1 FROM post_localizations WHERE id = ? AND slug = ?)',
+      input.localizationId,
+      input.slug
+    ),
   ];
   const [updated] = await db.$client.batch(statements);
   if (updated.meta.changes !== 1) {
@@ -265,11 +278,7 @@ WHERE l.id = ? AND l.post_id = ? AND l.first_published_at IS NOT NULL AND change
       throw Error('redirect-acknowledgement-required');
     throw Error('slug-reserved');
   }
-  try {
-    await purge(publicationTags(source.postId, source.section, source.locale));
-    return { status: 'renamed' as const, slug: input.slug };
-  } catch (error) {
-    console.error('Slug rename committed but cache purge failed', error);
-    return { status: 'renamed-with-cache-warning' as const, slug: input.slug };
-  }
+  return (await drainPendingPurges(db, purge))
+    ? { status: 'renamed' as const, slug: input.slug }
+    : { status: 'renamed-with-cache-warning' as const, slug: input.slug };
 }

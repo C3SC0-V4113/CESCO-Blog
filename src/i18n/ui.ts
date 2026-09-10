@@ -201,7 +201,10 @@ const es = {
   'admin.review.pending': 'Procesando\u2026',
   'admin.review.error':
     'No se pudo completar la operaci\u00f3n. Revisa el estado e intenta nuevamente.',
-  'admin.review.cacheWarning': 'El cambio se guard\u00f3, pero falta actualizar la cach\u00e9.',
+  'admin.review.pendingPurges':
+    'Hay cambios guardados cuya cach\u00e9 no se actualiz\u00f3. Algunas p\u00e1ginas p\u00fablicas pueden mostrar contenido desactualizado.',
+  'admin.review.pendingPurgesError':
+    'La cach\u00e9 sigue sin actualizarse. Intenta nuevamente en unos minutos.',
   'admin.review.retryPurge': 'Reintentar actualizaci\u00f3n de cach\u00e9',
 
   'error.404.title': 'Esta página no existe',
@@ -404,7 +407,9 @@ const en = {
     'Confirm the permanent redirect before changing the slug.',
   'admin.review.pending': 'Processing\u2026',
   'admin.review.error': 'The operation could not be completed. Check the state and try again.',
-  'admin.review.cacheWarning': 'The change was saved, but the cache still needs updating.',
+  'admin.review.pendingPurges':
+    'Some saved changes have not reached the cache yet. Some public pages may show outdated content.',
+  'admin.review.pendingPurgesError': 'The cache is still not updated. Try again in a few minutes.',
   'admin.review.retryPurge': 'Retry cache update',
 
   'error.404.title': 'This page does not exist',

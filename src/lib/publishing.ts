@@ -27,12 +27,18 @@ export const localizationMutationSchema = z.strictObject({
   postId: z.uuid(),
   localizationId: z.uuid(),
 });
+export const unpublishSchema = localizationMutationSchema.extend({
+  // The revision the reviewer saw. Optional because the guard against
+  // withdrawing nothing holds without it; with it, a republication that landed
+  // after the page loaded is not withdrawn by a click aimed at the older one.
+  publishedRevisionId: z.uuid().optional(),
+});
 export const renameLocalizationSchema = localizationMutationSchema.extend({
   slug: z.string().transform(normalizeSlug).pipe(z.string().min(1).max(160)),
   acknowledgePermanentRedirect: z.boolean(),
 });
 export type PublishInput = z.infer<typeof publishSchema>;
-export type LocalizationMutationInput = z.infer<typeof localizationMutationSchema>;
+export type UnpublishInput = z.infer<typeof unpublishSchema>;
 export type RenameLocalizationInput = z.infer<typeof renameLocalizationSchema>;
 export type RenameLocalizationRejection = {
   status: 'rejected';

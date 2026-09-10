@@ -34,11 +34,6 @@ const redirectTo =
   resolution.kind === 'redirect' ? articlePath(locale, section, resolution.slug) : null;
 
 if (redirectTo && resolution.kind === 'redirect') {
-  Astro.response.headers.set(
-    'Cache-Tag',
-    cacheTagHeader(postDetailTags(resolution.postId, locale, section))
-  );
-  Astro.response.headers.set('Cache-Control', `public, max-age=${ERROR_RESPONSE_MAX_AGE}`);
   return new Response(null, {
     status: 301,
     headers: {

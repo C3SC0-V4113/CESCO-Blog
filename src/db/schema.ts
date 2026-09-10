@@ -256,6 +256,24 @@ export const postDrafts = sqliteTable(
   (table) => [index('post_drafts_og_image_media_id_idx').on(table.ogImageMediaId)]
 );
 
+/**
+ * Cache purges a committed change still owes (ADR-0037). The row is written in
+ * the same batch as the change and deleted once its tags are purged, so a
+ * failed purge — or a Worker that dies before purging — leaves a record that
+ * outlives the browser tab instead of pages that are silently stale.
+ */
+export const pendingCachePurges = sqliteTable('pending_cache_purges', {
+  id: text('id').primaryKey(),
+  tags: text('tags', { mode: 'json' }).$type<string[]>().notNull(),
+  action: text('action', { enum: ['publish', 'republish', 'unpublish', 'rename'] }).notNull(),
+  /** Failed purge attempts, including the committing change's own. */
+  attempts: integer('attempts').notNull().default(0),
+  lastError: text('last_error'),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const postRevisionMedia = sqliteTable(
   'post_revision_media',
   {

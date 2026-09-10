@@ -830,8 +830,9 @@ push(
   'ignore'
 );
 
-// Deliberately unsafe legacy snapshot URLs prove the public renderer never
-// emits non-web schemes even if historical data predates action validation.
+// No attribution URLs: this is public demo content. The unsafe legacy snapshot
+// that proves the renderer refuses non-web schemes lives in
+// tests/fixtures/unsafe-legacy-snapshot.sql, which only `e2e:serve` applies.
 push(
   db.insert(schema.postRevisionMedia).values({
     revisionId: ES.revisionId,
@@ -844,9 +845,9 @@ push(
     assetHeight: 1,
     assetCaption: 'Imagen de ejemplo',
     assetCreatorName: 'Checkpoint',
-    assetSourceUrl: 'javascript:alert(1)',
+    assetSourceUrl: null,
     assetLicenseLabel: 'Licencia de ejemplo',
-    assetLicenseUrl: 'data:text/html,unsafe',
+    assetLicenseUrl: null,
   })
 );
 

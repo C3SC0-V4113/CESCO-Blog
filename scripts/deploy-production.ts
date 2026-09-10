@@ -7,6 +7,8 @@ const ASTRO_CONFIG = 'dist/server/wrangler.json';
 const REQUIRED_SECRET = 'CLOUDFLARE_CACHE_PURGE_TOKEN';
 const hexId = /^[0-9a-f]{32}$/i;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const accessTeamDomain = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.cloudflareaccess\.com$/;
+const accessAudience = /^[0-9a-f]{64}$/i;
 
 type Settings = ReturnType<typeof productionSettings>;
 type Dependencies = {
@@ -26,12 +28,18 @@ export function productionSettings(environment: Record<string, string | undefine
   const bucket = environment.CLOUDFLARE_R2_BUCKET_NAME?.trim() ?? '';
   if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(bucket))
     throw Error('Invalid CLOUDFLARE_R2_BUCKET_NAME');
+  // A bare hostname: the Worker builds the token issuer as `https://<domain>`
+  // (ADR-0039), so a scheme or path here could never match a real token.
+  const teamDomain = environment.ACCESS_TEAM_DOMAIN?.trim().toLowerCase() ?? '';
+  if (!accessTeamDomain.test(teamDomain)) throw Error('Invalid ACCESS_TEAM_DOMAIN');
   return {
     accountId: required(environment, 'CLOUDFLARE_ACCOUNT_ID', hexId),
     databaseId: required(environment, 'CLOUDFLARE_D1_DATABASE_ID', uuid),
     namespaceId: required(environment, 'CLOUDFLARE_KV_NAMESPACE_ID', hexId),
     zoneId: required(environment, 'CLOUDFLARE_ZONE_ID', hexId),
     bucket,
+    accessTeamDomain: teamDomain,
+    accessAudience: required(environment, 'ACCESS_AUD', accessAudience),
   };
 }
 
@@ -41,7 +49,16 @@ export function buildProductionConfig(settings: Settings, astroConfig: Record<st
   delete config.userConfigPath;
   Object.assign(config, {
     account_id: settings.accountId,
-    vars: { CACHE_PURGE_MODE: 'cloudflare', CLOUDFLARE_ZONE_ID: settings.zoneId },
+    // Replaces the local block wholesale, so every var wrangler.jsonc declares
+    // needs its production value here; a missing Access var answers 503 on
+    // every admin request (ADR-0039).
+    vars: {
+      CACHE_PURGE_MODE: 'cloudflare',
+      CLOUDFLARE_ZONE_ID: settings.zoneId,
+      ACCESS_MODE: 'cloudflare',
+      ACCESS_TEAM_DOMAIN: settings.accessTeamDomain,
+      ACCESS_AUD: settings.accessAudience,
+    },
     d1_databases: [
       {
         binding: 'DB',

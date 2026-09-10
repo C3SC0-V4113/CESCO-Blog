@@ -192,5 +192,9 @@ test('paginates the complete review queue', async ({ page }) => {
 test('never renders unsafe attribution URL schemes from legacy snapshots', async ({ page }) => {
   await page.goto('/es/analisis/el-peso-del-silencio');
   await expect(page.getByRole('img', { name: 'Un pixel de ejemplo' })).toBeVisible();
+  // Written by tests/fixtures/unsafe-legacy-snapshot.sql. Without it the page
+  // has no unsafe URL at all and the assertion below would prove nothing.
+  await expect(page.getByText('Captura heredada con enlaces inseguros')).toBeVisible();
+  await expect(page.getByText('Licencia de ejemplo')).toBeVisible();
   await expect(page.locator('a[href^="javascript:"], a[href^="data:"]')).toHaveCount(0);
 });

@@ -105,3 +105,9 @@ export async function loadReviewDetail(db: Db, postId: string, localizationId: s
 }
 
 export type ReviewDetail = NonNullable<Awaited<ReturnType<typeof loadReviewDetail>>>;
+
+/** Committed changes whose cache purge is still owed (ADR-0037). */
+export async function countPendingPurges(db: Db) {
+  const [row] = await db.select({ total: sql<number>`count(*)` }).from(schema.pendingCachePurges);
+  return row?.total ?? 0;
+}

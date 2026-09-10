@@ -14,13 +14,21 @@ const validEnvironment = {
   CLOUDFLARE_KV_NAMESPACE_ID: '22222222222222222222222222222222',
   CLOUDFLARE_ZONE_ID: '33333333333333333333333333333333',
   CLOUDFLARE_R2_BUCKET_NAME: 'cesco-blog-production-media',
+  ACCESS_TEAM_DOMAIN: 'checkpoint.cloudflareaccess.com',
+  ACCESS_AUD: '5f3c8a1e9b7d4c2f'.repeat(4),
 };
 const astroConfig = {
   name: 'cesco-blog',
   main: 'entry.mjs',
   no_bundle: true,
   assets: { binding: 'ASSETS', directory: '../client' },
-  vars: { CACHE_PURGE_MODE: 'local', CLOUDFLARE_ZONE_ID: '' },
+  vars: {
+    CACHE_PURGE_MODE: 'local',
+    CLOUDFLARE_ZONE_ID: '',
+    ACCESS_MODE: 'local',
+    ACCESS_TEAM_DOMAIN: '',
+    ACCESS_AUD: '',
+  },
   d1_databases: [{ binding: 'DB', database_id: '0'.repeat(36) }],
   r2_buckets: [{ binding: 'BUCKET', bucket_name: 'cesco-blog-media' }],
   kv_namespaces: [{ binding: 'SESSION', id: '0'.repeat(32) }],
@@ -35,6 +43,14 @@ describe('production cache purge configuration', () => {
     ['CLOUDFLARE_KV_NAMESPACE_ID', '0'.repeat(32)],
     ['CLOUDFLARE_ZONE_ID', 'short'],
     ['CLOUDFLARE_R2_BUCKET_NAME', ''],
+    ['ACCESS_TEAM_DOMAIN', ''],
+    ['ACCESS_TEAM_DOMAIN', 'https://checkpoint.cloudflareaccess.com'],
+    ['ACCESS_TEAM_DOMAIN', 'checkpoint.example.com'],
+    ['ACCESS_TEAM_DOMAIN', 'evil.example/.cloudflareaccess.com'],
+    ['ACCESS_AUD', ''],
+    ['ACCESS_AUD', 'abc123'],
+    ['ACCESS_AUD', '0'.repeat(64)],
+    ['ACCESS_AUD', 'g'.repeat(64)],
   ])('fails before deployment for invalid %s', (key, value) => {
     expect(() => productionSettings({ ...validEnvironment, [key]: value })).toThrow(key);
   });
@@ -57,6 +73,22 @@ describe('production cache purge configuration', () => {
       assets: { directory: '../client' },
     });
     expect(JSON.stringify(config)).not.toContain('CLOUDFLARE_CACHE_PURGE_TOKEN');
+  });
+
+  it('keeps the Access variables the Worker needs to verify admin requests', () => {
+    // `vars` is replaced wholesale, so anything left out here is gone in
+    // production, and without Access configured every admin request answers 503
+    // (ADR-0039).
+    const config = JSON.parse(
+      buildProductionConfig(productionSettings(validEnvironment), astroConfig)
+    );
+    expect(config.vars).toEqual({
+      CACHE_PURGE_MODE: 'cloudflare',
+      CLOUDFLARE_ZONE_ID: validEnvironment.CLOUDFLARE_ZONE_ID,
+      ACCESS_MODE: 'cloudflare',
+      ACCESS_TEAM_DOMAIN: validEnvironment.ACCESS_TEAM_DOMAIN,
+      ACCESS_AUD: validEnvironment.ACCESS_AUD,
+    });
   });
 
   it('verifies the remote secret before deploying through the generated config', async () => {
@@ -103,6 +135,10 @@ describe('production cache purge configuration', () => {
   it('keeps local bindings explicit and production material ignored', () => {
     const config = readFileSync('wrangler.jsonc', 'utf8');
     expect(config).toContain('"CACHE_PURGE_MODE": "local"');
+    expect(config).toContain('"ACCESS_MODE": "local"');
+    // A second `vars` key parses without complaint and silently replaces the
+    // first, which is how a merge nearly dropped the purge mode.
+    expect(config.match(/"vars"\s*:/g)).toHaveLength(1);
     expect(config).not.toContain('"production"');
     expect(readFileSync('.gitignore', 'utf8')).toContain('wrangler.production.json');
     expect(JSON.parse(readFileSync('package.json', 'utf8')).scripts['deploy:production']).toBe(

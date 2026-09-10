@@ -1,6 +1,6 @@
 ---
 import { AdminApp } from '@/components/admin/admin-app';
-import { listReviewQueue, loadReviewDetail } from '@/db/queries/admin-review';
+import { countPendingPurges, listReviewQueue, loadReviewDetail } from '@/db/queries/admin-review';
 import { getTranslations } from '@/i18n/utils';
 import AdminLayout from '@/layouts/admin.astro';
 import { getDb } from '@/lib/runtime';
@@ -10,9 +10,10 @@ const db = getDb();
 const postId = Astro.url.searchParams.get('post');
 const localizationId = Astro.url.searchParams.get('localization');
 const pageParam = Astro.url.searchParams.get('page');
-const [listing, detail] = await Promise.all([
+const [listing, detail, pendingPurges] = await Promise.all([
   listReviewQueue(db, pageParam, 50),
   postId && localizationId ? loadReviewDetail(db, postId, localizationId) : null,
+  countPendingPurges(db),
 ]);
 if (listing.requestedPage > listing.lastPage) {
   const params = new URLSearchParams({ page: String(listing.lastPage) });
@@ -33,6 +34,7 @@ if (listing.requestedPage > listing.lastPage) {
       page: listing.page,
       pageSize: listing.limit,
       total: listing.total,
+      pendingPurges,
     }}
     client:load
   />
