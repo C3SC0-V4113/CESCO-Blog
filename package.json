@@ -36,7 +36,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^14.1.7",
+    "@astrojs/cloudflare": "^14.3.1",
     "@astrojs/react": "^6.0.2",
     "@astrojs/rss": "^4.0.19",
     "@base-ui/react": "^1.6.0",
@@ -46,7 +46,7 @@
     "@types/canvas-confetti": "^1.9.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
-    "astro": "^7.1.6",
+    "astro": "^7.3.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
