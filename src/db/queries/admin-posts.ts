@@ -9,6 +9,7 @@ export type AdminPostSummary = {
   displayName: string;
   updatedAt: string;
   locales: Record<'es' | 'en', AdminLocaleStatus>;
+  localizationIds: Partial<Record<'es' | 'en', string>>;
 };
 export async function listAdminPosts(
   db: Db,
@@ -34,6 +35,7 @@ export async function listAdminPosts(
     .select({
       postId: schema.postLocalizations.postId,
       locale: schema.postLocalizations.locale,
+      localizationId: schema.postLocalizations.id,
       slug: schema.postLocalizations.slug,
       status: schema.postLocalizations.status,
       publishedTitle: schema.postRevisions.title,
@@ -62,6 +64,9 @@ export async function listAdminPosts(
           es: rows.find(({ locale }) => locale === 'es')?.status ?? 'missing',
           en: rows.find(({ locale }) => locale === 'en')?.status ?? 'missing',
         },
+        localizationIds: Object.fromEntries(
+          rows.map(({ locale, localizationId }) => [locale, localizationId])
+        ),
       };
     }),
   };

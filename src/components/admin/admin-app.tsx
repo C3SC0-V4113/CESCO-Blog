@@ -15,11 +15,13 @@ import { getTranslations } from '@/i18n/utils';
 import { cn } from '@/lib/utils';
 
 import { AdminDashboard } from './admin-dashboard';
+import { AdminEditor } from './admin-editor';
 import { AdminPostForm } from './admin-post-form';
 import { AdminPostList } from './admin-post-list';
 
 import type { AdminPostSummary } from '@/db/queries/admin-posts';
 import type { UiKey } from '@/i18n/ui';
+import type { EditorDraft, EditorLocalizations } from '@/lib/drafts';
 import type { LucideIcon } from 'lucide-react';
 
 const t = getTranslations('es');
@@ -27,7 +29,14 @@ const t = getTranslations('es');
 type Screen =
   | { name: 'dashboard' }
   | { name: 'posts'; posts: AdminPostSummary[]; page: number; total: number }
-  | { name: 'new-post' };
+  | { name: 'new-post' }
+  | {
+      name: 'editor';
+      postId: string;
+      localizationId: string;
+      localizations: EditorLocalizations;
+      draft: EditorDraft;
+    };
 
 const laterDestinations: Array<{ label: UiKey; icon: LucideIcon }> = [
   { label: 'admin.navigation.media', icon: ImagesIcon },
@@ -39,6 +48,7 @@ const screenCopy = {
   dashboard: ['admin.title', 'admin.subtitle'],
   posts: ['admin.posts.title', 'admin.posts.subtitle'],
   'new-post': ['admin.posts.new', 'admin.posts.newSubtitle'],
+  editor: ['admin.editor.title', 'admin.editor.subtitle'],
 } as const;
 
 export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }) {
@@ -47,7 +57,7 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
     ? t('admin.navigation.close')
     : t('admin.navigation.open');
   const NavigationIcon = isNavigationOpen ? XIcon : MenuIcon;
-  const isPosts = screen.name === 'posts' || screen.name === 'new-post';
+  const isPosts = screen.name !== 'dashboard';
   const [title, subtitle] = screenCopy[screen.name];
 
   return (
@@ -130,6 +140,7 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
             <AdminPostList posts={screen.posts} page={screen.page} total={screen.total} />
           )}
           {screen.name === 'new-post' && <AdminPostForm />}
+          {screen.name === 'editor' && <AdminEditor {...screen} />}
         </main>
       </div>
     </div>

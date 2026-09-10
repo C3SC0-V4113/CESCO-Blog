@@ -231,6 +231,32 @@ export const postRevisions = sqliteTable(
   ]
 );
 
+export const postDrafts = sqliteTable(
+  'post_drafts',
+  {
+    postLocalizationId: text('post_localization_id')
+      .primaryKey()
+      .references(() => postLocalizations.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    excerpt: text('excerpt'),
+    contentJson: text('content_json', { mode: 'json' }).notNull(),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    canonicalUrl: text('canonical_url'),
+    ogTitle: text('og_title'),
+    ogDescription: text('og_description'),
+    ogImageMediaId: text('og_image_media_id').references(() => mediaAssets.id, {
+      onDelete: 'set null',
+    }),
+    ogImageAlt: text('og_image_alt'),
+    draftToken: text('draft_token').notNull(),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index('post_drafts_og_image_media_id_idx').on(table.ogImageMediaId)]
+);
+
 export const postRevisionMedia = sqliteTable(
   'post_revision_media',
   {
