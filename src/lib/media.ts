@@ -1,3 +1,5 @@
+import { readWebpDimensions } from '@/lib/webp';
+
 /**
  * Serving rules for stored media (ADR-0028, ADR-0033).
  *
@@ -83,33 +85,34 @@ export function imageNode(mediaAssetId: string, blockId: string, alt: string) {
   return { type: 'image' as const, attrs: { blockId, mediaAssetId, alt } };
 }
 
+type TransferLike = { files: ArrayLike<File>; getData(format: string): string };
+
+/**
+ * The image files a paste or drop on the editor canvas should upload, or null
+ * to leave the event to the editor (ADR-0024).
+ *
+ * A transfer that also carries plain text is left alone: Office puts a picture
+ * of the copied text beside it, and the text is what the author meant. A
+ * browser's "copy image" carries markup but no text, so it still uploads.
+ */
+export function imageFilesToUpload(transfer: TransferLike | null | undefined): File[] | null {
+  if (!transfer) return null;
+  const images = Array.from(transfer.files).filter((file) => file.type.startsWith('image/'));
+  if (!images.length || transfer.getData('text/plain')) return null;
+  return images;
+}
+
 const ascii = (bytes: Uint8Array, start: number, length: number) =>
   String.fromCharCode(...bytes.subarray(start, start + length));
-const u24 = (bytes: Uint8Array, offset: number) =>
-  bytes[offset]! | (bytes[offset + 1]! << 8) | (bytes[offset + 2]! << 16);
-const dimensions = (width: number, height: number) => {
-  if (!width || !height || width > MEDIA_MAX_WIDTH || width * height > MEDIA_MAX_PIXELS)
-    throw Error('invalid-webp');
-  return { width, height };
-};
-const imageDimensions = (bytes: Uint8Array, kind: string, start: number, size: number) => {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  if (kind === 'VP8L' && size >= 5 && bytes[start] === 0x2f) {
-    const bits = view.getUint32(start + 1, true);
-    return dimensions((bits & 0x3fff) + 1, ((bits >>> 14) & 0x3fff) + 1);
-  }
+const dimensions = (size: { width: number; height: number } | null) => {
   if (
-    kind === 'VP8 ' &&
-    size >= 10 &&
-    bytes[start + 3] === 0x9d &&
-    bytes[start + 4] === 1 &&
-    bytes[start + 5] === 0x2a
+    !size?.width ||
+    !size.height ||
+    size.width > MEDIA_MAX_WIDTH ||
+    size.width * size.height > MEDIA_MAX_PIXELS
   )
-    return dimensions(
-      view.getUint16(start + 6, true) & 0x3fff,
-      view.getUint16(start + 8, true) & 0x3fff
-    );
-  return null;
+    throw Error('invalid-webp');
+  return size;
 };
 
 function walkChunks(
@@ -166,11 +169,10 @@ export function parseWebp(bytes: Uint8Array): { width: number; height: number } 
       )
         throw Error('invalid-webp');
       flags = bytes[start]!;
-      parsed.canvas = dimensions(u24(bytes, start + 4) + 1, u24(bytes, start + 7) + 1);
+      parsed.canvas = dimensions(readWebpDimensions(bytes, kind, start, size));
     } else if (kind === 'VP8 ' || kind === 'VP8L') {
       if (parsed.still || (seen.has('ALPH') && kind !== 'VP8 ')) throw Error('invalid-webp');
-      parsed.still = imageDimensions(bytes, kind, start, size);
-      if (!parsed.still) throw Error('invalid-webp');
+      parsed.still = dimensions(readWebpDimensions(bytes, kind, start, size));
       alphaPending = false;
     } else if (kind === 'ANIM' || kind === 'ANMF') throw Error('invalid-webp');
     else if (kind === 'ICCP') {

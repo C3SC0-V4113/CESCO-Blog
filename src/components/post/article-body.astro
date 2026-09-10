@@ -19,18 +19,19 @@ interface Props {
 
 const { doc } = Astro.props;
 
-// Images need the `media_assets` row behind `mediaAssetId` and a route that
-// serves R2 objects, neither of which exists yet (ADR-0028). Failing here is
+// Drafts can hold image nodes now (ADR-0036), but only publication turns a
+// draft into a revision (ADR-0032), and public rendering of images — the
+// placement rows and the markup — arrives with that publish flow. Until then no
+// revision this component receives should contain one. Failing here is
 // deliberate: rendering the document without them would drop content silently,
 // and a missing image in a published article is worth an error rather than a
-// gap nobody notices. Nothing can currently produce one — the seed script is
-// the only writer (ADR-0017) and it emits no image nodes.
+// gap nobody notices.
 const unsupported = doc.content.find((block) => block.type === 'image');
 
 if (unsupported) {
   throw new Error(
     `Cannot render an image node yet (blockId ${unsupported.attrs.blockId}). ` +
-      `Inline media rendering arrives with the media upload pipeline.`
+      `Public image rendering arrives with the publish flow.`
   );
 }
 ---

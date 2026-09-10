@@ -47,7 +47,8 @@ export const POST: APIRoute = async ({ request, url }) => {
     const status =
       message === 'media-too-large'
         ? 413
-        : error instanceof z.ZodError || ['invalid-webp', 'media-collision'].includes(message)
+        : error instanceof z.ZodError ||
+            ['invalid-webp', 'media-collision', 'missing-media'].includes(message)
           ? 400
           : 500;
     return response(status, status === 500 ? 'UPLOAD_FAILED' : 'INVALID_MEDIA');

@@ -38,7 +38,7 @@ importers:
         specifier: ^4.3.3
         version: 4.3.3(vite@8.2.0(@types/node@26.1.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))
       '@tiptap/core':
-        specifier: 3.30.0
+        specifier: ^3.30.0
         version: 3.30.0(@tiptap/pm@3.30.0)
       '@tiptap/extension-unique-id':
         specifier: ^3.30.0

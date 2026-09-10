@@ -4,6 +4,7 @@ import {
   MEDIA_SOURCE_LIMIT,
   MEDIA_UPLOAD_LIMIT,
 } from '@/lib/media';
+import { readWebpDimensions } from '@/lib/webp';
 
 type Decoded = { width: number; height: number; source: CanvasImageSource; close(): void };
 export type ImagePlatform = {
@@ -81,18 +82,15 @@ export function inspectImageHeader(bytes: Uint8Array, type: string, totalSize: n
       view.getUint32(4, true) + 8 !== totalSize
     )
       throw Error('invalid-image-source');
-    const kind = String.fromCharCode(...bytes.subarray(12, 16));
-    if (kind === 'VP8X')
-      return safeDimensions(
-        (bytes[24]! | (bytes[25]! << 8) | (bytes[26]! << 16)) + 1,
-        (bytes[27]! | (bytes[28]! << 8) | (bytes[29]! << 16)) + 1
-      );
-    if (kind === 'VP8 ' && bytes[23] === 0x9d && bytes[24] === 1 && bytes[25] === 0x2a)
-      return safeDimensions(view.getUint16(26, true) & 0x3fff, view.getUint16(28, true) & 0x3fff);
-    if (kind === 'VP8L' && bytes[20] === 0x2f) {
-      const bits = view.getUint32(21, true);
-      return safeDimensions((bits & 0x3fff) + 1, ((bits >>> 14) & 0x3fff) + 1);
-    }
+    // Only the first chunk is read, and its declared size is not trusted: the
+    // 30-byte floor above already covers every header this can hold.
+    const size = readWebpDimensions(
+      bytes,
+      String.fromCharCode(...bytes.subarray(12, 16)),
+      20,
+      bytes.length - 20
+    );
+    if (size) return safeDimensions(size.width, size.height);
   }
   throw Error('invalid-image-source');
 }
