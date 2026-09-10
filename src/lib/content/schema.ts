@@ -68,7 +68,7 @@ const imageNodeSchema = z.strictObject({
   attrs: z.strictObject({
     blockId: blockIdSchema,
     mediaAssetId: z.string().min(1),
-    alt: z.string().nullish(),
+    alt: z.string(),
   }),
 });
 

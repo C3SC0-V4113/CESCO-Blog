@@ -138,26 +138,55 @@ describe('editor drafts', () => {
     await expect(
       saveDraft(db, { ...input, postId: newPostId(), draftToken: null, nextToken: token() })
     ).rejects.toThrow('draft-not-found');
-    const image = {
-      type: 'doc',
-      content: [{ type: 'image', attrs: { blockId: 'b1', mediaAssetId: 'm1' } }],
-    };
-    const withImage = saveDraft(db, {
+    // Drafts hold image blocks: they name an asset and carry its alt text.
+    const third = token();
+    expect(
+      await saveDraft(db, {
+        ...input,
+        draftToken: second,
+        nextToken: third,
+        contentJson: {
+          type: 'doc',
+          content: [
+            {
+              type: 'image',
+              attrs: { blockId: crypto.randomUUID(), mediaAssetId: crypto.randomUUID(), alt: '' },
+            },
+          ],
+        },
+      })
+    ).toEqual({ draftToken: third });
+    const malformedImage = saveDraft(db, {
       ...input,
-      draftToken: second,
+      draftToken: third,
       nextToken: token(),
-      contentJson: image,
+      contentJson: {
+        type: 'doc',
+        content: [{ type: 'image', attrs: { blockId: 'b1', mediaAssetId: 'm1' } }],
+      },
     } as never);
-    await expect(withImage).rejects.toBeInstanceOf(ZodError);
-    await expect(withImage).rejects.toMatchObject({
+    await expect(malformedImage).rejects.toBeInstanceOf(ZodError);
+    await expect(malformedImage).rejects.toMatchObject({
+      issues: [{ path: ['contentJson', 'content', 0, 'attrs', 'alt'] }],
+    });
+    const heading = saveDraft(db, {
+      ...input,
+      draftToken: third,
+      nextToken: token(),
+      contentJson: {
+        type: 'doc',
+        content: [{ type: 'heading', attrs: { blockId: 'h1', level: 1 }, content: [] }],
+      },
+    });
+    await expect(heading).rejects.toMatchObject({
       issues: [{ code: 'custom', path: ['contentJson'] }],
     });
     await expect(
-      saveDraft(db, { ...input, draftToken: second, nextToken: 'not-a-uuid' })
+      saveDraft(db, { ...input, draftToken: third, nextToken: 'not-a-uuid' })
     ).rejects.toMatchObject({ issues: [{ path: ['nextToken'] }] });
     expect(await storedDraft(db, localizationId)).toEqual({
-      title: 'Updated',
-      draftToken: second,
+      title: 'Title',
+      draftToken: third,
     });
     expect(
       await db

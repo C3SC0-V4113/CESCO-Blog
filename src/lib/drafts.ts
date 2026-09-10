@@ -3,9 +3,7 @@ import { z } from 'zod';
 import { contentDocSchema, type ContentDoc } from '@/lib/content/schema';
 const draftContentSchema = contentDocSchema.refine((doc) =>
   doc.content.every(
-    (node) =>
-      node.type !== 'image' &&
-      (node.type !== 'heading' || node.attrs.level === 2 || node.attrs.level === 3)
+    (node) => node.type !== 'heading' || node.attrs.level === 2 || node.attrs.level === 3
   )
 );
 export const saveDraftSchema = z.strictObject({

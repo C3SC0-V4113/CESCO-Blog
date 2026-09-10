@@ -16,9 +16,11 @@ import { cn } from '@/lib/utils';
 
 import { AdminDashboard } from './admin-dashboard';
 import { AdminEditor } from './admin-editor';
+import { AdminMedia } from './admin-media';
 import { AdminPostForm } from './admin-post-form';
 import { AdminPostList } from './admin-post-list';
 
+import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { AdminPostSummary } from '@/db/queries/admin-posts';
 import type { UiKey } from '@/i18n/ui';
 import type { EditorDraft, EditorLocalizations } from '@/lib/drafts';
@@ -30,16 +32,19 @@ type Screen =
   | { name: 'dashboard' }
   | { name: 'posts'; posts: AdminPostSummary[]; page: number; total: number }
   | { name: 'new-post' }
+  | { name: 'media'; assets: AdminMediaAsset[]; page: number; total: number }
   | {
       name: 'editor';
       postId: string;
       localizationId: string;
       localizations: EditorLocalizations;
       draft: EditorDraft;
+      mediaAssets: AdminMediaAsset[];
+      referencedAssets: AdminMediaAsset[];
+      mediaTotal: number;
     };
 
 const laterDestinations: Array<{ label: UiKey; icon: LucideIcon }> = [
-  { label: 'admin.navigation.media', icon: ImagesIcon },
   { label: 'admin.navigation.review', icon: SearchCheckIcon },
   { label: 'admin.navigation.collections', icon: BookOpenIcon },
   { label: 'admin.navigation.authors', icon: UsersIcon },
@@ -49,6 +54,7 @@ const screenCopy = {
   posts: ['admin.posts.title', 'admin.posts.subtitle'],
   'new-post': ['admin.posts.new', 'admin.posts.newSubtitle'],
   editor: ['admin.editor.title', 'admin.editor.subtitle'],
+  media: ['admin.media.title', 'admin.media.subtitle'],
 } as const;
 
 export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }) {
@@ -57,7 +63,8 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
     ? t('admin.navigation.close')
     : t('admin.navigation.open');
   const NavigationIcon = isNavigationOpen ? XIcon : MenuIcon;
-  const isPosts = screen.name !== 'dashboard';
+  const isPosts = ['posts', 'new-post', 'editor'].includes(screen.name);
+  const isMedia = screen.name === 'media';
   const [title, subtitle] = screenCopy[screen.name];
 
   return (
@@ -103,6 +110,18 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
               {t('admin.navigation.dashboard')}
             </a>
             <a
+              href="/admin/media"
+              aria-current={isMedia ? 'page' : undefined}
+              className={cn(
+                buttonVariants({ variant: 'ghost' }),
+                'justify-start',
+                isMedia && 'bg-sidebar-accent text-sidebar-accent-foreground'
+              )}
+            >
+              <ImagesIcon data-icon="inline-start" />
+              {t('admin.navigation.media')}
+            </a>
+            <a
               href="/admin/posts"
               aria-current={isPosts ? 'page' : undefined}
               className={cn(
@@ -141,6 +160,9 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
           )}
           {screen.name === 'new-post' && <AdminPostForm />}
           {screen.name === 'editor' && <AdminEditor {...screen} />}
+          {screen.name === 'media' && (
+            <AdminMedia assets={screen.assets} page={screen.page} total={screen.total} />
+          )}
         </main>
       </div>
     </div>
