@@ -1,4 +1,4 @@
-﻿import { ActionError, defineAction } from 'astro:actions';
+import { ActionError, defineAction } from 'astro:actions';
 
 import { saveDraft } from '@/actions/drafts';
 import { mediaMetadataSchema, updateMediaAsset } from '@/actions/media';

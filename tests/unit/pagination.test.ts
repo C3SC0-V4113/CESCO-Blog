@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { pageCount, paginationItems, POSTS_PER_PAGE, readPageWindow } from '@/lib/pagination';
+import {
+  lastPageWhenBeyond,
+  pageCount,
+  paginationItems,
+  POSTS_PER_PAGE,
+  readPageWindow,
+} from '@/lib/pagination';
 
 /**
  * The `page` parameter arrives from the URL, so every branch here is reachable
@@ -34,6 +40,21 @@ describe('pageCount', () => {
   it('reports one page when there is nothing to show', () => {
     // An empty listing still renders "1 / 1" rather than "1 / 0".
     expect(pageCount(0)).toBe(1);
+  });
+});
+
+describe('lastPageWhenBeyond', () => {
+  it('sends a page past the end to the last page', () => {
+    expect(lastPageWhenBeyond(99, POSTS_PER_PAGE * 2 + 1)).toBe(3);
+  });
+
+  it('sends a page past the end of an empty listing to page one', () => {
+    expect(lastPageWhenBeyond(2, 0)).toBe(1);
+  });
+
+  it('leaves pages that exist where they are', () => {
+    expect(lastPageWhenBeyond(3, POSTS_PER_PAGE * 2 + 1)).toBeNull();
+    expect(lastPageWhenBeyond(1, 0)).toBeNull();
   });
 });
 

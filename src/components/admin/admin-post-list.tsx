@@ -1,4 +1,4 @@
-﻿import { PlusIcon } from 'lucide-react';
+import { PlusIcon } from 'lucide-react';
 
 import { buttonVariants } from '@/components/ui/button';
 import { formatDate, getTranslations } from '@/i18n/utils';
