@@ -42,6 +42,8 @@ This directory records durable architecture decisions for Cesco Blog.
 | [0031](0031-layer-the-data-path-by-effect-and-testability.md) | Layer the data path by effect and testability | Accepted | 2026-08-05 |
 | [0032](0032-separate-drafts-from-revisions.md) | Separate drafts from revisions | Accepted | 2026-08-07 |
 | [0033](0033-serve-media-from-r2-through-the-worker.md) | Serve media from R2 through the Worker | Accepted | 2026-08-07 |
+| [0034](0034-protect-admin-actions-with-cloudflare-access.md) | Protect admin actions with Cloudflare Access | Accepted (partial) | 2026-08-12 |
+| [0039](0039-verify-cloudflare-access-identity-in-the-worker.md) | Verify Cloudflare Access identity in the Worker | Accepted | 2026-09-10 |
 
 ## Status values
 

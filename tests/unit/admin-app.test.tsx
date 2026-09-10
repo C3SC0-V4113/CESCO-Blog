@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/lib/admin-actions', () => ({ callCreatePost: vi.fn() }));
 
 import { AdminApp } from '@/components/admin/admin-app';
 
@@ -21,8 +23,10 @@ describe('AdminApp', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByRole('navigation', { name: 'Administración' })).toBeTruthy();
 
-    expect(screen.queryAllByRole('link')).toHaveLength(0);
-    for (const label of ['Publicaciones', 'Multimedia', 'Revisión', 'Series', 'Autores']) {
+    expect(screen.getByRole('link', { name: 'Publicaciones' }).getAttribute('href')).toBe(
+      '/admin/posts'
+    );
+    for (const label of ['Multimedia', 'Revisión', 'Series', 'Autores']) {
       expect(screen.getByRole('button', { name: label })).toHaveProperty('disabled', true);
     }
   });
