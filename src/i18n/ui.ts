@@ -83,7 +83,7 @@ const es = {
   'admin.title': 'Panel editorial',
   'admin.documentTitle': 'Panel editorial | Checkpoint',
   'admin.brand': 'Checkpoint',
-  'admin.subtitle': 'Organiza el trabajo editorial desde un solo lugar.',
+  'admin.subtitle': 'El trabajo editorial, en un solo lugar.',
   'admin.navigation': 'Administración',
   'admin.navigation.open': 'Abrir navegación',
   'admin.navigation.close': 'Cerrar navegación',
@@ -99,7 +99,7 @@ const es = {
   'admin.dashboard.activity': 'Actividad reciente',
   'admin.dashboard.empty': 'No hay datos disponibles todavía.',
   'admin.dashboard.emptyDescription':
-    'Esta sección mostrará información cuando exista un contrato de datos editorial.',
+    'Aquí aparecerá el trabajo editorial en cuanto haya publicaciones.',
 
   'error.404.title': 'Esta página no existe',
   'error.404.body': 'Esta dirección no corresponde a ninguna publicación.',
@@ -186,7 +186,7 @@ const en = {
   'admin.title': 'Editorial dashboard',
   'admin.documentTitle': 'Editorial dashboard | Checkpoint',
   'admin.brand': 'Checkpoint',
-  'admin.subtitle': 'Organize editorial work from one place.',
+  'admin.subtitle': 'Editorial work, in one place.',
   'admin.navigation': 'Administration',
   'admin.navigation.open': 'Open navigation',
   'admin.navigation.close': 'Close navigation',
@@ -201,8 +201,7 @@ const en = {
   'admin.dashboard.locales': 'Unpublished locales',
   'admin.dashboard.activity': 'Recent activity',
   'admin.dashboard.empty': 'No data is available yet.',
-  'admin.dashboard.emptyDescription':
-    'This section will show information once an editorial data contract exists.',
+  'admin.dashboard.emptyDescription': 'Editorial work will appear here once there are posts.',
 
   'error.404.title': 'This page does not exist',
   'error.404.body': 'The address you are looking for does not match any post.',
