@@ -1,4 +1,4 @@
-﻿import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import { schema, type Db } from '@/db/client';
 export type AdminLocaleStatus = 'missing' | 'draft' | 'published' | 'archived';

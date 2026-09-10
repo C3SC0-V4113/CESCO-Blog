@@ -1,4 +1,4 @@
-﻿import { ActionError, defineAction } from 'astro:actions';
+import { ActionError, defineAction } from 'astro:actions';
 
 import { adminPostError, createAdminPost } from '@/actions/posts';
 import { createPostSchema } from '@/lib/admin-posts';
