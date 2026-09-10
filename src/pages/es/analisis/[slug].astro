@@ -32,10 +32,18 @@ const series =
 const redirectTo =
   resolution.kind === 'redirect' ? articlePath(locale, section, resolution.slug) : null;
 
-if (redirectTo) {
+if (redirectTo && resolution.kind === 'redirect') {
   // 301, not 302: the old address is retired permanently, and a temporary
-  // redirect would keep crawlers coming back to it (ADR-0010).
-  return Astro.redirect(redirectTo, 301);
+  // redirect would keep crawlers coming back to it (ADR-0010). A returned
+  // Response replaces `Astro.response`, so its own headers are the only ones sent.
+  return new Response(null, {
+    status: 301,
+    headers: {
+      Location: redirectTo,
+      'Cache-Tag': cacheTagHeader(postDetailTags(resolution.postId, locale, section)),
+      'Cache-Control': `public, max-age=${ERROR_RESPONSE_MAX_AGE}`,
+    },
+  });
 }
 
 // A retired URL answers 410 rather than 404. The content was public and
@@ -50,6 +58,11 @@ if (resolution.kind === 'render') {
 } else {
   // A long-lived cached 410 outlives the republication that should end it.
   Astro.response.headers.set('Cache-Control', `public, max-age=${ERROR_RESPONSE_MAX_AGE}`);
+  if (resolution.kind === 'gone')
+    Astro.response.headers.set(
+      'Cache-Tag',
+      cacheTagHeader(postDetailTags(resolution.postId, locale, section))
+    );
 }
 
 if (resolution.kind === 'gone') Astro.response.status = 410;

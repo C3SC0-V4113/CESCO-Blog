@@ -4,6 +4,7 @@ import path from 'node:path';
 import { Resvg } from '@resvg/resvg-js';
 import { drizzle } from 'drizzle-orm/sqlite-proxy';
 
+import { publishE2eFixtures } from './publish-e2e-fixtures.ts';
 import { sqlLiteral } from './sql.ts';
 import * as schema from '../src/db/schema.ts';
 import { deriveReadingTime, deriveToc } from '../src/lib/content/derive.ts';
@@ -101,6 +102,14 @@ const esContent = parseContentDoc({
         },
       ],
     },
+    {
+      type: 'image',
+      attrs: {
+        blockId: 'a1b2c3d4-e5f6-4071-8a1b-2c3d4e5f6a74',
+        mediaAssetId: '6d1f8a90-2b3c-4d5e-8f70-1a2b3c4d5e6f',
+        alt: 'Un pixel de ejemplo',
+      },
+    },
   ],
 });
 
@@ -158,7 +167,10 @@ const db = drizzle(async () => ({ rows: [] }));
 const statements: string[] = [];
 
 /** Compiles an insert through Drizzle, then inlines its bound parameters. */
-function push(query: { toSQL: () => { sql: string; params: unknown[] } }): void {
+function push(
+  query: { toSQL: () => { sql: string; params: unknown[] } },
+  conflict: 'replace' | 'ignore' = 'replace'
+): void {
   const { sql, params } = query.toSQL();
   let consumed = 0;
 
@@ -175,8 +187,7 @@ function push(query: { toSQL: () => { sql: string; params: unknown[] } }): void 
     throw new Error(`Unused parameters in: ${sql}`);
   }
 
-  // Drizzle emits `insert into`; the seed needs the row replaced on re-runs.
-  statements.push(`${inlined.replace(/^insert into/i, 'insert or replace into')};`);
+  statements.push(`${inlined.replace(/^insert into/i, `insert or ${conflict} into`)};`);
 }
 
 /**
@@ -219,7 +230,8 @@ function pushCover(postId: string, slug: string, section: 'analysis' | 'opinion'
       width: COVER_WIDTH,
       height: COVER_HEIGHT,
       sizeBytes: png.byteLength,
-    })
+    }),
+    'ignore'
   );
 
   return mediaId;
@@ -814,6 +826,28 @@ push(
     width: 1,
     height: 1,
     sizeBytes: onePixelPng.byteLength,
+  }),
+  'ignore'
+);
+
+// No attribution URLs: this is public demo content. The unsafe legacy snapshot
+// that proves the renderer refuses non-web schemes lives in
+// tests/fixtures/unsafe-legacy-snapshot.sql, which only `e2e:serve` applies.
+push(
+  db.insert(schema.postRevisionMedia).values({
+    revisionId: ES.revisionId,
+    mediaAssetId: MEDIA_ID,
+    blockId: 'a1b2c3d4-e5f6-4071-8a1b-2c3d4e5f6a74',
+    position: esContent.content.length - 1,
+    altText: 'Un pixel de ejemplo',
+    assetR2Key: MEDIA_KEY,
+    assetWidth: 1,
+    assetHeight: 1,
+    assetCaption: 'Imagen de ejemplo',
+    assetCreatorName: 'Checkpoint',
+    assetSourceUrl: null,
+    assetLicenseLabel: 'Licencia de ejemplo',
+    assetLicenseUrl: null,
   })
 );
 
@@ -831,6 +865,102 @@ writeFileSync(mediaPath, onePixelPng);
 // starting clean, answered 404. Anything the seed writes to disk belongs on the
 // same list, so there is one place to forget rather than two.
 uploads.push({ key: MEDIA_KEY, file: mediaPath });
+
+// One isolated publishable draft per browser project and retry. Slug history
+// is irreversible, so a retry must never mutate the previous attempt's row.
+for (const fixture of publishE2eFixtures()) {
+  const { slug } = fixture;
+  const coverId = pushCover(fixture.postId, slug, 'analysis');
+  push(
+    db.insert(schema.posts).values({
+      id: fixture.postId,
+      section: 'analysis',
+      coverMediaId: coverId,
+      createdAt: '2026-08-14 12:00:00',
+      updatedAt: '2026-08-14 12:00:00',
+    })
+  );
+  push(
+    db.insert(schema.postLocalizations).values({
+      id: fixture.localizationId,
+      postId: fixture.postId,
+      locale: 'es',
+      slug,
+    })
+  );
+  push(
+    db.insert(schema.postDrafts).values({
+      postLocalizationId: fixture.localizationId,
+      title: `Flujo de publicación ${fixture.project}, intento ${fixture.retry}`,
+      excerpt: 'Borrador aislado para verificar el flujo completo.',
+      contentJson: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            attrs: { blockId: `paragraph-${fixture.project}-${fixture.retry}` },
+            content: [
+              {
+                type: 'text',
+                text: `Cuerpo revisado ${fixture.project}, intento ${fixture.retry}`,
+              },
+            ],
+          },
+          {
+            type: 'codeBlock',
+            attrs: {
+              blockId: `code-${fixture.project}-${fixture.retry}`,
+              language: 'javascript',
+            },
+            content: [{ type: 'text', text: 'const reviewed = true;' }],
+          },
+          {
+            type: 'image',
+            attrs: {
+              blockId: `image-${fixture.project}-${fixture.retry}`,
+              mediaAssetId: coverId,
+              alt: 'Portada revisada',
+            },
+          },
+        ],
+      },
+      draftToken: `publish-token-${fixture.project}-${fixture.retry}`,
+    })
+  );
+}
+
+// Deterministic old drafts keep the built-Worker review queue pagination real
+// without displacing the recent fixtures used by other admin flows.
+for (let position = 1; position <= 51; position += 1) {
+  const suffix = position.toString().padStart(12, '0');
+  const postId = `f1000000-0000-4000-8000-${suffix}`;
+  const localizationId = `f2000000-0000-4000-8000-${suffix}`;
+  push(
+    db.insert(schema.posts).values({
+      id: postId,
+      section: 'analysis',
+      createdAt: '2020-01-01 00:00:00',
+      updatedAt: '2020-01-01 00:00:00',
+    })
+  );
+  push(
+    db.insert(schema.postLocalizations).values({
+      id: localizationId,
+      postId,
+      locale: 'es',
+      slug: `cola-revision-${position}`,
+    })
+  );
+  push(
+    db.insert(schema.postDrafts).values({
+      postLocalizationId: localizationId,
+      title: `Cola de revisión ${position}`,
+      contentJson: { type: 'doc', content: [] },
+      draftToken: `review-queue-${position}`,
+      updatedAt: '2020-01-01 00:00:00',
+    })
+  );
+}
 
 const outputPath = path.join(process.cwd(), '.wrangler', 'seed.sql');
 

@@ -422,8 +422,11 @@ Media normalization, bounded upload, and R2/D1 compensation follow
 | `SlugField`            | Editing a **published** slug triggers the history flow, not a plain update                             |
 
 Core autosave mutates one `post_drafts` row with token compare-and-swap; it never
-creates revisions or media placements. Media walking, reading time, and TOC are
-publish-time work delivered by later plan items.
+creates revisions or media placements. Publishing validates the exact reviewed
+draft token, creates the immutable revision and media placements atomically, and
+derives reading time, TOC, and structured Shiki tokens once. Placements snapshot
+the R2 address, dimensions, and visible attribution so mutable asset metadata
+cannot rewrite published output (ADR-0037).
 
 ### `/admin/posts/[id]/seo`
 
@@ -452,6 +455,36 @@ The publish surface, and the one with the most rules behind a single button:
   [ADR-0011](docs/adr/0011-invalidate-cloudflare-cache-by-cache-tag.md) —
   including the **other locale's** page, whose `hreflang` just changed
 - Refuses to publish a post with no cover image
+- Commits D1 before cache invalidation and reports a truthful cache-warning
+  outcome; the change's tags are recorded with the commit and stay pending until
+  a later purge or the review queue's retry drains them (ADR-0037)
+- Appends retired slug history without rewriting it; redirect reads join the
+  localization's current slug, so A→B→C resolves in one hop (ADR-0038)
+- Loads at most eight distinct supported Shiki grammars per publication;
+  unknown language names render as plain text and a ninth grammar is rejected
+  before highlighting
+
+Production deploys never edit or commit binding identifiers. Operators and CI
+provide `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`,
+`CLOUDFLARE_KV_NAMESPACE_ID`, `CLOUDFLARE_R2_BUCKET_NAME`,
+`CLOUDFLARE_ZONE_ID`, and the Cloudflare Access `ACCESS_TEAM_DOMAIN` (a bare
+`*.cloudflareaccess.com` hostname) and `ACCESS_AUD` (ADR-0039); the deployment
+script rejects missing, malformed, and all-zero values before adapting Astro's
+generated Worker config into the ignored `dist/server/wrangler.production.json`,
+which sets `ACCESS_MODE` to `cloudflare`.
+Provision the purge credential as a remote Worker secret, never a Wrangler var:
+
+```sh
+pnpm run config:production
+pnpm exec wrangler secret put CLOUDFLARE_CACHE_PURGE_TOKEN --config dist/server/wrangler.production.json
+pnpm run deploy:production
+```
+
+`deploy:production` rebuilds the site, regenerates and validates the config,
+checks the remote secret list by name without reading its value, applies D1
+migrations through that config, and only then deploys. Wrangler authentication
+is supplied through the operator or CI environment. Missing identifiers or
+purge secret fail closed before remote mutation.
 
 ---
 
@@ -599,19 +632,10 @@ access, and the D1 test harness are in place.
   should be amended.
 - **Dark mode has no toggle yet.** The `.dark` variant and its full token set
   exist in `global.css`; nothing activates them.
-- **Reading-time and TOC generation is unwritten.** The columns exist
-  ([schema](docs/database/schema.md)); the shared module that fills them is part
-  of the seed script work in
-  [ADR-0017](docs/adr/0017-bootstrap-content-with-seed-script.md).
 - **Editor autosave is conflict-safe.** One mutable draft per localization uses
   serialized, debounced compare-and-swap saves; see ADR-0032 and ADR-0035.
 - **No bundle guard.** Nothing detects an admin import leaking into a public
   route. That boundary is currently a convention, and a size check on the public
   bundles would make it enforceable.
-- **The slug-change flow has no interface.** The rules exist
-  ([ADR-0010](docs/adr/0010-define-public-url-lifecycle-for-localized-posts.md))
-  but no surface presents them: renaming a published slug must write history,
-  rewrite prior rows, and warn that the old URL becomes a redirect.
-- **Shiki theming is a one-way door.** Highlighted output is stored inside
-  `content_json`, so changing the theme later means reprocessing published
-  revisions.
+- **Shiki theming is a one-way door.** Trust-safe structured tokens are stored
+  inside published `content_json`, so changing the theme requires republishing.

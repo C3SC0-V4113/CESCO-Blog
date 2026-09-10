@@ -1,39 +1,19 @@
 ---
-import type { ContentDoc } from '@/lib/content/schema';
+import { getTranslations } from '@/i18n/utils';
+import { mediaPath, safeExternalUrl } from '@/lib/media';
 
-/**
- * Renders a validated `content_json` document as markup (ADR-0019).
- *
- * No island. The article body is the least interactive surface on the site, so
- * it ships as server-rendered HTML and costs the reader no JavaScript at all.
- *
- * Every block carries its `blockId` as the element `id`. Those are the same
- * identifiers the table of contents anchors to and that `post_revision_media`
- * keys placements by, so a deep link survives a heading being reworded
- * (ADR-0012).
- */
+import type { PublishedMedia } from '@/db/queries/posts';
+import type { Locale } from '@/i18n/locales';
+import type { PublishedContentDoc } from '@/lib/content/schema';
 
 interface Props {
-  doc: ContentDoc;
+  doc: PublishedContentDoc;
+  locale: Locale;
+  media: PublishedMedia[];
 }
 
-const { doc } = Astro.props;
-
-// Drafts can hold image nodes now (ADR-0036), but only publication turns a
-// draft into a revision (ADR-0032), and public rendering of images — the
-// placement rows and the markup — arrives with that publish flow. Until then no
-// revision this component receives should contain one. Failing here is
-// deliberate: rendering the document without them would drop content silently,
-// and a missing image in a published article is worth an error rather than a
-// gap nobody notices.
-const unsupported = doc.content.find((block) => block.type === 'image');
-
-if (unsupported) {
-  throw new Error(
-    `Cannot render an image node yet (blockId ${unsupported.attrs.blockId}). ` +
-      `Public image rendering arrives with the publish flow.`
-  );
-}
+const { doc, locale, media } = Astro.props;
+const t = getTranslations(locale);
 ---
 
 {
@@ -47,14 +27,64 @@ if (unsupported) {
       return (
         <pre id={block.attrs.blockId}>
           <code class={block.attrs.language ? `language-${block.attrs.language}` : undefined}>
-            {block.content.map((node) => node.text)}
+            {block.attrs.highlighted
+              ? block.attrs.highlighted.map((line, lineIndex) => (
+                  <Fragment>
+                    {line.map((token) => (
+                      <span style={token.color ? `color:${token.color}` : undefined}>
+                        {token.content}
+                      </span>
+                    ))}
+                    {lineIndex < block.attrs.highlighted!.length - 1 ? '\n' : ''}
+                  </Fragment>
+                ))
+              : block.content.map((node) => node.text)}
           </code>
         </pre>
       );
     }
 
-    if (block.type === 'paragraph') {
+    if (block.type === 'paragraph')
       return <p id={block.attrs.blockId}>{block.content.map((node) => node.text)}</p>;
+
+    if (block.type === 'image') {
+      const asset = media.find((item) => item.blockId === block.attrs.blockId);
+      if (!asset) throw Error(`Published media placement missing: ${block.attrs.blockId}`);
+      const sourceUrl = safeExternalUrl(asset.sourceUrl);
+      const licenseUrl = safeExternalUrl(asset.licenseUrl);
+      return (
+        <figure id={block.attrs.blockId}>
+          <img
+            src={mediaPath(asset.r2Key)}
+            width={asset.width ?? undefined}
+            height={asset.height ?? undefined}
+            alt={asset.altText ?? ''}
+          />
+          {(asset.caption || asset.credit || sourceUrl || asset.licenseLabel) && (
+            <figcaption>
+              {asset.caption && <span>{asset.caption}</span>}
+              {asset.credit && (
+                <span>
+                  {' '}
+                  {t('post.media.by')} {asset.credit}
+                </span>
+              )}
+              {sourceUrl && (
+                <span>
+                  {' '}
+                  <a href={sourceUrl}>{t('post.media.source')}</a>
+                </span>
+              )}
+              {asset.licenseLabel && (
+                <span>
+                  {' '}
+                  {licenseUrl ? <a href={licenseUrl}>{asset.licenseLabel}</a> : asset.licenseLabel}
+                </span>
+              )}
+            </figcaption>
+          )}
+        </figure>
+      );
     }
 
     return null;

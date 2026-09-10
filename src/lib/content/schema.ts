@@ -57,6 +57,25 @@ const codeBlockNodeSchema = z.strictObject({
   content: inlineContentSchema,
 });
 
+const highlightedTokenSchema = z.strictObject({
+  content: z.string(),
+  color: z
+    .string()
+    .regex(/^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i)
+    .optional(),
+  fontStyle: z.number().int().optional(),
+});
+
+const publishedCodeBlockNodeSchema = z.strictObject({
+  type: z.literal('codeBlock'),
+  attrs: z.strictObject({
+    blockId: blockIdSchema,
+    language: z.string().nullish(),
+    highlighted: z.array(z.array(highlightedTokenSchema)).optional(),
+  }),
+  content: inlineContentSchema,
+});
+
 /**
  * A leaf node: it names an asset instead of holding text. `mediaAssetId` is
  * required because an image that names no asset cannot produce a
@@ -90,6 +109,21 @@ export const contentDocSchema = z.strictObject({
 export type ContentDoc = z.infer<typeof contentDocSchema>;
 export type ContentBlock = z.infer<typeof contentBlockSchema>;
 
+const publishedContentBlockSchema = z.discriminatedUnion('type', [
+  paragraphNodeSchema,
+  headingNodeSchema,
+  publishedCodeBlockNodeSchema,
+  imageNodeSchema,
+]);
+
+export const publishedContentDocSchema = z.strictObject({
+  type: z.literal('doc'),
+  content: z.array(publishedContentBlockSchema).default([]),
+});
+
+export type PublishedContentDoc = z.infer<typeof publishedContentDocSchema>;
+export type PublishedContentBlock = z.infer<typeof publishedContentBlockSchema>;
+
 /**
  * The shape stored in `post_revisions.toc_json`.
  *
@@ -121,6 +155,10 @@ export type TocEntry = z.infer<typeof tocEntrySchema>;
  */
 export function parseContentDoc(value: unknown): ContentDoc {
   return contentDocSchema.parse(value);
+}
+
+export function parsePublishedContentDoc(value: unknown): PublishedContentDoc {
+  return publishedContentDocSchema.parse(value);
 }
 
 /**

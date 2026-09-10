@@ -245,14 +245,14 @@ no en el PR 6. Adelantarlo es lo que le da al guard toda la cadena de vigencia.
 
 ## Cadena B — Admin
 
-| #   | PR               | Entrega                                                                                      | ADRs                 | Dep. nueva        | Tamaño |
-| --- | ---------------- | -------------------------------------------------------------------------------------------- | -------------------- | ----------------- | ------ |
-| 13  | `admin-shell`    | Layout de admin, isla `client:load`, dashboard, límite de Access                             | 0003, 0023           | —                 | ~300   |
-| 14  | `admin-posts`    | Listado, creación, formularios de metadata con Zod + react-hook-form                         | 0023, 0012           | `react-hook-form` | ~400   |
-| 15  | `editor-core`    | Tiptap headless, toolbar, IDs estables y autosave CAS en `post_drafts`                       | 0024, 0032, 0035     | `@tiptap/*`       | ~400   |
-| 16  | `media-uploads`  | Normalización en cliente, endpoint R2, `media_assets`, sync de `post_revision_media`         | 0024, 0028, **0006** | —                 | ~400   |
-| 17  | `publish-flow`   | Publicar, despublicar, cambio de slug con historial, purga de caché                          | 0010, 0011           | —                 | ~350   |
-| 18  | `admin-taxonomy` | Colecciones, autores, destacados, SEO/OG con preview de card social. **Slug bloqueado (C7)** | 0012, 0015, **0010** | —                 | ~400   |
+| #   | PR               | Entrega                                                                                              | ADRs                   | Dep. nueva        | Tamaño |
+| --- | ---------------- | ---------------------------------------------------------------------------------------------------- | ---------------------- | ----------------- | ------ |
+| 13  | `admin-shell`    | Layout de admin, isla `client:load`, dashboard, límite de Access                                     | 0003, 0023             | —                 | ~300   |
+| 14  | `admin-posts`    | Listado, creación, formularios de metadata con Zod + react-hook-form                                 | 0023, 0012             | `react-hook-form` | ~400   |
+| 15  | `editor-core`    | Tiptap headless, toolbar, IDs estables y autosave CAS en `post_drafts`                               | 0024, 0032, 0035       | `@tiptap/*`       | ~400   |
+| 16  | `media-uploads`  | Normalización en cliente, endpoint R2, `media_assets`, sync de `post_revision_media`                 | 0024, 0028, **0006**   | —                 | ~400   |
+| 17  | `publish-flow`   | Publicar, despublicar, cambio de slug con historial, purga recuperable y snapshot de medios públicos | 0010, 0011, 0037, 0038 | `shiki`           | ~350   |
+| 18  | `admin-taxonomy` | Colecciones, autores, destacados, SEO/OG con preview de card social. **Slug bloqueado (C7)**         | 0012, 0015, **0010**   | —                 | ~400   |
 
 Los tamaños de la cadena B son estimaciones flojas. **Se replanifica al cerrar el
 PR 12**, cuando ya haya render real contra el que medir.

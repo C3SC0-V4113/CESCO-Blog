@@ -33,8 +33,15 @@ const series =
 const redirectTo =
   resolution.kind === 'redirect' ? articlePath(locale, section, resolution.slug) : null;
 
-if (redirectTo) {
-  return Astro.redirect(redirectTo, 301);
+if (redirectTo && resolution.kind === 'redirect') {
+  return new Response(null, {
+    status: 301,
+    headers: {
+      Location: redirectTo,
+      'Cache-Tag': cacheTagHeader(postDetailTags(resolution.postId, locale, section)),
+      'Cache-Control': `public, max-age=${ERROR_RESPONSE_MAX_AGE}`,
+    },
+  });
 }
 
 // Tagged by dependency rather than by URL (ADR-0011). Both localizations
@@ -47,6 +54,11 @@ if (resolution.kind === 'render') {
 } else {
   // A long-lived cached 410 outlives the republication that should end it.
   Astro.response.headers.set('Cache-Control', `public, max-age=${ERROR_RESPONSE_MAX_AGE}`);
+  if (resolution.kind === 'gone')
+    Astro.response.headers.set(
+      'Cache-Tag',
+      cacheTagHeader(postDetailTags(resolution.postId, locale, section))
+    );
 }
 
 if (resolution.kind === 'gone') Astro.response.status = 410;

@@ -2,7 +2,12 @@ import { and, eq, isNotNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 
 import { schema, type Db } from '@/db/client';
-import { parseContentDoc, parseToc, type ContentDoc, type TocEntry } from '@/lib/content/schema';
+import {
+  parsePublishedContentDoc,
+  parseToc,
+  type PublishedContentDoc,
+  type TocEntry,
+} from '@/lib/content/schema';
 import { resolveLocalizationUrl } from '@/lib/urls';
 
 import type { Post, PostAnalysisMetadata } from '@/db/schema';
@@ -40,7 +45,8 @@ export type PublishedPost = {
   postId: string;
   title: string;
   excerpt: string | null;
-  content: ContentDoc;
+  content: PublishedContentDoc;
+  media: PublishedMedia[];
   readingTimeMinutes: number | null;
   toc: TocEntry[];
   /**
@@ -71,10 +77,24 @@ export type PublishedPost = {
   game: PostGame | null;
 };
 
+export type PublishedMedia = {
+  blockId: string;
+  mediaAssetId: string;
+  r2Key: string;
+  width: number | null;
+  height: number | null;
+  altText: string | null;
+  caption: string | null;
+  credit: string | null;
+  sourceUrl: string | null;
+  licenseLabel: string | null;
+  licenseUrl: string | null;
+};
+
 export type ArticleUrlResolution =
   | { kind: 'render'; post: PublishedPost }
-  | { kind: 'redirect'; slug: string }
-  | { kind: 'gone' }
+  | { kind: 'redirect'; slug: string; postId: string }
+  | { kind: 'gone'; postId: string }
   | { kind: 'not-found' };
 
 type UrlCriteria = { locale: Locale; section: PostSection; slug: string };
@@ -88,10 +108,10 @@ type UrlCriteria = { locale: Locale; section: PostSection; slug: string };
  * distinction this ADR exists to preserve. The row comes back whatever its
  * state, and the policy decides.
  *
- * **Two queries, issued together.** The article read spans six tables in one
- * statement; the alternate set is a self-join that cannot collapse into the same
- * row, so it runs beside it rather than after it. A Worker invocation may issue
- * at most 50 (ADR-0016), and neither query needs the other.
+ * **Two initial queries, issued together.** The article read spans six tables in
+ * one statement; the alternate set is a self-join that cannot collapse into the
+ * same row, so it runs beside it rather than after it. A rendered revision then
+ * hydrates all inline-media snapshots in one bounded query, never one per node.
  *
  * The article read stays one statement because the page needs the author, the
  * derived fields and the analysis metadata together, and fetching them
@@ -109,6 +129,7 @@ export async function resolveArticleUrl(
     db
       .select({
         postId: schema.posts.id,
+        publishedRevisionId: schema.postLocalizations.publishedRevisionId,
         status: schema.postLocalizations.status,
         firstPublishedAt: schema.postLocalizations.firstPublishedAt,
         editorialState: schema.posts.editorialState,
@@ -175,10 +196,13 @@ export async function resolveArticleUrl(
           firstPublishedAt: live.firstPublishedAt,
         }
       : null,
-    retiredSlugTarget
+    retiredSlugTarget?.slug ?? null
   );
 
-  if (resolution.kind !== 'render') return resolution;
+  if (resolution.kind === 'redirect' && retiredSlugTarget)
+    return { ...resolution, postId: retiredSlugTarget.postId };
+  if (resolution.kind === 'gone' && live) return { kind: 'gone', postId: live.postId };
+  if (resolution.kind !== 'render') return { kind: 'not-found' };
 
   // Unreachable: `servable` already required a joined revision. Written as a
   // narrowing guard rather than an assertion so the compiler proves it.
@@ -193,7 +217,8 @@ export async function resolveArticleUrl(
       // Validated on the way out, not trusted, and only once the response is
       // known to be a render — a malformed revision must not turn a 410 into a
       // crash (ADR-0024).
-      content: parseContentDoc(live.contentJson),
+      content: parsePublishedContentDoc(live.contentJson),
+      media: live.publishedRevisionId ? await loadPublishedMedia(db, live.publishedRevisionId) : [],
       readingTimeMinutes: live.readingTimeMinutes,
       toc: parseToc(live.tocJson),
       publishedAt: live.firstPublishedAt,
@@ -229,16 +254,18 @@ export async function resolveArticleUrl(
  * Current slug of the localization a retired slug used to name.
  *
  * Returns the destination directly rather than the previous name, so a slug
- * renamed A→B→C sends A straight to C. ADR-0010 forbids redirect chains, and
- * the rename path keeps that true by rewriting history rows instead of
- * appending to them.
+ * renamed A→B→C sends A straight to C. The history is append-only; every row
+ * joins the localization and therefore resolves its current slug.
  *
  * Filtered by section: a slug retired under `analysis` must not redirect from
  * an `opinion` URL that never carried it.
  */
-async function findCurrentSlugFor(db: Db, criteria: UrlCriteria): Promise<string | null> {
+async function findCurrentSlugFor(
+  db: Db,
+  criteria: UrlCriteria
+): Promise<{ slug: string; postId: string } | null> {
   const [retired] = await db
-    .select({ slug: schema.postLocalizations.slug })
+    .select({ slug: schema.postLocalizations.slug, postId: schema.posts.id })
     .from(schema.postLocalizationSlugHistory)
     .innerJoin(
       schema.postLocalizations,
@@ -254,7 +281,39 @@ async function findCurrentSlugFor(db: Db, criteria: UrlCriteria): Promise<string
     )
     .limit(1);
 
-  return retired?.slug ?? null;
+  return retired ?? null;
+}
+
+async function loadPublishedMedia(db: Db, revisionId: string): Promise<PublishedMedia[]> {
+  return db
+    .select({
+      blockId: schema.postRevisionMedia.blockId,
+      mediaAssetId: schema.postRevisionMedia.mediaAssetId,
+      r2Key: schema.postRevisionMedia.assetR2Key,
+      width: schema.postRevisionMedia.assetWidth,
+      height: schema.postRevisionMedia.assetHeight,
+      altText: schema.postRevisionMedia.altText,
+      caption: schema.postRevisionMedia.caption,
+      credit: schema.postRevisionMedia.creditOverride,
+      assetCaption: schema.postRevisionMedia.assetCaption,
+      creatorName: schema.postRevisionMedia.assetCreatorName,
+      sourceUrl: schema.postRevisionMedia.assetSourceUrl,
+      licenseLabel: schema.postRevisionMedia.assetLicenseLabel,
+      licenseUrl: schema.postRevisionMedia.assetLicenseUrl,
+    })
+    .from(schema.postRevisionMedia)
+    .where(eq(schema.postRevisionMedia.revisionId, revisionId))
+    .then((rows) =>
+      rows.map(({ assetCaption, creatorName, ...row }) => {
+        if (!row.r2Key) throw Error('Published media snapshot missing');
+        return {
+          ...row,
+          r2Key: row.r2Key,
+          caption: row.caption ?? assetCaption,
+          credit: row.credit ?? creatorName,
+        };
+      })
+    );
 }
 
 /**

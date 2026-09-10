@@ -159,9 +159,8 @@ export const postLocalizations = sqliteTable(
 
 /**
  * Retired slugs, kept so old URLs can answer 301 instead of breaking. Entries are
- * never deleted: ADR-0010 reserves retired slugs permanently. On a second rename
- * every row pointing at the previous slug is rewritten to the current one, so a
- * retired slug always resolves in a single hop.
+ * never deleted: ADR-0010 reserves retired slugs permanently. Each row points
+ * to its localization, whose current slug makes every redirect a single hop.
  *
  * Reuse prevention is an application invariant, not a database constraint —
  * SQLite cannot express uniqueness spanning this table and `post_localizations`.
@@ -257,6 +256,24 @@ export const postDrafts = sqliteTable(
   (table) => [index('post_drafts_og_image_media_id_idx').on(table.ogImageMediaId)]
 );
 
+/**
+ * Cache purges a committed change still owes (ADR-0037). The row is written in
+ * the same batch as the change and deleted once its tags are purged, so a
+ * failed purge — or a Worker that dies before purging — leaves a record that
+ * outlives the browser tab instead of pages that are silently stale.
+ */
+export const pendingCachePurges = sqliteTable('pending_cache_purges', {
+  id: text('id').primaryKey(),
+  tags: text('tags', { mode: 'json' }).$type<string[]>().notNull(),
+  action: text('action', { enum: ['publish', 'republish', 'unpublish', 'rename'] }).notNull(),
+  /** Failed purge attempts, including the committing change's own. */
+  attempts: integer('attempts').notNull().default(0),
+  lastError: text('last_error'),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const postRevisionMedia = sqliteTable(
   'post_revision_media',
   {
@@ -265,12 +282,20 @@ export const postRevisionMedia = sqliteTable(
       .references(() => postRevisions.id, { onDelete: 'cascade' }),
     mediaAssetId: text('media_asset_id')
       .notNull()
-      .references(() => mediaAssets.id, { onDelete: 'cascade' }),
+      .references(() => mediaAssets.id, { onDelete: 'restrict' }),
     blockId: text('block_id').notNull(),
     position: integer('position').notNull(),
     altText: text('alt_text'),
     caption: text('caption'),
     creditOverride: text('credit_override'),
+    assetR2Key: text('asset_r2_key'),
+    assetWidth: integer('asset_width'),
+    assetHeight: integer('asset_height'),
+    assetCaption: text('asset_caption'),
+    assetCreatorName: text('asset_creator_name'),
+    assetSourceUrl: text('asset_source_url'),
+    assetLicenseLabel: text('asset_license_label'),
+    assetLicenseUrl: text('asset_license_url'),
   },
   (table) => [
     primaryKey({ columns: [table.revisionId, table.blockId, table.mediaAssetId] }),
