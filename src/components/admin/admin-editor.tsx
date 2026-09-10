@@ -1,4 +1,5 @@
-﻿import UniqueID from '@tiptap/extension-unique-id';
+import UniqueID from '@tiptap/extension-unique-id';
+import { NodeSelection, Selection } from '@tiptap/pm/state';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import {
@@ -14,11 +15,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
 import { callSaveDraft } from '@/lib/admin-actions';
-import { parseContentDoc } from '@/lib/content/schema';
-import { DraftAutosave } from '@/lib/draft-autosave';
-import { imageNode, mediaPath } from '@/lib/media';
+import { createDraftSave, DraftAutosave } from '@/lib/draft-autosave';
+import { parseDraftContent } from '@/lib/drafts';
+import { imageFilesToUpload, imageNode, mediaPath } from '@/lib/media';
 
-import { AdminMedia } from './admin-media';
+import { AdminMedia, type MediaUploader } from './admin-media';
 import { MediaImage } from './media-image-extension';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
@@ -34,7 +35,7 @@ type Props = {
   referencedAssets: AdminMediaAsset[];
   mediaTotal: number;
 };
-type SaveValue = Omit<SaveDraftInput, 'draftToken'>;
+type SaveValue = Omit<SaveDraftInput, 'draftToken' | 'nextToken'>;
 type Status = 'saved' | 'dirty' | 'saving' | 'failed' | 'conflict';
 const localeLabel = (locale: 'es' | 'en') => t(`admin.editor.locale.${locale}`);
 
@@ -49,35 +50,59 @@ export function AdminEditor({
 }: Props) {
   const [status, setStatus] = useState<Status>('saved');
   const statusRef = useRef<Status>('saved');
-  const token = useRef(draft.draftToken);
   const fields = useRef({ title: draft.title, excerpt: draft.excerpt ?? '' });
-  const [mediaUrls] = useState<Record<string, string>>(() =>
+  // Assets known when the editor opens never change, so they stay plain state.
+  // One picked or uploaded later must resolve in the same call that inserts it,
+  // before any re-render, so the event handler records it in a ref instead.
+  const [knownUrls] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       [...mediaAssets, ...referencedAssets].map((asset) => [asset.id, mediaPath(asset.r2Key)])
     )
   );
-  const autosave = useRef<DraftAutosave<SaveValue> | null>(null);
-  autosave.current ??= new DraftAutosave(
-    async (value) => {
-      const result = await callSaveDraft({ ...value, draftToken: token.current });
-      if (result.error) throw result;
-      token.current = result.data.draftToken;
-    },
-    1_000,
-    (next) => {
-      statusRef.current = next;
-      setStatus(next);
-    }
+  const pickedUrls = useRef<Record<string, string>>({});
+  const picker = useRef<HTMLDetailsElement>(null);
+  const uploader = useRef<MediaUploader>(null);
+  // Created once: it owns the save queue and the attempt tokens, and both must
+  // outlive every render.
+  const [autosave] = useState(
+    () =>
+      new DraftAutosave(
+        createDraftSave<SaveValue>(draft.draftToken, async (value, tokens) => {
+          const result = await callSaveDraft({ ...value, ...tokens });
+          if (result.error) throw result;
+        }),
+        1_000,
+        (next) => {
+          statusRef.current = next;
+          setStatus(next);
+        }
+      )
   );
 
+  // Runs inside Tiptap's onUpdate, where a throw would drop the edit while the
+  // status still claimed it was saved.
   function enqueue(content: unknown) {
-    autosave.current?.change({
+    const parsed = parseDraftContent(content);
+    if (!parsed.success) {
+      // Paths and codes only: the draft text stays out of the console.
+      console.error(`Draft content rejected: ${parsed.issues.join('; ')}`);
+      autosave.markInvalid();
+      return;
+    }
+    autosave.change({
       postId,
       localizationId,
       ...fields.current,
       excerpt: fields.current.excerpt || null,
-      contentJson: parseContentDoc(content),
+      contentJson: parsed.data,
     });
+  }
+  // Images pasted or dropped on the canvas go through the picker, so they meet
+  // the same alt-text rule and the same upload as one chosen there (ADR-0024).
+  // The picker opens so its alt field and any error are in view.
+  function uploadFromCanvas(files: File[]) {
+    if (picker.current) picker.current.open = true;
+    uploader.current?.upload(files);
   }
   const editor = useEditor({
     immediatelyRender: false,
@@ -87,6 +112,24 @@ export function AdminEditor({
         'aria-label': t('admin.editor.body'),
         'aria-multiline': 'true',
         role: 'textbox',
+      },
+      handlePaste: (_view, event) => {
+        const files = imageFilesToUpload(event.clipboardData);
+        if (!files) return false;
+        uploadFromCanvas(files);
+        return true;
+      },
+      handleDrop: (view, event) => {
+        const files = imageFilesToUpload(event.dataTransfer);
+        if (!files) return false;
+        // The picker inserts at the selection, so the drop point becomes it.
+        const target = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        if (target)
+          view.dispatch(
+            view.state.tr.setSelection(Selection.near(view.state.doc.resolve(target.pos)))
+          );
+        uploadFromCanvas(files);
+        return true;
       },
     },
     extensions: [
@@ -112,7 +155,7 @@ export function AdminEditor({
         types: ['paragraph', 'heading', 'codeBlock', 'image'],
         generateID: () => crypto.randomUUID(),
       }),
-      MediaImage.configure({ resolveUrl: (id) => mediaUrls[id] }),
+      MediaImage.configure({ resolveUrl: (id) => pickedUrls.current[id] ?? knownUrls[id] }),
     ],
     onUpdate: ({ editor: instance }) => enqueue(instance.getJSON()),
   });
@@ -173,8 +216,8 @@ export function AdminEditor({
                 href={href}
                 onClick={(event) => {
                   event.preventDefault();
-                  void autosave.current
-                    ?.flush()
+                  void autosave
+                    .flush()
                     .then((saved) => saved && window.location.assign(href))
                     .catch(() => undefined);
                 }}
@@ -229,18 +272,26 @@ export function AdminEditor({
         editor={editor}
         className="min-h-72 rounded-xl border bg-background p-4 [&_.ProseMirror]:min-h-64 [&_.ProseMirror]:outline-none"
       />
-      <details className="rounded-xl border bg-background p-4">
+      <details ref={picker} className="rounded-xl border bg-background p-4">
         <summary className="cursor-pointer font-medium">{t('admin.editor.insertImage')}</summary>
         <div className="mt-4">
           <AdminMedia
+            ref={uploader}
             assets={mediaAssets}
             total={mediaTotal}
             onSelect={(asset) => {
-              mediaUrls[asset.id] = mediaPath(asset.r2Key);
+              pickedUrls.current[asset.id] = mediaPath(asset.r2Key);
+              // An inserted image keeps the selection on itself, and inserting over
+              // a node selection replaces the node, so the next paste or drop would
+              // erase the image before it. A selected node gets the new one after it.
+              const { selection } = editor.state;
               editor
                 .chain()
                 .focus()
-                .insertContent(imageNode(asset.id, crypto.randomUUID(), asset.altText ?? ''))
+                .insertContentAt(
+                  selection instanceof NodeSelection ? selection.to : selection,
+                  imageNode(asset.id, crypto.randomUUID(), asset.altText ?? '')
+                )
                 .run();
             }}
           />
@@ -248,7 +299,7 @@ export function AdminEditor({
       </details>
       <div className="flex items-center gap-3">
         <p role="status">{t(`admin.editor.status.${status}`)}</p>
-        <Button type="button" variant="outline" onClick={() => void autosave.current?.flush()}>
+        <Button type="button" variant="outline" onClick={() => void autosave.flush()}>
           {t('admin.editor.save')}
         </Button>
         <a
@@ -256,8 +307,8 @@ export function AdminEditor({
           href={reviewHref}
           onClick={(event) => {
             event.preventDefault();
-            void autosave.current
-              ?.flush()
+            void autosave
+              .flush()
               .then((saved) => saved && window.location.assign(reviewHref))
               .catch(() => undefined);
           }}

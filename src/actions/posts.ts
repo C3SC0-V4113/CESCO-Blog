@@ -1,4 +1,4 @@
-﻿import { createPostSchema, type ValidCreatePostInput } from '@/lib/admin-posts';
+import { createPostSchema, type ValidCreatePostInput } from '@/lib/admin-posts';
 import { newPostId, newPostLocalizationId } from '@/lib/ids';
 
 import type { Db } from '@/db/client';
@@ -6,7 +6,7 @@ const insertPost = `INSERT INTO posts (id, section) SELECT ?, ? WHERE NOT EXISTS
 const insertLocalization = `INSERT INTO post_localizations (id, post_id, locale, slug, status) SELECT ?, ?, ?, ?, 'draft' WHERE changes() = 1 AND EXISTS (SELECT 1 FROM posts WHERE id = ?)`;
 export function adminPostError(error: unknown, logger: { error: (message: string) => void }) {
   if (error instanceof Error && error.message === 'slug-reserved')
-    return { code: 'CONFLICT' as const, message: 'Ese slug ya está reservado.' };
+    return { code: 'CONFLICT' as const };
   logger.error(
     `Admin post creation failed: ${error instanceof Error ? error.stack : String(error)}`
   );

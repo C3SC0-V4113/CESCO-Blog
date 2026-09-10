@@ -1,4 +1,4 @@
-﻿import { env } from 'cloudflare:test';
+import { env } from 'cloudflare:test';
 import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -74,6 +74,9 @@ describe('admin post aggregates', () => {
     ).toEqual([]);
     const logger = { error: vi.fn() };
     expect(adminPostError(Error('D1'), logger)).toEqual({ code: 'INTERNAL_SERVER_ERROR' });
+    // The island words the conflict from the code; a server message would be a
+    // second, untranslated copy of it.
+    expect(adminPostError(Error('slug-reserved'), logger)).toEqual({ code: 'CONFLICT' });
     expect(logger.error).toHaveBeenCalledOnce();
   });
 });

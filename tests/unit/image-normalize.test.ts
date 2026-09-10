@@ -36,13 +36,20 @@ describe('normalizeImage', () => {
       .fn()
       .mockResolvedValue(new Blob([new Uint8Array(100)], { type: 'image/webp' }));
     expect((await normalizeImage(png(4800, 2400), { decode, encode })).width).toBe(2400);
-    await expect(normalizeImage(file(10, 'image/svg+xml'), { decode, encode })).rejects.toThrow();
+    await expect(normalizeImage(file(10, 'image/svg+xml'), { decode, encode })).rejects.toThrow(
+      'invalid-image-source'
+    );
+    // Typed as WebP so the type check passes and only the output bound can reject it.
     await expect(
       normalizeImage(png(4800, 2400), {
         decode,
-        encode: vi.fn().mockResolvedValue(new Blob([new Uint8Array(5 * 1024 * 1024 + 1)])),
+        encode: vi
+          .fn()
+          .mockResolvedValue(
+            new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'image/webp' })
+          ),
       })
-    ).rejects.toThrow();
+    ).rejects.toThrow('invalid-image-output');
   });
 
   it('rejects oversized or malformed headers before decode', async () => {

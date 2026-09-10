@@ -355,6 +355,6 @@ del PR 18 (C7).
 | Habilitar Cloudflare Web Analytics                  | ADR-0018          |
 
 El PR `media-uploads` sigue ADR-0036: normaliza a WebP en el navegador, limita y
-valida estructuralmente la carga en el Worker, ofrece la galerÃ­a reutilizable y
-admite bloques de imagen. La sincronizaciÃ³n de `post_revision_media` permanece en
-el flujo de publicaciÃ³n posterior.
+valida estructuralmente la carga en el Worker, ofrece la galería reutilizable y
+admite bloques de imagen. La sincronización de `post_revision_media` permanece en
+el flujo de publicación posterior.

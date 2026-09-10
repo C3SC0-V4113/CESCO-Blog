@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  imageFilesToUpload,
   imageNode,
   isServableContentType,
   mediaAssetIdFromKey,
@@ -196,5 +197,36 @@ describe('media uploads', () => {
         5
       )
     ).rejects.toThrow('media-too-large');
+  });
+});
+
+describe('imageFilesToUpload', () => {
+  const png = new File(['png'], 'captura.png', { type: 'image/png' });
+  const transfer = (files: File[], data: Record<string, string> = {}) => ({
+    files,
+    getData: (format: string) => data[format] ?? '',
+  });
+
+  it('claims the image files of a screenshot or a file dropped from the desktop', () => {
+    expect(imageFilesToUpload(transfer([png]))).toEqual([png]);
+  });
+
+  it('claims an image copied from a browser, which arrives with markup but no text', () => {
+    expect(imageFilesToUpload(transfer([png], { 'text/html': '<img src="x">' }))).toEqual([png]);
+  });
+
+  it('keeps only the images when other files come along', () => {
+    const pdf = new File(['pdf'], 'nota.pdf', { type: 'application/pdf' });
+    expect(imageFilesToUpload(transfer([pdf, png]))).toEqual([png]);
+  });
+
+  it('leaves text, non-image files and empty transfers to the editor', () => {
+    // Office puts a picture of the copied text beside it; the text is what was meant.
+    expect(imageFilesToUpload(transfer([png], { 'text/plain': 'Hola' }))).toBeNull();
+    expect(imageFilesToUpload(transfer([], { 'text/plain': 'Hola' }))).toBeNull();
+    expect(
+      imageFilesToUpload(transfer([new File(['a'], 'nota.txt', { type: 'text/plain' })]))
+    ).toBeNull();
+    expect(imageFilesToUpload(null)).toBeNull();
   });
 });

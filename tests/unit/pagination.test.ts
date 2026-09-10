@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   clampPageWindow,
+  lastPageWhenBeyond,
   pageCount,
   paginationItems,
   POSTS_PER_PAGE,
@@ -62,6 +63,21 @@ describe('clampPageWindow', () => {
       lastPage: 2,
     });
     expect(clampPageWindow('9007199254740992', 51, 50).page).toBe(1);
+  });
+});
+
+describe('lastPageWhenBeyond', () => {
+  it('sends a page past the end to the last page', () => {
+    expect(lastPageWhenBeyond(99, POSTS_PER_PAGE * 2 + 1)).toBe(3);
+  });
+
+  it('sends a page past the end of an empty listing to page one', () => {
+    expect(lastPageWhenBeyond(2, 0)).toBe(1);
+  });
+
+  it('leaves pages that exist where they are', () => {
+    expect(lastPageWhenBeyond(3, POSTS_PER_PAGE * 2 + 1)).toBeNull();
+    expect(lastPageWhenBeyond(1, 0)).toBeNull();
   });
 });
 

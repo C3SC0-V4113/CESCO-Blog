@@ -1,5 +1,5 @@
 import { ImagePlusIcon, LoaderCircleIcon } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useImperativeHandle, useRef, useState, type Ref } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
@@ -18,14 +18,23 @@ const metadataFields = [
   'licenseLabel',
   'licenseUrl',
 ] as const;
+/** Lets the editor hand over files pasted or dropped outside the upload box. */
+export type MediaUploader = { upload(files: File[]): void };
 type Props = {
   assets: AdminMediaAsset[];
   page?: number;
   total?: number;
   onSelect?(asset: AdminMediaAsset): void;
+  ref?: Ref<MediaUploader>;
 };
 
-export function AdminMedia({ assets: initial, page = 1, total = initial.length, onSelect }: Props) {
+export function AdminMedia({
+  assets: initial,
+  page = 1,
+  total = initial.length,
+  onSelect,
+  ref,
+}: Props) {
   const [assets, setAssets] = useState(initial);
   const [currentPage, setCurrentPage] = useState(page);
   const [currentTotal, setCurrentTotal] = useState(total);
@@ -79,6 +88,10 @@ export function AdminMedia({ assets: initial, page = 1, total = initial.length, 
       if (fileInput.current) fileInput.current.value = '';
     }
   }
+
+  // Rebuilt on every render so a handed-over file meets the alt text and the
+  // decorative choice as they are now, exactly like one chosen here.
+  useImperativeHandle(ref, () => ({ upload: (files) => void upload(files) }));
 
   return (
     <div className="grid gap-6">

@@ -1,13 +1,16 @@
-﻿---
+---
 import { AdminApp } from '@/components/admin/admin-app';
 import { listAdminPosts } from '@/db/queries/admin-posts';
 import { getTranslations } from '@/i18n/utils';
 import AdminLayout from '@/layouts/admin.astro';
-import { readPageWindow } from '@/lib/pagination';
+import { lastPageWhenBeyond, readPageWindow } from '@/lib/pagination';
 import { getDb } from '@/lib/runtime';
 const t = getTranslations('es');
 const { page, limit, offset } = readPageWindow(Astro.url.searchParams.get('page'));
 const listing = await listAdminPosts(getDb(), { limit, offset });
+const lastPage = lastPageWhenBeyond(page, listing.total);
+if (lastPage !== null)
+  return Astro.redirect(lastPage === 1 ? '/admin/posts' : `/admin/posts?page=${lastPage}`);
 ---
 
 <AdminLayout title={`${t('admin.posts.title')} | ${t('admin.brand')}`}>

@@ -55,7 +55,13 @@ export async function persistMediaUpload(
       .returning();
     return asset!;
   } catch (error) {
-    await bucket.delete(r2Key);
+    // The D1 failure is the one the caller must see. A failed cleanup is logged
+    // by key so the orphaned object can be found, and never replaces it.
+    try {
+      await bucket.delete(r2Key);
+    } catch {
+      console.error(`Media upload left an orphaned R2 object: ${r2Key}`);
+    }
     throw error;
   }
 }

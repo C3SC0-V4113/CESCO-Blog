@@ -17,7 +17,18 @@ export async function listAdminMedia(db: Db, page: { limit: number; offset: numb
   return { assets, total: count?.total ?? 0 };
 }
 
-export function findAdminMedia(db: Db, ids: string[]) {
-  if (!ids.length) return Promise.resolve([]);
-  return db.select().from(schema.mediaAssets).where(inArray(schema.mediaAssets.id, ids));
+// D1 binds at most 100 parameters per statement, and a draft may reference more
+// assets than that; the margin leaves room for a filter added later.
+const LOOKUP_BATCH = 90;
+
+export async function findAdminMedia(db: Db, ids: string[]) {
+  const batches: string[][] = [];
+  for (let index = 0; index < ids.length; index += LOOKUP_BATCH)
+    batches.push(ids.slice(index, index + LOOKUP_BATCH));
+  const rows = await Promise.all(
+    batches.map((batch) =>
+      db.select().from(schema.mediaAssets).where(inArray(schema.mediaAssets.id, batch))
+    )
+  );
+  return rows.flat();
 }

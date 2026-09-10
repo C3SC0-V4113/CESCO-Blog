@@ -96,6 +96,37 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // ADR-0023: the admin is a separate client-rendered application. Public code
+    // that imports from it drags the editor, its dictionary and its dependencies
+    // into routes that promise near-zero JavaScript. Only the admin's own pages,
+    // layout and components may reach into src/components/admin/.
+    files: ['src/**/*.{astro,ts,tsx}'],
+    rules: {
+      'import/no-restricted-paths': [
+        'error',
+        {
+          zones: [
+            {
+              target: [
+                './src/*.ts',
+                './src/actions/**',
+                './src/components/!(admin)/**',
+                './src/db/**',
+                './src/i18n/**',
+                './src/layouts/!(admin).astro',
+                './src/lib/**',
+                './src/pages/*.{astro,ts}',
+                './src/pages/!(admin)/**',
+              ],
+              from: './src/components/admin',
+              message: 'Public code must not import the admin application (ADR-0023).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.{ts,tsx,mts,cts}'],
     languageOptions: {
       parserOptions: {

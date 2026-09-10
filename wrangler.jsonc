@@ -16,6 +16,13 @@
     // Cloudflare API. The adapter refuses this mode on non-loopback hosts.
     "CACHE_PURGE_MODE": "local",
     "CLOUDFLARE_ZONE_ID": "",
+    // Cloudflare Access identity, verified in the Worker (ADR-0039). Local mode
+    // skips verification and is refused on any non-loopback host, so a deploy
+    // that keeps it fails closed. Production values come from the deployment
+    // config: ACCESS_MODE=cloudflare, ACCESS_TEAM_DOMAIN and ACCESS_AUD.
+    "ACCESS_MODE": "local",
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
   },
   "d1_databases": [
     {

@@ -1,4 +1,4 @@
-﻿import { ActionError, defineAction } from 'astro:actions';
+import { ActionError, defineAction } from 'astro:actions';
 
 import { createCachePurger } from '@/actions/cache-purge';
 import { saveDraft } from '@/actions/drafts';
