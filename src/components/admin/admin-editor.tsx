@@ -1,4 +1,4 @@
-﻿import UniqueID from '@tiptap/extension-unique-id';
+import UniqueID from '@tiptap/extension-unique-id';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import {
@@ -14,8 +14,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
 import { callSaveDraft } from '@/lib/admin-actions';
-import { parseContentDoc } from '@/lib/content/schema';
-import { DraftAutosave } from '@/lib/draft-autosave';
+import { createDraftSave, DraftAutosave } from '@/lib/draft-autosave';
+import { parseDraftContent } from '@/lib/drafts';
 
 import type { EditorDraft, EditorLocalizations, SaveDraftInput } from '@/lib/drafts';
 
@@ -26,36 +26,47 @@ type Props = {
   localizations: EditorLocalizations;
   draft: EditorDraft;
 };
-type SaveValue = Omit<SaveDraftInput, 'draftToken'>;
+type SaveValue = Omit<SaveDraftInput, 'draftToken' | 'nextToken'>;
 type Status = 'saved' | 'dirty' | 'saving' | 'failed' | 'conflict';
 const localeLabel = (locale: 'es' | 'en') => t(`admin.editor.locale.${locale}`);
 
 export function AdminEditor({ postId, localizationId, localizations, draft }: Props) {
   const [status, setStatus] = useState<Status>('saved');
   const statusRef = useRef<Status>('saved');
-  const token = useRef(draft.draftToken);
   const fields = useRef({ title: draft.title, excerpt: draft.excerpt ?? '' });
-  const autosave = useRef<DraftAutosave<SaveValue> | null>(null);
-  autosave.current ??= new DraftAutosave(
-    async (value) => {
-      const result = await callSaveDraft({ ...value, draftToken: token.current });
-      if (result.error) throw result;
-      token.current = result.data.draftToken;
-    },
-    1_000,
-    (next) => {
-      statusRef.current = next;
-      setStatus(next);
-    }
+  // Created once: it owns the save queue and the attempt tokens, and both must
+  // outlive every render.
+  const [autosave] = useState(
+    () =>
+      new DraftAutosave(
+        createDraftSave<SaveValue>(draft.draftToken, async (value, tokens) => {
+          const result = await callSaveDraft({ ...value, ...tokens });
+          if (result.error) throw result;
+        }),
+        1_000,
+        (next) => {
+          statusRef.current = next;
+          setStatus(next);
+        }
+      )
   );
 
+  // Runs inside Tiptap's onUpdate, where a throw would drop the edit while the
+  // status still claimed it was saved.
   function enqueue(content: unknown) {
-    autosave.current?.change({
+    const parsed = parseDraftContent(content);
+    if (!parsed.success) {
+      // Paths and codes only: the draft text stays out of the console.
+      console.error(`Draft content rejected: ${parsed.issues.join('; ')}`);
+      autosave.markInvalid();
+      return;
+    }
+    autosave.change({
       postId,
       localizationId,
       ...fields.current,
       excerpt: fields.current.excerpt || null,
-      contentJson: parseContentDoc(content),
+      contentJson: parsed.data,
     });
   }
   const editor = useEditor({
@@ -150,8 +161,8 @@ export function AdminEditor({ postId, localizationId, localizations, draft }: Pr
                 href={href}
                 onClick={(event) => {
                   event.preventDefault();
-                  void autosave.current
-                    ?.flush()
+                  void autosave
+                    .flush()
                     .then((saved) => saved && window.location.assign(href))
                     .catch(() => undefined);
                 }}
@@ -208,7 +219,7 @@ export function AdminEditor({ postId, localizationId, localizations, draft }: Pr
       />
       <div className="flex items-center gap-3">
         <p role="status">{t(`admin.editor.status.${status}`)}</p>
-        <Button type="button" variant="outline" onClick={() => void autosave.current?.flush()}>
+        <Button type="button" variant="outline" onClick={() => void autosave.flush()}>
           {t('admin.editor.save')}
         </Button>
       </div>
