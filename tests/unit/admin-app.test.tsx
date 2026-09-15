@@ -1,6 +1,7 @@
 // Vitest globals are disabled, so Testing Library cannot register automatic cleanup.
 // eslint-disable-next-line testing-library/no-manual-cleanup
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/admin-actions', () => ({
@@ -17,7 +18,21 @@ import { callPublish, callRenameLocalization, callRetryPendingPurges } from '@/l
 afterEach(cleanup);
 
 describe('AdminApp', () => {
-  it('renders an honest dashboard and keeps future destinations non-interactive', () => {
+  it('keeps every control inert until React has hydrated the page', () => {
+    // The server markup is what an editor can type into before hydration, and
+    // React resets controlled inputs to it when it commits.
+    expect(renderToString(<AdminApp screen={{ name: 'new-post' }} />)).toContain(
+      '<fieldset disabled="" class="contents">'
+    );
+
+    render(<AdminApp screen={{ name: 'new-post' }} />);
+    expect(screen.getByRole('button', { name: 'Crear publicación' })).toHaveProperty(
+      'disabled',
+      false
+    );
+  });
+
+  it('renders an honest dashboard with live taxonomy destinations', () => {
     render(<AdminApp />);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Panel editorial');
     for (const heading of [/Borradores/, /Idiomas/, /Actividad/]) {
@@ -36,8 +51,12 @@ describe('AdminApp', () => {
       '/admin/media'
     );
     expect(screen.getByRole('link', { name: /Revisi/ }).getAttribute('href')).toBe('/admin/review');
-    for (const label of ['Series', 'Autores'])
-      expect(screen.getByRole('button', { name: label })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('link', { name: 'Series' }).getAttribute('href')).toBe(
+      '/admin/collections'
+    );
+    expect(screen.getByRole('link', { name: 'Autores' }).getAttribute('href')).toBe(
+      '/admin/authors'
+    );
   });
 
   it('shows server-owned review detail and publishes it with a stable operation id', async () => {

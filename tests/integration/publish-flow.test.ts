@@ -83,7 +83,11 @@ async function seedDraft(overrides: { cover?: boolean; title?: string } = {}) {
     excerpt: 'Resumen',
     contentJson: doc(value.inlineId),
     seoTitle: 'SEO preservado',
+    seoDescription: 'Descripción SEO preservada',
     ogTitle: 'OG preservado',
+    ogDescription: 'Descripción OG preservada',
+    ogImageMediaId: value.coverId,
+    ogImageAlt: 'Vista social preservada',
     draftToken: 'reviewed-token',
   });
   return { db, ...value };
@@ -117,7 +121,11 @@ describe('publish flow', () => {
     expect(revision).toMatchObject({
       version: 1,
       seoTitle: 'SEO preservado',
+      seoDescription: 'Descripción SEO preservada',
       ogTitle: 'OG preservado',
+      ogDescription: 'Descripción OG preservada',
+      ogImageMediaId: seeded.coverId,
+      ogImageAlt: 'Vista social preservada',
       readingTimeMinutes: 1,
       tocJson: [{ id: 'heading', level: 2, text: 'Encabezado' }],
     });

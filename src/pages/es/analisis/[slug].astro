@@ -8,6 +8,7 @@ import { resolveArticleUrl } from '@/db/queries/posts';
 import { resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
 import { ERROR_RESPONSE_MAX_AGE, cacheTagHeader, postDetailTags } from '@/lib/cache-tags';
+import { mediaPath } from '@/lib/media';
 import { articleAlternates } from '@/lib/routes';
 import { getDb } from '@/lib/runtime';
 import { absolute } from '@/lib/seo';
@@ -80,16 +81,24 @@ const alternates =
       <Fragment slot="head">
         <SeoHead
           locale={locale}
-          title={resolution.post.title}
-          description={resolution.post.excerpt}
+          title={resolution.post.seo.title}
+          description={resolution.post.seo.description}
           path={articlePath(locale, section, slug ?? '')}
           alternates={alternates}
           ogType="article"
+          ogTitle={resolution.post.seo.ogTitle}
+          ogDescription={resolution.post.seo.ogDescription}
+          image={
+            resolution.post.socialImage && {
+              ...resolution.post.socialImage,
+              src: mediaPath(resolution.post.socialImage.r2Key),
+            }
+          }
         />
         <ArticleJsonLd
           locale={locale}
           headline={resolution.post.title}
-          description={resolution.post.excerpt}
+          description={resolution.post.seo.description}
           canonical={absolute(
             Astro.site?.toString() ?? Astro.url.origin,
             articlePath(locale, section, slug ?? '')
@@ -97,6 +106,16 @@ const alternates =
           authorName={resolution.post.authorName}
           publishedAt={resolution.post.publishedAt}
           updatedAt={resolution.post.updatedAt}
+          image={
+            resolution.post.cover
+              ? absolute(
+                  Astro.site?.toString() ?? Astro.url.origin,
+                  mediaPath(resolution.post.cover.r2Key)
+                )
+              : null
+          }
+          authorWebsiteUrl={resolution.post.author?.websiteUrl}
+          authorSameAs={resolution.post.author?.sameAs}
         />
       </Fragment>
     )

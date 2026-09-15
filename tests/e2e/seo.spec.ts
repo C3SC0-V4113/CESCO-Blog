@@ -84,9 +84,28 @@ test('emits BlogPosting structured data with the revision date', async ({ page }
   expect(data.inLanguage).toBe('es');
   expect(data.author?.name).toBe('Cesco Valle');
   expect(data.datePublished).toBeTruthy();
-  // ADR-0015 keeps the social card out of structured data, and there is no
-  // editorial cover to use yet, so the field is absent rather than wrong.
-  expect(data.image).toBeUndefined();
+  // ADR-0015 keeps the social card out of structured data: JSON-LD and the
+  // visible hero use the clean cover while social metadata may select another
+  // asset.
+  expect(data.image).toMatch(`${SITE}/media/`);
+  const hero = page.locator('article header img').first();
+  await expect(hero).toHaveAttribute('src', new URL(data.image).pathname);
+
+  await expect(hero).toHaveAttribute('width', '1200');
+  await expect(hero).toHaveAttribute('height', '628');
+  await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute('content', '1200');
+  await expect(page.locator('meta[property="og:image:height"]')).toHaveAttribute('content', '628');
+  await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute(
+    'content',
+    data.headline
+  );
+  // Twitter reads dimensions from Open Graph and defines no tags of its own for them.
+  await expect(page.locator('meta[name="twitter:image:width"]')).toHaveCount(0);
+  await expect(page.locator('meta[name="twitter:image:height"]')).toHaveCount(0);
+  await expect(page.locator('meta[name="twitter:image:alt"]')).toHaveAttribute(
+    'content',
+    data.headline
+  );
 });
 
 test('gives the listings their own canonical', async ({ page }) => {

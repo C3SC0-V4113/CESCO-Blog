@@ -46,8 +46,14 @@ test('lists post aggregates and keeps implemented destinations live', async ({ p
     'href',
     '/admin/review'
   );
-  for (const label of ['Series', 'Autores'])
-    await expect(page.getByRole('button', { name: label })).toBeDisabled();
+  await expect(page.getByRole('link', { name: 'Series' })).toHaveAttribute(
+    'href',
+    '/admin/collections'
+  );
+  await expect(page.getByRole('link', { name: 'Autores' })).toHaveAttribute(
+    'href',
+    '/admin/authors'
+  );
 });
 
 test('sends a page past the end of the list to its last page', async ({ page }) => {

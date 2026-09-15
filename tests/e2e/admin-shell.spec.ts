@@ -51,9 +51,14 @@ test('renders and hydrates the private editorial shell', async ({ page }, testIn
     'href',
     '/admin/review'
   );
-  for (const label of ['Series', 'Autores']) {
-    await expect(page.getByRole('button', { name: label })).toBeDisabled();
-  }
+  await expect(page.getByRole('link', { name: 'Series' })).toHaveAttribute(
+    'href',
+    '/admin/collections'
+  );
+  await expect(page.getByRole('link', { name: 'Autores' })).toHaveAttribute(
+    'href',
+    '/admin/authors'
+  );
 
   await expect(page.locator('main a[href]')).toHaveCount(0);
 

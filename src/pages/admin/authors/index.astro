@@ -1,0 +1,19 @@
+---
+import { AdminApp } from '@/components/admin/admin-app';
+import { listAdminMedia } from '@/db/queries/admin-media';
+import { listAdminAuthors } from '@/db/queries/admin-taxonomy';
+import { getTranslations } from '@/i18n/utils';
+import AdminLayout from '@/layouts/admin.astro';
+import { getDb } from '@/lib/runtime';
+
+const t = getTranslations('es');
+const db = getDb();
+const [authors, media] = await Promise.all([
+  listAdminAuthors(db),
+  listAdminMedia(db, { limit: 200, offset: 0 }),
+]);
+---
+
+<AdminLayout title={`${t('admin.authors.title')} | ${t('admin.brand')}`}>
+  <AdminApp screen={{ name: 'authors', authors, media: media.assets }} client:load />
+</AdminLayout>

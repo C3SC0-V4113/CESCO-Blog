@@ -78,6 +78,55 @@ export function ogAlternateLocales(published: AlternateLocalization[], current: 
 }
 
 /** Joins the site origin to a path without doubling or dropping the separator. */
+export type SocialImage = {
+  src: string;
+  width: number | null;
+  height: number | null;
+  alt: string | null;
+};
+
+export type MetaTag = { attribute: 'property' | 'name'; key: string; content: string };
+
+/**
+ * The social-card tags for one image (ADR-0015), in render order.
+ *
+ * Dimensions go out on Open Graph only. Twitter falls back to Open Graph for
+ * them and defines no `twitter:image:width` or `twitter:image:height`, so
+ * emitting those would only look like a contract nobody reads.
+ */
+export function socialImageMeta(siteUrl: string, image: SocialImage | null): MetaTag[] {
+  if (!image) return [];
+  const src = absolute(siteUrl, image.src);
+  const tags: MetaTag[] = [{ attribute: 'property', key: 'og:image', content: src }];
+  if (image.width !== null)
+    tags.push({ attribute: 'property', key: 'og:image:width', content: String(image.width) });
+  if (image.height !== null)
+    tags.push({ attribute: 'property', key: 'og:image:height', content: String(image.height) });
+  if (image.alt) tags.push({ attribute: 'property', key: 'og:image:alt', content: image.alt });
+  tags.push({ attribute: 'name', key: 'twitter:image', content: src });
+  if (image.alt) tags.push({ attribute: 'name', key: 'twitter:image:alt', content: image.alt });
+  return tags;
+}
+
 export function absolute(siteUrl: string, path: string): string {
   return `${siteUrl.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+/** Applies the published metadata fallback chain without importing admin contracts. */
+export function effectiveSeo(input: {
+  title: string;
+  excerpt: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  ogTitle: string | null;
+  ogDescription: string | null;
+}) {
+  const title = input.seoTitle ?? input.title;
+  const description = input.seoDescription ?? input.excerpt;
+  return {
+    title,
+    description,
+    ogTitle: input.ogTitle ?? title,
+    ogDescription: input.ogDescription ?? description,
+  };
 }

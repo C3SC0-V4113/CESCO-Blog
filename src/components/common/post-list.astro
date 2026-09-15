@@ -39,6 +39,9 @@ const t = getTranslations(locale);
     }
   </header>
 
+  {/* Inside `main` and under the list's heading, which stays the page's only `h1`. */}
+  <slot name="lead" />
+
   {
     posts.length === 0 ? (
       <p class="text-muted-foreground">{t('listing.empty')}</p>

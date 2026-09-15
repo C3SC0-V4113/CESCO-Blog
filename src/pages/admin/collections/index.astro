@@ -1,0 +1,14 @@
+---
+import { AdminApp } from '@/components/admin/admin-app';
+import { listAdminCollections } from '@/db/queries/admin-taxonomy';
+import { getTranslations } from '@/i18n/utils';
+import AdminLayout from '@/layouts/admin.astro';
+import { getDb } from '@/lib/runtime';
+
+const t = getTranslations('es');
+const collections = await listAdminCollections(getDb());
+---
+
+<AdminLayout title={`${t('admin.collections.title')} | ${t('admin.brand')}`}>
+  <AdminApp screen={{ name: 'collections', collections }} client:load />
+</AdminLayout>

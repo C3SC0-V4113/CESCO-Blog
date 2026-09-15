@@ -8,6 +8,8 @@ import {
   type PublishedContentDoc,
   type TocEntry,
 } from '@/lib/content/schema';
+import { safeExternalUrl } from '@/lib/media';
+import { effectiveSeo } from '@/lib/seo';
 import { resolveLocalizationUrl } from '@/lib/urls';
 
 import type { Post, PostAnalysisMetadata } from '@/db/schema';
@@ -65,6 +67,10 @@ export type PublishedPost = {
   updatedAt: string | null;
   section: PostSection;
   authorName: string | null;
+  author: PublishedAuthor | null;
+  cover: PublishedImage | null;
+  socialImage: PublishedImage | null;
+  seo: ReturnType<typeof effectiveSeo>;
   /**
    * Published counterparts, this locale included. Drives `hreflang`, the Open
    * Graph locale pair and the locale switch — all of which must offer only
@@ -75,6 +81,21 @@ export type PublishedPost = {
   analysis: AnalysisMetadata | null;
   /** The game the piece covers, when it names one. */
   game: PostGame | null;
+};
+
+export type PublishedImage = {
+  id: string;
+  r2Key: string;
+  width: number | null;
+  height: number | null;
+  alt: string | null;
+};
+
+export type PublishedAuthor = {
+  name: string;
+  websiteUrl: string | null;
+  sameAs: string[];
+  avatar: PublishedImage | null;
 };
 
 export type PublishedMedia = {
@@ -125,6 +146,9 @@ export async function resolveArticleUrl(
   db: Db,
   criteria: UrlCriteria
 ): Promise<ArticleUrlResolution> {
+  const coverAsset = alias(schema.mediaAssets, 'cover_asset');
+  const ogAsset = alias(schema.mediaAssets, 'og_asset');
+  const authorAvatar = alias(schema.mediaAssets, 'author_avatar');
   const [[live], alternates] = await Promise.all([
     db
       .select({
@@ -136,11 +160,33 @@ export async function resolveArticleUrl(
         section: schema.posts.section,
         title: schema.postRevisions.title,
         excerpt: schema.postRevisions.excerpt,
+        seoTitle: schema.postRevisions.seoTitle,
+        seoDescription: schema.postRevisions.seoDescription,
+        ogTitle: schema.postRevisions.ogTitle,
+        ogDescription: schema.postRevisions.ogDescription,
+        ogImageAlt: schema.postRevisions.ogImageAlt,
         contentJson: schema.postRevisions.contentJson,
         readingTimeMinutes: schema.postRevisions.readingTimeMinutes,
         tocJson: schema.postRevisions.tocJson,
         updatedAt: schema.postRevisions.createdAt,
         authorName: schema.authors.name,
+        authorWebsiteUrl: schema.authors.websiteUrl,
+        authorSameAs: schema.authors.sameAs,
+        authorAvatarId: authorAvatar.id,
+        authorAvatarKey: authorAvatar.r2Key,
+        authorAvatarWidth: authorAvatar.width,
+        authorAvatarHeight: authorAvatar.height,
+        authorAvatarAlt: authorAvatar.altText,
+        coverId: coverAsset.id,
+        coverKey: coverAsset.r2Key,
+        coverWidth: coverAsset.width,
+        coverHeight: coverAsset.height,
+        coverAlt: coverAsset.altText,
+        ogImageId: ogAsset.id,
+        ogImageKey: ogAsset.r2Key,
+        ogImageWidth: ogAsset.width,
+        ogImageHeight: ogAsset.height,
+        ogImageAssetAlt: ogAsset.altText,
         playedPlatform: schema.platforms.name,
         playtimeHours: schema.postAnalysisMetadata.playtimeHours,
         completionState: schema.postAnalysisMetadata.completionState,
@@ -161,6 +207,9 @@ export async function resolveArticleUrl(
       // opinion piece has no analysis metadata, and an analysis need not name the
       // platform it was played on — none of which makes the URL unservable.
       .leftJoin(schema.authors, eq(schema.authors.id, schema.posts.authorId))
+      .leftJoin(authorAvatar, eq(authorAvatar.id, schema.authors.avatarMediaId))
+      .leftJoin(coverAsset, eq(coverAsset.id, schema.posts.coverMediaId))
+      .leftJoin(ogAsset, eq(ogAsset.id, schema.postRevisions.ogImageMediaId))
       .leftJoin(
         schema.postAnalysisMetadata,
         eq(schema.postAnalysisMetadata.postId, schema.posts.id)
@@ -208,6 +257,43 @@ export async function resolveArticleUrl(
   // narrowing guard rather than an assertion so the compiler proves it.
   if (!live || live.title === null) return { kind: 'not-found' };
 
+  const cover =
+    live.coverId && live.coverKey
+      ? {
+          id: live.coverId,
+          r2Key: live.coverKey,
+          width: live.coverWidth,
+          height: live.coverHeight,
+          alt: live.coverAlt,
+        }
+      : null;
+  const seo = effectiveSeo({
+    title: live.title,
+    excerpt: live.excerpt,
+    seoTitle: live.seoTitle,
+    seoDescription: live.seoDescription,
+    ogTitle: live.ogTitle,
+    ogDescription: live.ogDescription,
+  });
+  const socialImage =
+    live.ogImageId && live.ogImageKey
+      ? {
+          id: live.ogImageId,
+          r2Key: live.ogImageKey,
+          width: live.ogImageWidth,
+          height: live.ogImageHeight,
+          alt: live.ogImageAlt ?? live.ogImageAssetAlt ?? seo.ogTitle,
+        }
+      : cover
+        ? { ...cover, alt: cover.alt ?? seo.ogTitle }
+        : null;
+  const sameAs = Array.isArray(live.authorSameAs)
+    ? live.authorSameAs.flatMap((value) => {
+        const safe = typeof value === 'string' ? safeExternalUrl(value) : null;
+        return safe ? [safe] : [];
+      })
+    : [];
+
   return {
     kind: 'render',
     post: {
@@ -226,6 +312,26 @@ export async function resolveArticleUrl(
       section: live.section,
       alternates,
       authorName: live.authorName,
+      author: live.authorName
+        ? {
+            name: live.authorName,
+            websiteUrl: safeExternalUrl(live.authorWebsiteUrl),
+            sameAs,
+            avatar:
+              live.authorAvatarId && live.authorAvatarKey
+                ? {
+                    id: live.authorAvatarId,
+                    r2Key: live.authorAvatarKey,
+                    width: live.authorAvatarWidth,
+                    height: live.authorAvatarHeight,
+                    alt: live.authorAvatarAlt,
+                  }
+                : null,
+          }
+        : null,
+      cover,
+      socialImage,
+      seo,
       // `receivedReviewCopy` is the presence signal: it is `NOT NULL` on the
       // table, so a null here means the left join found no row at all rather
       // than a row saying "no review copy".
