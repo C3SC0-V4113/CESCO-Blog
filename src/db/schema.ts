@@ -265,7 +265,20 @@ export const postDrafts = sqliteTable(
 export const pendingCachePurges = sqliteTable('pending_cache_purges', {
   id: text('id').primaryKey(),
   tags: text('tags', { mode: 'json' }).$type<string[]>().notNull(),
-  action: text('action', { enum: ['publish', 'republish', 'unpublish', 'rename'] }).notNull(),
+  // Taxonomy writes change public pages too, so they queue here rather than in
+  // a retry that only lives as long as the tab that made them.
+  action: text('action', {
+    enum: [
+      'publish',
+      'republish',
+      'unpublish',
+      'rename',
+      'collection',
+      'feature',
+      'author',
+      'surface',
+    ],
+  }).notNull(),
   /** Failed purge attempts, including the committing change's own. */
   attempts: integer('attempts').notNull().default(0),
   lastError: text('last_error'),

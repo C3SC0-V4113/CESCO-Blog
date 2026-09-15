@@ -390,17 +390,18 @@ in `src/components/admin/` and are `.tsx`.
 Routes from [ADR-0003](docs/adr/0003-protect-admin-with-cloudflare-access.md),
 including its route-model extension.
 
-| Route                    | Purpose                                                             | Writes                                                                       |
-| ------------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `/admin`                 | Dashboard: drafts in progress, unpublished locales, recent activity | —                                                                            |
-| `/admin/posts`           | Post list with locale status per row, featuring controls            | `post_localizations.featured_at`, `posts.editorial_state`                    |
-| `/admin/posts/new`       | Create the aggregate and its first localization                     | `posts`, `post_localizations`                                                |
-| `/admin/posts/[id]/edit` | Rich text draft editing — see below                                 | `post_drafts`                                                                |
-| `/admin/posts/[id]/seo`  | SEO and social metadata — see below                                 | `post_drafts` SEO/OG fields                                                  |
-| `/admin/media`           | R2-backed asset library with attribution fields                     | `media_assets`                                                               |
-| `/admin/review`          | Draft review before publishing; publish action                      | `post_localizations` status and timestamps, `post_localization_slug_history` |
-| `/admin/collections`     | Series list and ordering                                            | `collections`, `collection_localizations`, `collection_posts`                |
-| `/admin/authors`         | Author profiles for bylines and structured data                     | `authors`                                                                    |
+| Route                     | Purpose                                                             | Writes                                                                       |
+| ------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `/admin`                  | Dashboard: drafts in progress, unpublished locales, recent activity | —                                                                            |
+| `/admin/posts`            | Post list with locale status per row, featuring controls            | `post_localizations.featured_at`, `posts.editorial_state`                    |
+| `/admin/posts/new`        | Create the aggregate and its first localization                     | `posts`, `post_localizations`                                                |
+| `/admin/posts/[id]/edit`  | Rich text draft editing — see below                                 | `post_drafts`                                                                |
+| `/admin/posts/[id]/seo`   | SEO, social preview, cover, and author assignment — see below       | `post_drafts` SEO/OG fields, `posts.cover_media_id`, `posts.author_id`       |
+| `/admin/media`            | R2-backed asset library with attribution fields                     | `media_assets`                                                               |
+| `/admin/review`           | Draft review before publishing; publish action                      | `post_localizations` status and timestamps, `post_localization_slug_history` |
+| `/admin/collections`      | Series list and creation                                            | `collections`                                                                |
+| `/admin/collections/[id]` | Bilingual metadata, lifecycle, membership, and authored ordering    | `collections`, `collection_localizations`, `collection_posts`                |
+| `/admin/authors`          | Author profiles for bylines and structured data                     | `authors`                                                                    |
 
 ### `/admin/posts/[id]/edit`
 
@@ -430,8 +431,11 @@ cannot rewrite published output (ADR-0037).
 
 ### `/admin/posts/[id]/seo`
 
-Long form: SEO title and description, canonical URL, OG title and description,
-OG image selector against `media_assets`, and a **social card preview**.
+Long form: SEO title and description, the generated current-localization
+canonical URL as a read-only value, OG title and description, OG image selector
+against `media_assets`, clean cover and author assignment, and a **social card
+preview**. The preview is editorial feedback only; it does not generate an
+image or mutate the canonical URL.
 
 The form must make the distinction from
 [ADR-0015](docs/adr/0015-separate-social-card-from-editorial-cover-image.md)
@@ -439,8 +443,8 @@ visible, because it is the one place a person could get it wrong:
 
 - `posts.cover_media_id` is the clean editorial image. It feeds JSON-LD `image`,
   the article hero, and Google Discover.
-- `post_revisions.og_image_media_id` is the composed card with burned-in text. It
-  feeds `og:image` only.
+- `post_revisions.og_image_media_id` is the optional social image. It feeds
+  `og:image` only and falls back to the clean cover when absent.
 - **Publishing is blocked without a cover.** The OG card is optional and falls
   back to the cover.
 

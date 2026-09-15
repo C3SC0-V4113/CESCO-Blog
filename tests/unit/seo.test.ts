@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { absolute, buildAlternateLinks, ogAlternateLocales, ogLocale } from '@/lib/seo';
+import {
+  absolute,
+  buildAlternateLinks,
+  ogAlternateLocales,
+  ogLocale,
+  socialImageMeta,
+} from '@/lib/seo';
 
 /**
  * ADR-0013's conditional rules, made executable.
@@ -11,6 +17,33 @@ import { absolute, buildAlternateLinks, ogAlternateLocales, ogLocale } from '@/l
  */
 
 const SITE = 'https://checkpoint.cescovalle.com';
+
+describe('socialImageMeta', () => {
+  it('sends the dimensions through Open Graph only', () => {
+    // Twitter reads dimensions from Open Graph; it defines no
+    // `twitter:image:width` or `twitter:image:height` of its own.
+    expect(
+      socialImageMeta(SITE, { src: '/media/card.webp', width: 1200, height: 628, alt: 'Tarjeta' })
+    ).toEqual([
+      { attribute: 'property', key: 'og:image', content: `${SITE}/media/card.webp` },
+      { attribute: 'property', key: 'og:image:width', content: '1200' },
+      { attribute: 'property', key: 'og:image:height', content: '628' },
+      { attribute: 'property', key: 'og:image:alt', content: 'Tarjeta' },
+      { attribute: 'name', key: 'twitter:image', content: `${SITE}/media/card.webp` },
+      { attribute: 'name', key: 'twitter:image:alt', content: 'Tarjeta' },
+    ]);
+  });
+
+  it('omits what it does not know and emits nothing without an image', () => {
+    expect(
+      socialImageMeta(SITE, { src: '/media/card.webp', width: null, height: null, alt: null })
+    ).toEqual([
+      { attribute: 'property', key: 'og:image', content: `${SITE}/media/card.webp` },
+      { attribute: 'name', key: 'twitter:image', content: `${SITE}/media/card.webp` },
+    ]);
+    expect(socialImageMeta(SITE, null)).toEqual([]);
+  });
+});
 
 describe('buildAlternateLinks', () => {
   it('declares both locales when both are published', () => {

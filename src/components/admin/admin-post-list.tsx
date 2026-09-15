@@ -1,28 +1,80 @@
 import { PlusIcon } from 'lucide-react';
+import { useState } from 'react';
 
 import { buttonVariants } from '@/components/ui/button';
 import { formatDate, getTranslations } from '@/i18n/utils';
+import { callRetryPendingPurges, callSetFeatured } from '@/lib/admin-actions';
 import { pageCount } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
 
 import type { AdminLocaleStatus, AdminPostSummary } from '@/db/queries/admin-posts';
 import type { UiKey } from '@/i18n/ui';
+
 const t = getTranslations('es');
 const statusKey = (status: AdminLocaleStatus) => `admin.posts.locale.${status}` as UiKey;
+
 function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | 'en' }) {
   const id = post.localizationIds[locale];
+  const [pending, setPending] = useState(false);
+  const [cacheWarning, setCacheWarning] = useState(false);
+  const featured = post.featured[locale] ?? false;
   const label = t(statusKey(post.locales[locale]));
-  return id ? (
-    <a
-      className="underline underline-offset-4"
-      href={`/admin/posts/${post.id}/edit?localization=${id}`}
-    >
-      {label}
-    </a>
-  ) : (
-    <span aria-disabled="true">{label}</span>
+  if (!id) return <span aria-disabled="true">{label}</span>;
+  // The status stays the way into the editor: it is what an editor scans the
+  // table for, and the publish and editor flows locate a draft by it.
+  return (
+    <div className="grid gap-2">
+      <a
+        className="underline underline-offset-4"
+        href={`/admin/posts/${post.id}/edit?localization=${id}`}
+      >
+        {label}
+      </a>
+      <div className="flex flex-wrap gap-2 text-xs">
+        <a
+          className="underline underline-offset-4"
+          href={`/admin/posts/${post.id}/seo?localization=${id}`}
+        >
+          {t('admin.posts.seo')}
+        </a>
+        {post.locales[locale] === 'published' && (
+          <button
+            type="button"
+            className="underline underline-offset-4"
+            disabled={pending}
+            aria-pressed={featured}
+            onClick={() => {
+              setPending(true);
+              if (cacheWarning) {
+                void callRetryPendingPurges()
+                  .then((result) => {
+                    if (result.error || result.data.status !== 'purged') setPending(false);
+                    else window.location.reload();
+                  })
+                  .catch(() => setPending(false));
+                return;
+              }
+              void callSetFeatured({ localizationId: id, featured: !featured })
+                .then((result) => {
+                  if (result.error) setPending(false);
+                  else if (result.data.status.includes('warning')) {
+                    setCacheWarning(true);
+                    setPending(false);
+                  } else window.location.reload();
+                })
+                .catch(() => setPending(false));
+            }}
+          >
+            {cacheWarning
+              ? t('admin.common.retryCache')
+              : t(featured ? 'admin.posts.unfeature' : 'admin.posts.feature')}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
+
 type AdminPostListProps = { posts: AdminPostSummary[]; page: number; total: number };
 export function AdminPostList({ posts, page, total }: AdminPostListProps) {
   const totalPages = pageCount(total);

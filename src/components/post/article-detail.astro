@@ -9,6 +9,7 @@ import ReadingTime from '@/components/post/reading-time.astro';
 import SeriesBadge from '@/components/post/series-badge.astro';
 import TableOfContents from '@/components/post/table-of-contents.astro';
 import { getTranslations } from '@/i18n/utils';
+import { mediaPath } from '@/lib/media';
 import { sectionPath } from '@/lib/urls';
 
 import type { PostSeries } from '@/db/queries/collections';
@@ -26,10 +27,9 @@ import type { Locale } from '@/i18n/locales';
  * the copy; placing it at the end would make the disclosure conditional on
  * finishing (ADR-0012).
  *
- * Cover image, tags, series navigation and the copy-link button are the
- * remaining pieces of this surface. Each needs data this query does not yet
- * fetch, or an image pipeline that has storage and delivery but nothing
- * producing images for it.
+ * The clean editorial cover renders in the masthead and remains distinct from
+ * the optional social image (ADR-0015). Tags and a copy-link control remain
+ * outside this component's current scope.
  */
 
 interface Props {
@@ -114,6 +114,19 @@ const trail = [
         <h1 class="text-[2.125rem] leading-[1.15] text-balance text-foreground sm:text-[2.5rem]">
           {post.title}
         </h1>
+
+        {
+          post.cover && (
+            <img
+              src={mediaPath(post.cover.r2Key)}
+              alt={post.cover.alt ?? ''}
+              width={post.cover.width ?? undefined}
+              height={post.cover.height ?? undefined}
+              class="mt-7 aspect-[1200/628] w-full rounded-lg object-cover"
+              fetchpriority="high"
+            />
+          )
+        }
 
         {
           post.excerpt && (

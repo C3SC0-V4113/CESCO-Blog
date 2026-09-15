@@ -1,0 +1,20 @@
+---
+import { AdminApp } from '@/components/admin/admin-app';
+import { listAdminMembershipPosts, loadAdminCollection } from '@/db/queries/admin-taxonomy';
+import { getTranslations } from '@/i18n/utils';
+import AdminLayout from '@/layouts/admin.astro';
+import { getDb } from '@/lib/runtime';
+
+const t = getTranslations('es');
+const db = getDb();
+const id = Astro.params.id ?? '';
+const [collection, posts] = await Promise.all([
+  loadAdminCollection(db, id),
+  listAdminMembershipPosts(db),
+]);
+if (!collection) return Astro.redirect('/admin/collections');
+---
+
+<AdminLayout title={`${t('admin.collections.editTitle')} | ${t('admin.brand')}`}>
+  <AdminApp screen={{ name: 'collection-editor', collection, posts }} client:load />
+</AdminLayout>

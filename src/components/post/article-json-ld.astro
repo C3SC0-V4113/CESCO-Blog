@@ -38,10 +38,23 @@ interface Props {
   authorName: string | null;
   publishedAt: string | null;
   updatedAt: string | null;
+  image: string | null;
+  authorWebsiteUrl?: string | null;
+  authorSameAs?: string[];
 }
 
-const { locale, headline, description, canonical, authorName, publishedAt, updatedAt } =
-  Astro.props;
+const {
+  locale,
+  headline,
+  description,
+  canonical,
+  authorName,
+  publishedAt,
+  updatedAt,
+  image,
+  authorWebsiteUrl = null,
+  authorSameAs = [],
+} = Astro.props;
 
 /** Stored timestamps are SQLite's format (ADR-0029); JSON-LD wants ISO 8601. */
 const iso = (value: string | null) => (value ? fromDbTimestamp(value).toISOString() : undefined);
@@ -60,7 +73,15 @@ const jsonLd: WithContext<BlogPosting> = {
   description: description ?? undefined,
   mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
   inLanguage: locale,
-  author: authorName ? { '@type': 'Person', name: authorName } : undefined,
+  author: authorName
+    ? {
+        '@type': 'Person',
+        name: authorName,
+        url: authorWebsiteUrl ?? undefined,
+        sameAs: authorSameAs.length ? authorSameAs : undefined,
+      }
+    : undefined,
+  image: image ?? undefined,
   datePublished: iso(publishedAt),
   dateModified: iso(updatedAt),
 };
