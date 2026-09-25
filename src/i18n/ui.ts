@@ -48,6 +48,7 @@ const es = {
   'post.media.source': 'Fuente',
   'post.previousInSeries': 'Anterior en la serie',
   'post.nextInSeries': 'Siguiente en la serie',
+  'post.codeSample': 'Ejemplo de código',
 
   'analysis.game': 'Juego',
   'analysis.platform': 'Plataforma',
@@ -314,6 +315,7 @@ const en = {
   'post.media.source': 'Source',
   'post.previousInSeries': 'Previous in series',
   'post.nextInSeries': 'Next in series',
+  'post.codeSample': 'Code sample',
 
   'analysis.game': 'Game',
   'analysis.platform': 'Platform',

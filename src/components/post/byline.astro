@@ -38,7 +38,7 @@ const t = getTranslations(locale);
     publishedAt && (
       <span>
         {t('post.publishedOn')}{' '}
-        <time datetime={publishedAt.replace(' ', 'T') + 'Z'}>
+        <time datetime={publishedAt.replace(' ', 'T') + 'Z'} class="tabular-nums">
           {formatDate(publishedAt, locale)}
         </time>
       </span>

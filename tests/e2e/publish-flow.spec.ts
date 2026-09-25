@@ -117,6 +117,12 @@ test('reviews, publishes, withdraws, republishes, and renames one localization',
   const publicUrl = `/es/analisis/${originalSlug}`;
   await page.goto(publicUrl);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
+  // A code sample can scroll sideways, so a keyboard has to be able to reach
+  // it, and what it reaches has to say what it is.
+  await expect(page.getByRole('group', { name: 'Ejemplo de código: javascript' })).toHaveAttribute(
+    'tabindex',
+    '0'
+  );
 
   await page.goto(`/admin/review?post=${postId}&localization=${localizationId}`);
   const unpublished = actionResponse(page, 'unpublish');

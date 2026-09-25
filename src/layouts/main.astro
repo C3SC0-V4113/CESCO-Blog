@@ -2,7 +2,9 @@
 import SiteFooter from '@/components/common/site-footer.astro';
 import SiteHeader from '@/components/common/site-header.astro';
 import ThemeScript from '@/components/common/theme-script.astro';
-import { resolveLocale } from '@/i18n/utils';
+import { getTranslations, resolveLocale } from '@/i18n/utils';
+import { errorCopy, isErrorStatus } from '@/lib/error-copy';
+import { SITE_NAME } from '@/lib/site';
 
 import '../styles/global.css';
 import '../styles/page-transitions.css';
@@ -25,12 +27,40 @@ interface Props {
 const { alternates } = Astro.props;
 
 const locale = resolveLocale(Astro.currentLocale);
+const t = getTranslations(locale);
+
+/*
+ * A title for every document, including the ones with nothing to put in an SEO
+ * head: the error branches of every detail route, Astro's own `404`, and the
+ * root redirect. Those rendered no `<title>` at all, which a screen reader
+ * announces as the bare URL and a tab strip shows as one.
+ *
+ * Decided here, once, rather than by giving each error branch a head of its
+ * own. The page sets the status before this renders, so the status says which
+ * copy applies, and `SeoHead` stays about pages a crawler should index — an
+ * error answer has no canonical to declare.
+ *
+ * The head is rendered to find out whether it is empty, because
+ * `Astro.slots.has('head')` alone cannot say: pages fill it inside a condition,
+ * `{ok && <Fragment slot="head">…}`, and the slot exists whether or not the
+ * condition held — `has` answered yes on every error page. `has` still guards
+ * the render, since rendering a slot no page passed blanked Astro's `404`
+ * response entirely in dev.
+ */
+const head = Astro.slots.has('head') ? await Astro.slots.render('head') : '';
+const status = Astro.response.status ?? 200;
+const fallbackTitle = head.trim()
+  ? null
+  : isErrorStatus(status)
+    ? t(errorCopy[status].title)
+    : SITE_NAME;
 ---
 
 <html lang={locale}>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {fallbackTitle && <title>{fallbackTitle}</title>}
 
     <ThemeScript />
 
@@ -44,7 +74,7 @@ const locale = resolveLocale(Astro.currentLocale);
         />
       )
     }
-    <slot name="head" />
+    <Fragment set:html={head} />
   </head>
   <body class="flex min-h-dvh flex-col">
     <SiteHeader locale={locale} alternates={alternates} />

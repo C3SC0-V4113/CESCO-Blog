@@ -12,9 +12,10 @@
  * **This is the exception to ADR-0030, and the only one.** Components are styled
  * with Tailwind utilities; scoped CSS is reserved for styling slotted content a
  * component does not own. That is exactly this file's job — it sets a type scale
- * across `h2`, `h3`, `p`, `pre` and `code` whose markup it never writes. As
- * utilities that becomes `[&_h2]:font-heading [&_h2]:text-2xl [&_h2]:mt-10 …`
- * repeated per element, which stops resembling the CSS it compiles to.
+ * across `h2`, `h3`, `p`, `pre`, `code` and `figure` whose markup it never
+ * writes. As utilities that becomes `[&_h2]:font-heading [&_h2]:text-2xl
+ * [&_h2]:mt-10 …` repeated per element, which stops resembling the CSS it
+ * compiles to.
  *
  * Do not take this as licence to add scoped blocks elsewhere: a component's own
  * markup gets utilities, where they read fine.
@@ -81,6 +82,26 @@
     font-size: 0.9375em;
   }
 
+  .prose :global(figure) {
+    margin-block: 0 1.5em;
+  }
+
+  /* The same hairline as the covers, for the same reason: an image whose edge
+     matches the page has no edge at all. */
+  .prose :global(figure img) {
+    border-radius: var(--radius-md);
+    outline: 1px solid var(--image-outline);
+    outline-offset: -1px;
+  }
+
+  /* Credits and captions are read after the image, so they step back from it. */
+  .prose :global(figcaption) {
+    margin-block-start: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+  }
+
   /*
    * Links in body copy are the second place the accent appears, and the only
    * one inside the reading column.
@@ -100,8 +121,12 @@
     transition: text-decoration-color 150ms var(--ease-out-quad);
   }
 
-  .prose :global(a:hover) {
-    text-decoration-color: var(--primary-text);
+  /* Gated like every hover in the project (ADR-0022): on touch, a tap would
+     otherwise leave the underline stuck at full strength. */
+  @media (hover: hover) and (pointer: fine) {
+    .prose :global(a:hover) {
+      text-decoration-color: var(--primary-text);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

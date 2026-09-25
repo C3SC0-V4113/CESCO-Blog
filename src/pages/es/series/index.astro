@@ -42,7 +42,7 @@ const alternates = routeAlternates('series');
         <ul class="mt-8">
           {series.map((collection) => (
             <li class="group border-b border-border py-8 last:border-b-0">
-              <p class="text-[0.6875rem] font-medium tracking-[0.14em] text-primary-text uppercase">
+              <p class="text-[0.6875rem] font-medium tracking-[0.14em] text-primary-text uppercase tabular-nums">
                 {collection.postCount}{' '}
                 {t(collection.postCount === 1 ? 'series.piece' : 'series.pieces')}
               </p>

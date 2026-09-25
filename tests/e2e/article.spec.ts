@@ -87,6 +87,9 @@ test('answers 404 for a slug that does not exist', async ({ page }) => {
   const response = await page.goto('/es/analisis/no-existe');
 
   expect(response?.status()).toBe(404);
+  // The error branch renders no SEO head, and an untitled tab is the first
+  // thing a screen reader announces about the page.
+  await expect(page).toHaveTitle('Esta página no existe');
 });
 
 test('does not serve an analysis from the opinion route', async ({ page }) => {
@@ -105,6 +108,15 @@ test('answers 410 for a withdrawn article, not 404', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Esta publicación ya no está disponible'
   );
+  await expect(page).toHaveTitle('Esta publicación ya no está disponible');
+});
+
+test('titles the fallback page for an address no route claims', async ({ page }) => {
+  // Astro's own 404, which has no page data to build an SEO head from at all.
+  const response = await page.goto('/no-existe-en-ninguna-parte');
+
+  expect(response?.status()).toBe(404);
+  await expect(page).toHaveTitle('Esta página no existe');
 });
 
 test('gives a retired address different copy from an unknown one', async ({ page }) => {

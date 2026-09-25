@@ -149,6 +149,8 @@ test('featuring a post fills the home slot without repeating it below', async ({
     await page.goto('/es/');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(['Lo último']);
     const slot = page.getByRole('region', { name: 'Destacado' });
+    // A level under the slot's own "Destacado" heading, not a sibling of it.
+    await expect(slot.getByRole('heading', { level: 3, name: post.title })).toBeVisible();
     await expect(slot.getByRole('link', { name: post.title })).toHaveAttribute(
       'href',
       `/es/analisis/${post.slug}`
