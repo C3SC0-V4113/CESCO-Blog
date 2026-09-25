@@ -34,10 +34,11 @@ export type MobileNavItem = {
 
 interface Props {
   openLabel: string;
+  closeLabel: string;
   items: MobileNavItem[];
 }
 
-export default function MobileNav({ openLabel, items }: Props) {
+export default function MobileNav({ openLabel, closeLabel, items }: Props) {
   // Nothing to open when no section has a route yet — the same rule the header
   // follows, so an empty sheet never ships.
   if (items.length === 0) return null;
@@ -52,7 +53,7 @@ export default function MobileNav({ openLabel, items }: Props) {
         }
       />
 
-      <SheetContent side="right">
+      <SheetContent side="right" closeLabel={closeLabel}>
         <SheetHeader>
           <SheetTitle>{openLabel}</SheetTitle>
         </SheetHeader>

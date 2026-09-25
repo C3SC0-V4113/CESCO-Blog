@@ -104,6 +104,7 @@ const localeOptions = locales.map((option) => ({
         <MobileNav
           client:idle
           openLabel={t('nav.menu')}
+          closeLabel={t('nav.close')}
           items={navItems.map((item) => ({
             label: t(item.key),
             href: item.href,

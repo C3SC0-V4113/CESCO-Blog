@@ -7,7 +7,6 @@ import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from 'lucide-re
 function Pagination({ className, ...props }: React.ComponentProps<'nav'>) {
   return (
     <nav
-      role="navigation"
       aria-label="pagination"
       data-slot="pagination"
       className={cn('mx-auto flex w-full justify-center', className)}
@@ -103,6 +102,9 @@ function PaginationNext({
  * prop so the UI dictionary stays on the server (ADR-0027). Everything a reader
  * can perceive has to be translatable, and a screen reader announcing "More
  * pages" in the middle of a Spanish page is a string that escaped.
+ *
+ * Only the glyph is hidden. The registry put `aria-hidden` on the wrapper, which
+ * took the `sr-only` label down with it, so the gap was never announced at all.
  */
 function PaginationEllipsis({
   className,
@@ -111,7 +113,6 @@ function PaginationEllipsis({
 }: React.ComponentProps<'span'> & { srLabel?: string }) {
   return (
     <span
-      aria-hidden
       data-slot="pagination-ellipsis"
       className={cn(
         "flex size-8 items-center justify-center [&_svg:not([class*='size-'])]:size-4",
@@ -119,7 +120,7 @@ function PaginationEllipsis({
       )}
       {...props}
     >
-      <MoreHorizontalIcon />
+      <MoreHorizontalIcon aria-hidden />
       <span className="sr-only">{srLabel}</span>
     </span>
   );

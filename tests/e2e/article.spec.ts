@@ -213,14 +213,10 @@ test.describe('breadcrumb', () => {
   });
 
   test('marks the page you are on as current rather than navigable', async ({ page }) => {
-    // The registry marks the last crumb `role="link"` with `aria-disabled` and
-    // `aria-current="page"`, which is the conventional pattern: it stays in the
-    // list of links a screen reader walks, and announces itself as where you
-    // already are.
-    //
-    // So the contract to assert is that it does not *navigate*, not that it
-    // carries no role. An earlier version of this test asserted the role and
-    // failed against markup that was correct.
+    // The last crumb is plain text carrying `aria-current="page"`. The registry
+    // also gave it `role="link"` with `aria-disabled`, which put a link that
+    // goes nowhere into the list a screen reader walks; `aria-current` alone
+    // already announces it as where you are.
     await page.goto(ES_ARTICLE);
 
     const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
@@ -228,8 +224,9 @@ test.describe('breadcrumb', () => {
 
     await expect(current).toBeVisible();
     await expect(current).toHaveAttribute('aria-current', 'page');
-    await expect(current).toHaveAttribute('aria-disabled', 'true');
+    await expect(current).not.toHaveAttribute('role', /./);
     await expect(current).not.toHaveAttribute('href', /./);
+    await expect(trail.getByRole('link', { name: /El peso del silencio/ })).toHaveCount(0);
   });
 
   test('leads back to the section listing', async ({ page }) => {
