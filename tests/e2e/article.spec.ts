@@ -155,6 +155,11 @@ test('shows the byline, reading time and table of contents', async ({ page }) =>
 
   const toc = page.getByRole('navigation', { name: 'Contenido' });
   await expect(toc.getByRole('link', { name: 'El silencio como herramienta' })).toBeVisible();
+
+  // The landmark is already named, and the outline sits before the article in
+  // source order: a "Contenido" heading there would be the page's first
+  // heading, ahead of its h1.
+  await expect(toc.getByRole('heading')).toHaveCount(0);
 });
 
 test('anchors the table of contents at block ids, not heading text', async ({ page }) => {

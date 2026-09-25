@@ -22,6 +22,7 @@ const es = {
   'nav.series': 'Series',
   'nav.search': 'Buscar',
   'nav.menu': 'Menú',
+  'nav.sections': 'Secciones',
   'nav.close': 'Cerrar',
   'nav.skipToContent': 'Saltar al contenido',
 
@@ -287,6 +288,7 @@ const en = {
   'nav.series': 'Series',
   'nav.search': 'Search',
   'nav.menu': 'Menu',
+  'nav.sections': 'Sections',
   'nav.close': 'Close',
   'nav.skipToContent': 'Skip to content',
 

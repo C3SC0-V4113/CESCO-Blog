@@ -172,8 +172,11 @@ test.describe('narrow screens', () => {
       await expect(sheet).toBeVisible({ timeout: 1_000 });
     }).toPass();
 
-    await expect(sheet.getByRole('link', { name: 'Análisis', exact: true })).toBeVisible();
-    await expect(sheet.getByRole('link', { name: 'Series', exact: true })).toBeVisible();
+    // Inside a named landmark, so the sheet's links are announced as a set of
+    // destinations rather than a loose run of anchors in a dialog.
+    const sections = sheet.getByRole('navigation', { name: 'Secciones' });
+    await expect(sections.getByRole('link', { name: 'Análisis', exact: true })).toBeVisible();
+    await expect(sections.getByRole('link', { name: 'Series', exact: true })).toBeVisible();
   });
 
   test('dismisses on Escape and returns focus to the trigger', async ({ page }) => {

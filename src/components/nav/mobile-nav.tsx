@@ -35,10 +35,12 @@ export type MobileNavItem = {
 interface Props {
   openLabel: string;
   closeLabel: string;
+  /** Names the landmark inside the sheet; the dialog's title names the sheet. */
+  navLabel: string;
   items: MobileNavItem[];
 }
 
-export default function MobileNav({ openLabel, closeLabel, items }: Props) {
+export default function MobileNav({ openLabel, closeLabel, navLabel, items }: Props) {
   // Nothing to open when no section has a route yet — the same rule the header
   // follows, so an empty sheet never ships.
   if (items.length === 0) return null;
@@ -47,7 +49,7 @@ export default function MobileNav({ openLabel, closeLabel, items }: Props) {
     <Sheet>
       <SheetTrigger
         render={
-          <Button variant="ghost" size="icon" aria-label={openLabel}>
+          <Button variant="ghost" size="icon-lg" className="size-10" aria-label={openLabel}>
             <Menu />
           </Button>
         }
@@ -58,13 +60,13 @@ export default function MobileNav({ openLabel, closeLabel, items }: Props) {
           <SheetTitle>{openLabel}</SheetTitle>
         </SheetHeader>
 
-        <nav className="flex flex-col gap-1 px-4">
+        <nav aria-label={navLabel} className="flex flex-col gap-1 px-4">
           {items.map((item) => (
             <a
               key={item.href}
               href={item.href}
               aria-current={item.current ? 'page' : undefined}
-              className="rounded-md px-3 py-2 text-base text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground aria-[current]:bg-muted aria-[current]:font-medium aria-[current]:text-foreground"
+              className="rounded-md px-3 py-2 text-base text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground aria-[current]:bg-muted aria-[current]:font-medium aria-[current]:text-foreground motion-reduce:transition-none"
             >
               {item.label}
             </a>

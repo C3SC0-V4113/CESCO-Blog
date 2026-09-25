@@ -3,10 +3,13 @@ import { useEffect, useState } from 'react';
 /**
  * Marks the table-of-contents entry for the heading currently being read.
  *
- * An island because it needs `IntersectionObserver`, hydrated `client:visible`
- * — the table of contents is below the fold on mobile and beside the article on
- * desktop, so there is no reason to spend the bytes before it is on screen
- * (ADR-0019).
+ * An island because it needs `IntersectionObserver` (ADR-0019), hydrated
+ * `client:idle` rather than `client:visible`: it renders nothing, so it has no
+ * box for a visibility observer to see (see `table-of-contents.astro`).
+ *
+ * It also closes the mobile outline once a reader picks a heading. That outline
+ * is a sticky `<details>`; left open, it sits over the very heading the link
+ * just scrolled to.
  *
  * The links work without this. The list is server-rendered and every anchor
  * points at a real block ID, so with JavaScript disabled the reader loses the
@@ -49,6 +52,20 @@ export default function TocScrollSpy({ ids }: Props) {
 
     return () => observer.disconnect();
   }, [ids]);
+
+  useEffect(() => {
+    // Delegated from the document rather than bound per outline: one listener,
+    // and it runs before the browser follows the fragment, so the jump lands
+    // against the collapsed outline.
+    const closeOutline = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const outline = event.target.closest('[data-toc-link]')?.closest('details');
+      if (outline) outline.open = false;
+    };
+
+    document.addEventListener('click', closeOutline);
+    return () => document.removeEventListener('click', closeOutline);
+  }, []);
 
   useEffect(() => {
     for (const id of ids) {

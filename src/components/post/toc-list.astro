@@ -36,7 +36,7 @@ const { entries } = Astro.props;
           href={`#${entry.id}`}
           data-toc-link={entry.id}
           class:list={[
-            '-ms-px block border-s border-transparent py-1 ps-3 text-muted-foreground transition-colors duration-150',
+            '-ms-px block border-s border-transparent py-1 ps-3 text-muted-foreground transition-colors duration-150 motion-reduce:transition-none',
             'hover:border-border hover:text-foreground',
             'aria-[current]:border-primary aria-[current]:text-foreground',
             entry.level === 3 && 'ps-6',
