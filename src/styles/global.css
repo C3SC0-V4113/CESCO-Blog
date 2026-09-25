@@ -7,6 +7,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  color-scheme: light;
   --background: oklch(1 0 0);
   --foreground: oklch(0.148 0.004 228.8);
   --card: oklch(1 0 0);
@@ -15,6 +16,7 @@
   --popover-foreground: oklch(0.148 0.004 228.8);
   --primary: oklch(0.511 0.096 186.391);
   --primary-foreground: oklch(0.984 0.014 180.72);
+  --primary-text: var(--primary);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.963 0.002 197.1);
@@ -24,7 +26,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.925 0.005 214.3);
   --input: oklch(0.925 0.005 214.3);
-  --ring: oklch(0.723 0.014 214.4);
+  --ring: oklch(0.511 0.096 186.391);
   --chart-1: oklch(0.845 0.143 164.978);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.596 0.145 163.225);
@@ -42,6 +44,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.148 0.004 228.8);
   --foreground: oklch(0.987 0.002 197.1);
   --card: oklch(0.218 0.008 223.9);
@@ -50,6 +53,7 @@
   --popover-foreground: oklch(0.987 0.002 197.1);
   --primary: oklch(0.437 0.078 188.216);
   --primary-foreground: oklch(0.984 0.014 180.72);
+  --primary-text: oklch(0.704 0.14 182.503);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.275 0.011 216.9);
@@ -59,7 +63,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.56 0.021 213.5);
+  --ring: oklch(0.704 0.14 182.503);
   --chart-1: oklch(0.845 0.143 164.978);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.596 0.145 163.225);
@@ -91,6 +95,23 @@
   --ease-out-cubic: cubic-bezier(0.215, 0.61, 0.355, 1);
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-in-out-cubic: cubic-bezier(0.645, 0.045, 0.355, 1);
+
+  /*
+   * Press feedback (ADR-0022). A pressed control shrinks slightly rather than
+   * dropping a pixel: the scale reads on any size and shape, where a one-pixel
+   * nudge vanishes on large targets. Tailwind v4 resolves `scale-*` from the
+   * `--scale` namespace, so this is `active:scale-press` in markup.
+   */
+  --scale-press: 0.96;
+
+  /*
+   * The accent for text and small glyphs. `--primary` is a fill: in the dark
+   * theme it is deliberately deep so light text reads on it, which leaves it at
+   * about 2.6:1 against the dark background — too low for a link or a label.
+   * This token keeps the same hue and clears 4.5:1 on the background, card and
+   * muted surfaces of both themes. Fills keep `--primary`.
+   */
+  --color-primary-text: var(--primary-text);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -133,10 +154,24 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
+
+  /*
+   * One visible focus indicator for everything that has no better one.
+   *
+   * `--ring` clears 3:1 against every surface it can sit on in both themes
+   * (WCAG 1.4.11), and the offset keeps it off the control's own edge so it
+   * never blends into a filled button. Components that draw their own ring —
+   * the Button primitive — set `outline-none` and are unaffected.
+   */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
   html {
     @apply font-sans;
@@ -180,28 +215,5 @@
   :target,
   [id] {
     scroll-margin-top: 5rem;
-  }
-}
-
-/*
- * Cross-document page transitions (ADR-0022).
- *
- * The native CSS form, deliberately not Astro's `<ClientRouter />`: this needs
- * no JavaScript at all and degrades to an ordinary navigation where it is
- * unsupported, while the router would ship a client runtime and contradict
- * ADR-0019.
- */
-@view-transition {
-  navigation: auto;
-}
-
-/*
- * ADR-0022 requires every animation to carry its own reduced-motion block, with
- * no exceptions. A view transition is an animation the browser runs on our
- * behalf, so opting out has to be explicit.
- */
-@media (prefers-reduced-motion: reduce) {
-  @view-transition {
-    navigation: none;
   }
 }

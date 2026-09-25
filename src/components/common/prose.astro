@@ -57,8 +57,10 @@
     font-size: 1.25rem;
   }
 
+  /* Pretty wrapping avoids a lone word stranded on a paragraph's last line. */
   .prose :global(p) {
     margin-block: 0 1.25em;
+    text-wrap: pretty;
   }
 
   .prose :global(p:last-child) {
@@ -90,15 +92,21 @@
    * cheap.
    */
   .prose :global(a) {
-    color: var(--primary);
+    color: var(--primary-text);
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;
-    text-decoration-color: color-mix(in oklch, var(--primary), transparent 55%);
+    text-decoration-color: color-mix(in oklch, var(--primary-text), transparent 55%);
     transition: text-decoration-color 150ms var(--ease-out-quad);
   }
 
   .prose :global(a:hover) {
-    text-decoration-color: var(--primary);
+    text-decoration-color: var(--primary-text);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .prose :global(a) {
+      transition: none;
+    }
   }
 </style>

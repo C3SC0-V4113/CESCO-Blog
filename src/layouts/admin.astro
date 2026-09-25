@@ -1,6 +1,8 @@
 ---
 import ThemeScript from '@/components/common/theme-script.astro';
 
+// Deliberately without `page-transitions.css`: the admin does not opt in to
+// cross-document view transitions, so its navigations and reloads snap.
 import '../styles/global.css';
 
 interface Props {
