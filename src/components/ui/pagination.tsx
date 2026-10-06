@@ -47,6 +47,13 @@ type PaginationLinkProps = {
  *
  * Here the primitive was only ever contributing style, so the variants come
  * across on their own and the element stays the anchor it has to be.
+ *
+ * The registry sizes these at 32px, the `icon` and `default` button heights.
+ * A page link is a primary navigation target on a touch screen, so every link,
+ * and the ellipsis that sits in the same row, takes the 40px the header
+ * controls already have. `min-h-10 min-w-10` raises the floor without fixing a
+ * width: the numbers become 40px squares, while previous and next keep growing
+ * with their label.
  */
 function PaginationLink({ className, isActive, size = 'icon', ...props }: PaginationLinkProps) {
   return (
@@ -54,7 +61,11 @@ function PaginationLink({ className, isActive, size = 'icon', ...props }: Pagina
       aria-current={isActive ? 'page' : undefined}
       data-slot="pagination-link"
       data-active={isActive}
-      className={cn(buttonVariants({ variant: isActive ? 'outline' : 'ghost', size }), className)}
+      className={cn(
+        buttonVariants({ variant: isActive ? 'outline' : 'ghost', size }),
+        'min-h-10 min-w-10',
+        className
+      )}
       {...props}
     />
   );
@@ -115,7 +126,7 @@ function PaginationEllipsis({
     <span
       data-slot="pagination-ellipsis"
       className={cn(
-        "flex size-8 items-center justify-center [&_svg:not([class*='size-'])]:size-4",
+        "flex size-10 items-center justify-center [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
