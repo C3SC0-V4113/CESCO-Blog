@@ -8,7 +8,7 @@ async function openNewDraft(page: Page) {
   await page.goto('/admin/posts/new');
   await page.getByLabel('Slug').fill(slug);
   await page.getByRole('button', { name: 'Crear publicación' }).click();
-  const row = page.getByRole('row').filter({ has: page.getByRole('cell', { name: slug }) });
+  const row = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: slug }) });
   await row.getByRole('link', { name: 'Borrador' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Editor');
 }

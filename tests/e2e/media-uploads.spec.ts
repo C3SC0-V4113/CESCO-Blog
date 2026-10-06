@@ -88,7 +88,8 @@ test('normalizes, delivers, paginates reuse, and keeps the image block stable', 
   await page.goto('/admin/media');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Multimedia');
   await uploadFromPicker(page, alt);
-  const image = page.getByRole('img', { name: alt });
+  // The caption names the card, so its image carries an empty alt.
+  const image = page.getByRole('listitem').filter({ hasText: alt }).locator('img');
   await expect(image).toBeVisible();
   const src = await image.getAttribute('src');
   expect(src).toMatch(/^\/media\/\d{4}\/\d{2}\/[0-9a-f-]{36}\.webp$/);
@@ -105,7 +106,7 @@ test('normalizes, delivers, paginates reuse, and keeps the image block stable', 
   await page.getByText('Insertar imagen').click();
   await expect(page.locator('details ul > li')).toHaveCount(20);
   await loadPickerPage(page, target);
-  const reusable = page.getByRole('img', { name: target.alt, exact: true }).locator('..');
+  const reusable = page.getByRole('button', { name: target.alt, exact: true });
   await expect(reusable).toBeVisible();
   const saved = page.waitForResponse((response) =>
     response.url().includes('/_actions/admin.saveDraft')

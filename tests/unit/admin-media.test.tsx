@@ -65,7 +65,8 @@ describe('AdminMedia', () => {
       target: { files: [new File(['png'], 'mapa.png', { type: 'image/png' })] },
     });
     await waitFor(() => expect(select).toHaveBeenCalledWith(asset));
-    expect(screen.getByRole('img', { name: 'Mapa' })).toBeTruthy();
+    // Named once, by its caption: the image would only repeat it.
+    expect(screen.getByRole('button', { name: 'Mapa' })).toBeTruthy();
 
     const source = new File(['png'], 'mapa.png', { type: 'image/png' });
     const surface = screen.getByRole('region', { name: 'Carga de imagen' });
@@ -186,5 +187,28 @@ describe('AdminMedia', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
     expect(await screen.findAllByRole('button', { name: /Página dos/ })).toHaveLength(1);
     expect(fetch).toHaveBeenCalledWith('/admin/media/page.json?page=2');
+  });
+
+  it('shows a card that selects nothing as content, not as a button', () => {
+    render(<AdminMedia assets={[asset]} />);
+    expect(screen.getByText('Mapa')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Mapa/ })).toBeNull();
+  });
+
+  it('reports a page that failed to load apart from the upload', async () => {
+    let fail = (_: Error) => {};
+    vi.mocked(fetch).mockReturnValue(new Promise((_, reject) => (fail = reject)));
+    render(<AdminMedia assets={[asset]} total={21} onSelect={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+
+    const list = screen.getByRole('list');
+    expect(list.getAttribute('aria-busy')).toBe('true');
+    // Loading a page is not an upload, so the upload stays available.
+    expect((screen.getByLabelText('Elegir imagen') as HTMLInputElement).disabled).toBe(false);
+    fail(Error('offline'));
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'No se pudo cargar esta página de imágenes. Intenta de nuevo.'
+    );
+    expect(list.getAttribute('aria-busy')).toBe('false');
   });
 });

@@ -251,7 +251,8 @@ export function AdminSeo({
           )}
           <div className="relative -mt-[52.35%] flex aspect-[1.91/1] flex-col justify-end bg-gradient-to-t from-black/90 to-transparent p-6">
             <p className="text-sm font-semibold">{author?.name ?? SITE_NAME}</p>
-            <h3 className="mt-2 text-2xl font-bold">{effective.ogTitle}</h3>
+            {/* Styled, not structural: a preview's title is not a section of this page. */}
+            <p className="mt-2 text-2xl font-bold">{effective.ogTitle}</p>
             {effective.ogDescription && (
               <p className="mt-2 line-clamp-2 text-sm text-white/80">{effective.ogDescription}</p>
             )}

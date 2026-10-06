@@ -9,10 +9,10 @@ vi.mock('@/lib/admin-actions', () => ({
   callSaveCollection: vi.fn(),
 }));
 
-import { AdminCollectionEditor } from '@/components/admin/admin-collections';
-import { callSaveCollection } from '@/lib/admin-actions';
+import { AdminCollectionEditor, AdminCollections } from '@/components/admin/admin-collections';
+import { callCreateCollection, callSaveCollection } from '@/lib/admin-actions';
 
-import type { AdminCollectionDetail } from '@/db/queries/admin-taxonomy';
+import type { AdminCollectionDetail, AdminMembershipPost } from '@/db/queries/admin-taxonomy';
 
 afterEach(() => {
   cleanup();
@@ -46,7 +46,10 @@ describe('AdminCollectionEditor', () => {
     fill('Español', 'Slug', 'el-sonido');
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
 
-    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Cambios guardados.'));
+    // The member list keeps a status region of its own, so this one is found by its text.
+    await waitFor(() =>
+      expect(screen.getByText('Cambios guardados.').getAttribute('role')).toBe('status')
+    );
     const [[input]] = vi.mocked(callSaveCollection).mock.calls;
     expect(input.localizations).toEqual([
       {
@@ -124,5 +127,64 @@ describe('AdminCollectionEditor', () => {
         'Otra serie ya usa ese slug en este idioma.'
       )
     );
+  });
+
+  describe('members', () => {
+    const member = (title: string): AdminMembershipPost => ({
+      id: crypto.randomUUID(),
+      section: 'analysis',
+      title,
+      localizations: [],
+    });
+    const members = [member('Primera'), member('Segunda'), member('Tercera')];
+    const renderMembers = () =>
+      render(
+        <AdminCollectionEditor
+          collection={{ ...collection, postIds: members.map(({ id }) => id) }}
+          posts={members}
+        />
+      );
+    const announcer = () => screen.getByText((_, element) => element?.id === 'members-status');
+
+    it('names each action after the post it moves or removes', () => {
+      renderMembers();
+      expect(screen.getByRole('button', { name: 'Subir «Segunda»' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Bajar «Segunda»' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Quitar «Segunda»' })).toBeTruthy();
+    });
+
+    it('keeps focus on the moved post and announces where it landed', () => {
+      renderMembers();
+      expect(announcer().getAttribute('role')).toBe('status');
+      expect(announcer().textContent).toBe('');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Bajar «Primera»' }));
+      expect(screen.getByRole('button', { name: 'Bajar «Primera»' }).matches(':focus')).toBe(true);
+      expect(announcer().textContent).toBe('«Primera» pasó a la posición 2 de 3.');
+
+      // At the bottom its down button is disabled, so focus takes the other one.
+      fireEvent.click(screen.getByRole('button', { name: 'Bajar «Primera»' }));
+      expect(screen.getByRole('button', { name: 'Subir «Primera»' }).matches(':focus')).toBe(true);
+      expect(announcer().textContent).toBe('«Primera» pasó a la posición 3 de 3.');
+    });
+
+    it('hands focus to the next post after a removal', () => {
+      renderMembers();
+      fireEvent.click(screen.getByRole('button', { name: 'Quitar «Primera»' }));
+      expect(screen.queryByRole('button', { name: 'Quitar «Primera»' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Quitar «Segunda»' }).matches(':focus')).toBe(true);
+      expect(announcer().textContent).toBe('«Primera» se quitó de la serie.');
+    });
+  });
+
+  it('says when a new series could not be created', async () => {
+    vi.mocked(callCreateCollection).mockRejectedValue(Error('offline'));
+    render(<AdminCollections collections={[]} />);
+    const create = screen.getByRole('button', { name: 'Nueva serie' });
+    fireEvent.click(create);
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'No se pudo crear la serie. Intenta nuevamente.'
+    );
+    expect(create).toHaveProperty('disabled', false);
   });
 });

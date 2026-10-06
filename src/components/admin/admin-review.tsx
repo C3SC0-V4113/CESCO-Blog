@@ -32,6 +32,7 @@ type Action = 'publish' | 'unpublish' | 'rename';
 // its tags when it committed (ADR-0037), so the server renders the pending
 // notice and its retry for whoever opens the page next, not just this tab.
 const reload = () => window.location.reload();
+const textLink = 'inline-flex min-h-6 items-center underline underline-offset-4';
 
 function PendingPurgesNotice() {
   const [state, setState] = useState<'idle' | 'pending' | 'error'>('idle');
@@ -76,14 +77,14 @@ function ReviewPreview({ detail }: { detail: ReviewDetail }) {
       {detail.contentJson.content.map((block) => {
         const text = 'content' in block ? block.content.map((node) => node.text).join('') : '';
         if (block.type === 'paragraph') return <p key={block.attrs.blockId}>{text}</p>;
-        if (block.type === 'heading') {
-          const Heading = `h${block.attrs.level}` as 'h2';
+        // Styled, not structural: the draft's headings would otherwise nest
+        // under the page's own and break its outline.
+        if (block.type === 'heading')
           return (
-            <Heading key={block.attrs.blockId} className="text-lg font-semibold">
+            <p key={block.attrs.blockId} className="text-lg font-semibold">
               {text}
-            </Heading>
+            </p>
           );
-        }
         if (block.type === 'codeBlock')
           return (
             <pre
@@ -105,9 +106,7 @@ function ReviewPreview({ detail }: { detail: ReviewDetail }) {
             />
           </figure>
         ) : (
-          <p key={block.attrs.blockId} role="status">
-            {t('admin.media.unavailable')}
-          </p>
+          <p key={block.attrs.blockId}>{t('admin.media.unavailable')}</p>
         );
       })}
     </section>
@@ -197,16 +196,17 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
     <div className="grid gap-6">
       {pendingPurges > 0 && <PendingPurgesNotice />}
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
+        {/* Concentric: the items' radius-md plus the 6px inset is radius-xl. */}
         <section
           aria-label={t('admin.review.queue')}
-          className="order-last max-h-[70vh] overflow-auto rounded-xl border bg-background p-4 lg:order-first"
+          className="order-last max-h-[70vh] overflow-auto rounded-xl border bg-background p-1.5 lg:order-first"
         >
           {items.length ? (
-            <ul className="grid gap-2">
+            <ul className="grid gap-1.5">
               {items.map((item) => (
                 <li key={item.localizationId}>
                   <a
-                    className="block rounded-lg border p-3"
+                    className="block rounded-md border p-3 outline-none focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:border-primary aria-[current=page]:bg-muted"
                     aria-current={
                       detail?.localizationId === item.localizationId ? 'page' : undefined
                     }
@@ -221,21 +221,30 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
               ))}
             </ul>
           ) : (
-            <p>{t('admin.review.empty')}</p>
+            <p className="p-2.5">{t('admin.review.empty')}</p>
           )}
           {total > 0 && (
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="mt-1.5 px-2.5 text-sm text-muted-foreground tabular-nums">
               {t('admin.review.showing')} {firstItem}–{lastItem} {t('admin.review.of')} {total}
             </p>
           )}
           {total > pageSize && (
-            <nav aria-label={t('listing.pagination')} className="mt-3 flex justify-between gap-2">
+            <nav
+              aria-label={t('listing.pagination')}
+              className="mt-1.5 flex justify-between gap-2 px-2.5 pb-1"
+            >
               {page > 1 ? (
-                <a href={reviewUrl(page - 1, detail)}>{t('listing.previous')}</a>
+                <a className={textLink} href={reviewUrl(page - 1, detail)}>
+                  {t('listing.previous')}
+                </a>
               ) : (
                 <span />
               )}
-              {lastItem < total && <a href={reviewUrl(page + 1, detail)}>{t('listing.next')}</a>}
+              {lastItem < total && (
+                <a className={textLink} href={reviewUrl(page + 1, detail)}>
+                  {t('listing.next')}
+                </a>
+              )}
             </nav>
           )}
         </section>
@@ -266,11 +275,11 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                 </div>
                 <div>
                   <dt>{t('admin.review.blocks')}</dt>
-                  <dd>{detail.contentJson.content.length}</dd>
+                  <dd className="tabular-nums">{detail.contentJson.content.length}</dd>
                 </div>
                 <div>
                   <dt>{t('admin.review.media')}</dt>
-                  <dd>{detail.referencedMedia.length}</dd>
+                  <dd className="tabular-nums">{detail.referencedMedia.length}</dd>
                 </div>
                 <div>
                   <dt>{t('admin.review.draft')}</dt>
@@ -314,12 +323,22 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                   )}
                 </div>
               )}
-              {blocked && <p role="alert">{t('admin.review.blocked')}</p>}
+              {/* A standing condition, not an event: it describes the button rather
+                  than interrupting on load. The button stays focusable, so the
+                  reason is read where the action is. */}
+              {blocked && (
+                <p id="publish-blocked" className="text-sm text-muted-foreground">
+                  {t('admin.review.blocked')}
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
                 <PendingButton
                   type="button"
+                  className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
                   pending={state === 'pending' && running === 'publish'}
                   disabled={blocked || state === 'pending'}
+                  focusableWhenDisabled
+                  aria-describedby={blocked ? 'publish-blocked' : undefined}
                   onClick={() => void publish()}
                 >
                   {t(

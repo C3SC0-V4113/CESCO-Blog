@@ -11,7 +11,7 @@ async function createPost(page: Page) {
   await page.goto('/admin/posts/new');
   await page.getByLabel('Slug').fill(slug);
   await page.getByRole('button', { name: 'Crear publicación' }).click();
-  return page.getByRole('row').filter({ has: page.getByRole('cell', { name: slug }) });
+  return page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: slug }) });
 }
 
 test('edits one localization with durable autosave and preserves conflicts', async ({

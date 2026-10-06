@@ -23,6 +23,7 @@ const metadataFields = [
   'licenseUrl',
 ] as const;
 const urlFields: ReadonlySet<string> = new Set(['sourceUrl', 'licenseUrl']);
+const textLink = 'inline-flex min-h-6 items-center underline underline-offset-4';
 /** Lets the editor hand over files pasted or dropped outside the upload box. */
 export type MediaUploader = { upload(files: File[]): void };
 type Props = {
@@ -47,11 +48,14 @@ export function AdminMedia({
   const [decorative, setDecorative] = useState(false);
   const [altMissing, setAltMissing] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  // Kept apart from the upload: a page that fails to load is not an image that
+  // failed to process, and loading one does not block an upload.
+  const [pageStatus, setPageStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const fileInput = useRef<HTMLInputElement>(null);
   const altInput = useRef<HTMLInputElement>(null);
 
   async function loadPage(next: number) {
-    setStatus('loading');
+    setPageStatus('loading');
     try {
       const response = await fetch(`/admin/media/page.json?page=${next}`);
       if (!response.ok) throw Error('page-failed');
@@ -59,9 +63,9 @@ export function AdminMedia({
       setAssets([...new Map(result.assets.map((asset) => [asset.id, asset])).values()]);
       setCurrentTotal(result.total);
       setCurrentPage(next);
-      setStatus('idle');
+      setPageStatus('idle');
     } catch {
-      setStatus('error');
+      setPageStatus('error');
     }
   }
 
@@ -190,19 +194,23 @@ export function AdminMedia({
       {assets.length === 0 ? (
         <p>{t('admin.media.empty')}</p>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          aria-busy={pageStatus === 'loading'}
+        >
           {assets.map((asset) => (
             <li key={asset.id} className="overflow-hidden rounded-lg border bg-background">
-              <button type="button" className="w-full text-left" onClick={() => onSelect?.(asset)}>
-                <img
-                  src={mediaPath(asset.r2Key)}
-                  alt={asset.altText ?? ''}
-                  className="aspect-video w-full object-cover"
-                />
-                <span className="block truncate p-3">
-                  {asset.altText || t('admin.media.decorative')}
-                </span>
-              </button>
+              {onSelect ? (
+                <button
+                  type="button"
+                  className="w-full text-left outline-none focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
+                  onClick={() => onSelect(asset)}
+                >
+                  <MediaCard asset={asset} />
+                </button>
+              ) : (
+                <MediaCard asset={asset} />
+              )}
               <details className="border-t p-3">
                 <summary>{t('admin.media.metadata')}</summary>
                 <MetadataForm
@@ -226,7 +234,9 @@ export function AdminMedia({
                 {t('listing.previous')}
               </Button>
             ) : (
-              <a href={`/admin/media?page=${currentPage - 1}`}>{t('listing.previous')}</a>
+              <a className={textLink} href={`/admin/media?page=${currentPage - 1}`}>
+                {t('listing.previous')}
+              </a>
             ))}
           {currentPage * 20 < currentTotal &&
             (onSelect ? (
@@ -234,11 +244,27 @@ export function AdminMedia({
                 {t('listing.next')}
               </Button>
             ) : (
-              <a href={`/admin/media?page=${currentPage + 1}`}>{t('listing.next')}</a>
+              <a className={textLink} href={`/admin/media?page=${currentPage + 1}`}>
+                {t('listing.next')}
+              </a>
             ))}
         </nav>
       )}
+      {pageStatus === 'error' && <p role="alert">{t('admin.media.pageError')}</p>}
     </div>
+  );
+}
+
+/**
+ * The caption already says what the alt text says, so the image is left
+ * unnamed rather than read twice.
+ */
+function MediaCard({ asset }: { asset: AdminMediaAsset }) {
+  return (
+    <>
+      <img src={mediaPath(asset.r2Key)} alt="" className="aspect-video w-full object-cover" />
+      <span className="block truncate p-3">{asset.altText || t('admin.media.decorative')}</span>
+    </>
   );
 }
 

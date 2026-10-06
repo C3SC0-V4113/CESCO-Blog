@@ -119,4 +119,10 @@ describe('AdminSeo', () => {
     );
     expect(screen.getByRole('button', { name: 'Guardar' })).toHaveProperty('disabled', true);
   });
+
+  it('keeps the social card title out of the page outline', () => {
+    renderSeo();
+    expect(screen.getByText('Una publicación')).toBeTruthy();
+    expect(screen.queryByRole('heading', { level: 3 })).toBeNull();
+  });
 });

@@ -53,7 +53,7 @@ async function publishNewPost(page: Page) {
   await expect(page).toHaveURL(/\/admin\/posts$/);
   const href = await page
     .getByRole('row')
-    .filter({ has: page.getByRole('cell', { name: slug }) })
+    .filter({ has: page.getByRole('rowheader', { name: slug }) })
     .getByRole('link', { name: 'Borrador' })
     .getAttribute('href');
   const match = /^\/admin\/posts\/([^/]+)\/edit\?localization=([^&]+)$/.exec(href ?? '');
@@ -134,17 +134,22 @@ test('featuring a post fills the home slot without repeating it below', async ({
   // eslint-disable-next-line playwright/no-skipped-test -- conditional: a second project would race this one for the slot.
   test.skip(testInfo.project.name !== 'chromium', 'The featured slot is global state.');
   const post = await publishNewPost(page);
-  const toggle = async (from: string, to: string) => {
+  // One label either way; the toggle reports its state as pressed.
+  const toggle = async (pressed: boolean) => {
     await page.goto('/admin/posts');
     await hydrated(page);
-    const row = page.getByRole('row').filter({ has: page.getByRole('cell', { name: post.title }) });
+    const row = page
+      .getByRole('row')
+      .filter({ has: page.getByRole('rowheader', { name: post.title }) });
+    const feature = row.getByRole('button', { name: /^Destacar/ });
+    await expect(feature).toHaveAttribute('aria-pressed', String(!pressed));
     const changed = actionResponse(page, 'setFeatured');
-    await row.getByRole('button', { name: from }).click();
+    await feature.click();
     expect((await changed).status()).toBe(200);
-    await expect(row.getByRole('button', { name: to })).toBeVisible();
+    await expect(feature).toHaveAttribute('aria-pressed', String(pressed));
   };
 
-  await toggle('Destacar', 'Quitar destacado');
+  await toggle(true);
   try {
     await page.goto('/es/');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(['Lo último']);
@@ -158,7 +163,7 @@ test('featuring a post fills the home slot without repeating it below', async ({
     // Once on the page, not once in the slot and again in the latest list.
     await expect(page.getByRole('link', { name: post.title })).toHaveCount(1);
   } finally {
-    await toggle('Quitar destacado', 'Destacar');
+    await toggle(false);
   }
 });
 

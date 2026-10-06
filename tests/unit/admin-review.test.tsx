@@ -11,7 +11,7 @@ vi.mock('@/lib/admin-actions', () => ({
 }));
 
 import { AdminReview } from '@/components/admin/admin-review';
-import { callRenameLocalization } from '@/lib/admin-actions';
+import { callPublish, callRenameLocalization } from '@/lib/admin-actions';
 
 import type { ReviewDetail } from '@/db/queries/admin-review';
 
@@ -128,5 +128,36 @@ describe('AdminReview', () => {
     renderReview();
     expect(slugField().getAttribute('autocomplete')).toBe('off');
     expect(slugField().getAttribute('spellcheck')).toBe('false');
+  });
+
+  it('explains a blocked publish beside a button that stays reachable', () => {
+    renderReview({ coverAssetId: null });
+    // Nothing happened yet, so nothing interrupts on load.
+    expect(screen.queryByRole('alert')).toBeNull();
+    const publish = screen.getByRole('button', { name: 'Publicar' });
+    expect(publish.getAttribute('aria-disabled')).toBe('true');
+    expect(publish).toHaveProperty('disabled', false);
+    expect(publish.getAttribute('aria-describedby')).toBe(
+      screen.getByText(/No se puede publicar/).id
+    );
+    fireEvent.click(publish);
+    expect(callPublish).not.toHaveBeenCalled();
+  });
+
+  it('keeps headings of the previewed draft out of the page outline', () => {
+    renderReview({
+      contentJson: {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { blockId: 'h', level: 2 },
+            content: [{ type: 'text', text: 'Una sección' }],
+          },
+        ],
+      },
+    } as Partial<ReviewDetail>);
+    expect(screen.getByText('Una sección')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Una sección' })).toBeNull();
   });
 });
