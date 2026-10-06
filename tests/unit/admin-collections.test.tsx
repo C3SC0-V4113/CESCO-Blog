@@ -68,10 +68,26 @@ describe('AdminCollectionEditor', () => {
     fill('English', 'Slug', 'sound');
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
 
-    expect(screen.getByRole('alert').textContent).toBe(
-      'El inglés necesita un título y un slug, o quedar vacío.'
+    const title = within(screen.getByRole('group', { name: 'English' })).getByLabelText('Título');
+    expect(title.getAttribute('aria-invalid')).toBe('true');
+    expect(title.matches(':focus')).toBe(true);
+    expect(title.getAttribute('aria-describedby')).toBe(
+      screen.getByText('El inglés necesita un título y un slug, o quedar vacío.').id
     );
     expect(callSaveCollection).not.toHaveBeenCalled();
+  });
+
+  it('points at the slug when only the slug is missing', () => {
+    render(<AdminCollectionEditor collection={collection} posts={[]} />);
+
+    fill('Español', 'Título', 'El sonido en los juegos');
+    fireEvent.submit((screen.getByRole('button', { name: 'Guardar' }) as HTMLButtonElement).form!);
+
+    const slug = within(screen.getByRole('group', { name: 'Español' })).getByLabelText('Slug');
+    expect(slug.getAttribute('aria-invalid')).toBe('true');
+    expect(slug.matches(':focus')).toBe(true);
+    expect(slug.getAttribute('autocomplete')).toBe('off');
+    expect(slug.getAttribute('spellcheck')).toBe('false');
   });
 
   it('saves through the form and shows progress without losing the label', () => {

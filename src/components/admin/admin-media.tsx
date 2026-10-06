@@ -1,5 +1,6 @@
 import { ImagePlusIcon, LoaderCircleIcon } from 'lucide-react';
 import { useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { flushSync } from 'react-dom';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
@@ -8,7 +9,7 @@ import { normalizeImage } from '@/lib/image-normalize';
 import { mediaPath } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
-import { inputClass, PendingButton } from './admin-form';
+import { FieldError, inputClass, invalidField, PendingButton } from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 
@@ -44,8 +45,10 @@ export function AdminMedia({
   const [currentTotal, setCurrentTotal] = useState(total);
   const [altText, setAltText] = useState('');
   const [decorative, setDecorative] = useState(false);
+  const [altMissing, setAltMissing] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const fileInput = useRef<HTMLInputElement>(null);
+  const altInput = useRef<HTMLInputElement>(null);
 
   async function loadPage(next: number) {
     setStatus('loading');
@@ -63,7 +66,17 @@ export function AdminMedia({
   }
 
   async function upload(files: FileList | File[]) {
-    if (files.length !== 1 || (!decorative && !altText.trim())) {
+    if (files.length === 1 && !decorative && !altText.trim()) {
+      // Rendered before the move, so focus lands on a field already described.
+      flushSync(() => {
+        setAltMissing(true);
+        setStatus('idle');
+      });
+      altInput.current?.focus();
+      if (fileInput.current) fileInput.current.value = '';
+      return;
+    }
+    if (files.length !== 1) {
       setStatus('error');
       if (fileInput.current) fileInput.current.value = '';
       return;
@@ -119,11 +132,16 @@ export function AdminMedia({
           <label className="grow">
             {t('admin.media.alt')}
             <input
+              ref={altInput}
               name="altText"
               className={cn('mt-1', inputClass)}
               disabled={decorative}
               value={altText}
-              onChange={(event) => setAltText(event.target.value)}
+              onChange={(event) => {
+                setAltText(event.target.value);
+                setAltMissing(false);
+              }}
+              {...invalidField('altText', altMissing)}
             />
           </label>
           <label className="flex h-10 items-center gap-2">
@@ -131,7 +149,10 @@ export function AdminMedia({
               name="decorative"
               type="checkbox"
               checked={decorative}
-              onChange={(event) => setDecorative(event.target.checked)}
+              onChange={(event) => {
+                setDecorative(event.target.checked);
+                setAltMissing(false);
+              }}
             />
             {t('admin.media.decorative')}
           </label>
@@ -162,6 +183,7 @@ export function AdminMedia({
             {t('admin.media.choose')}
           </label>
         </div>
+        {altMissing && <FieldError name="altText">{t('admin.media.altRequired')}</FieldError>}
         <p className="mt-2 text-sm text-muted-foreground">{t('admin.media.help')}</p>
         {status === 'error' && <p role="alert">{t('admin.media.error')}</p>}
       </section>

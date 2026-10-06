@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import { getTranslations } from '@/i18n/utils';
 import {
@@ -11,7 +12,7 @@ import { mediaPath } from '@/lib/media';
 import { isRenameLocalizationRejection } from '@/lib/publishing';
 import { cn } from '@/lib/utils';
 
-import { inputClass, PendingButton } from './admin-form';
+import { FieldError, inputClass, invalidField, PendingButton } from './admin-form';
 
 import type { ReviewDetail, ReviewQueueItem } from '@/db/queries/admin-review';
 
@@ -24,7 +25,7 @@ type Props = {
   total: number;
   pendingPurges: number;
 };
-type State = 'idle' | 'pending' | 'error' | 'acknowledgement-error';
+type State = 'idle' | 'pending' | 'error';
 type Action = 'publish' | 'unpublish' | 'rename';
 
 // Every outcome reloads, including one whose purge failed: the change recorded
@@ -126,6 +127,10 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
   const [state, setState] = useState<State>('idle');
   const [running, setRunning] = useState<Action>();
   const [renameConfirmed, setRenameConfirmed] = useState(false);
+  // Set when the server asks for the redirect confirmation this page did not
+  // know it needed, because the localization went live after it loaded.
+  const [acknowledgementRejected, setAcknowledgementRejected] = useState(false);
+  const acknowledgement = useRef<HTMLInputElement>(null);
   const operationId = useRef<string | null>(null);
   const mutation = detail ? { postId: detail.postId, localizationId: detail.localizationId } : null;
   const run = async (action: Action, work: () => Promise<{ error?: unknown; data?: unknown }>) => {
@@ -158,7 +163,8 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
     }
   };
   const blocked = !detail?.draftToken || !detail.title?.trim() || !detail.coverAssetId;
-  const needsAcknowledgement = Boolean(detail?.firstPublishedAt);
+  const needsAcknowledgement = Boolean(detail?.firstPublishedAt) || acknowledgementRejected;
+  const acknowledgementMissing = acknowledgementRejected && !renameConfirmed;
   const renameBlocked = state === 'pending' || (needsAcknowledgement && !renameConfirmed);
   const rename = async (form: HTMLFormElement) => {
     // Enter in the slug field submits as well, so this repeats the guard the
@@ -173,7 +179,12 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
       })
     );
     if (isRenameLocalizationRejection(data)) {
-      setState('acknowledgement-error');
+      // Rendered before the move, so focus lands on a checkbox already described.
+      flushSync(() => {
+        setAcknowledgementRejected(true);
+        setState('idle');
+      });
+      acknowledgement.current?.focus();
     } else if (data) {
       setRenameConfirmed(false);
       reload();
@@ -286,14 +297,21 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                   <p>{t('admin.review.renameWarning')}</p>
                   <label className="flex items-start gap-2">
                     <input
+                      ref={acknowledgement}
                       name="acknowledgePermanentRedirect"
                       type="checkbox"
                       autoComplete="off"
                       checked={renameConfirmed}
                       onChange={(event) => setRenameConfirmed(event.target.checked)}
+                      {...invalidField('acknowledgePermanentRedirect', acknowledgementMissing)}
                     />
                     {t('admin.review.renameConfirm')}
                   </label>
+                  {acknowledgementMissing && (
+                    <FieldError name="acknowledgePermanentRedirect">
+                      {t('admin.review.renameAcknowledgementError')}
+                    </FieldError>
+                  )}
                 </div>
               )}
               {blocked && <p role="alert">{t('admin.review.blocked')}</p>}
@@ -338,14 +356,12 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                   {t('admin.review.rename')}
                 </PendingButton>
               </div>
-              <p role={state === 'error' || state === 'acknowledgement-error' ? 'alert' : 'status'}>
+              <p role={state === 'error' ? 'alert' : 'status'}>
                 {state === 'pending'
                   ? t('admin.review.pending')
                   : state === 'error'
                     ? t('admin.review.error')
-                    : state === 'acknowledgement-error'
-                      ? t('admin.review.renameAcknowledgementError')
-                      : ''}
+                    : ''}
               </p>
             </form>
           )}

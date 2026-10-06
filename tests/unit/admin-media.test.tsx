@@ -92,6 +92,25 @@ describe('AdminMedia', () => {
     expect((view.getByLabelText('Elegir imagen') as HTMLInputElement).value).toBe('');
   });
 
+  it('sends a missing alt text back to its field instead of uploading', () => {
+    render(<AdminMedia assets={[]} onSelect={vi.fn()} />);
+    const alt = screen.getByLabelText('Texto alternativo');
+    expect(alt.hasAttribute('aria-invalid')).toBe(false);
+
+    fireEvent.change(screen.getByLabelText('Elegir imagen'), {
+      target: { files: [new File(['png'], 'mapa.png', { type: 'image/png' })] },
+    });
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(alt.getAttribute('aria-invalid')).toBe('true');
+    expect(alt.matches(':focus')).toBe(true);
+    expect(alt.getAttribute('aria-describedby')).toBe(
+      screen.getByText('Escribe el texto alternativo o marca la imagen como decorativa.').id
+    );
+    fireEvent.change(alt, { target: { value: 'Mapa' } });
+    expect(alt.hasAttribute('aria-invalid')).toBe(false);
+  });
+
   it('leaves the disabled state to the file input the label wraps', () => {
     vi.mocked(fetch).mockReturnValue(new Promise(() => {}));
     render(<AdminMedia assets={[]} onSelect={vi.fn()} />);

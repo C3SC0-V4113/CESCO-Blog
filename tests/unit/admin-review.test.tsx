@@ -104,6 +104,26 @@ describe('AdminReview', () => {
     expect(rename.innerHTML).toContain('aria-hidden="true"');
   });
 
+  it('ties a missing redirect confirmation to its checkbox and focuses it', async () => {
+    vi.mocked(callRenameLocalization).mockResolvedValue({
+      data: { status: 'rejected', code: 'PERMANENT_REDIRECT_ACKNOWLEDGEMENT_REQUIRED' },
+      error: undefined,
+    } as never);
+    // The server knows the localization went live after this page loaded.
+    renderReview();
+
+    fireEvent.change(slugField(), { target: { value: 'nuevo-slug' } });
+    fireEvent.submit(slugField().form!);
+
+    const checkbox = await screen.findByRole('checkbox', { name: /Confirmo/ });
+    await waitFor(() => expect(checkbox.matches(':focus')).toBe(true));
+    expect(checkbox.getAttribute('aria-invalid')).toBe('true');
+    expect(checkbox.getAttribute('aria-describedby')).toBe(
+      screen.getByText('Confirma la redirección permanente antes de cambiar el slug.').id
+    );
+    expect(reload).not.toHaveBeenCalled();
+  });
+
   it('marks the slug as a plain identifier, not prose', () => {
     renderReview();
     expect(slugField().getAttribute('autocomplete')).toBe('off');

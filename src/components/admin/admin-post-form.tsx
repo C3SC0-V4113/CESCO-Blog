@@ -12,7 +12,7 @@ import {
 } from '@/lib/admin-posts';
 import { cn } from '@/lib/utils';
 
-import { inputClass, PendingButton, selectClass } from './admin-form';
+import { FieldError, inputClass, invalidField, PendingButton, selectClass } from './admin-form';
 
 const t = getTranslations('es');
 const fieldsClass = 'grid gap-5 rounded-xl border bg-card p-5 shadow-sm sm:grid-cols-2';
@@ -34,6 +34,7 @@ export function AdminPostForm({
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<CreatePostInput, unknown, ValidCreatePostInput>({
     resolver: zodResolver(createPostSchema),
@@ -45,8 +46,16 @@ export function AdminPostForm({
       navigate('/admin/posts');
       return;
     }
-    const errorKey = result?.error?.code === 'CONFLICT' ? 'slugReserved' : 'createError';
-    setServerError(t(`admin.posts.${errorKey}`));
+    if (result?.error?.code === 'CONFLICT') {
+      setServerError(undefined);
+      setError(
+        'slug',
+        { type: 'server', message: t('admin.posts.slugReserved') },
+        { shouldFocus: true }
+      );
+      return;
+    }
+    setServerError(t('admin.posts.createError'));
   });
   return (
     <form
@@ -69,22 +78,23 @@ export function AdminPostForm({
             <option value="en">{t('locale.en')}</option>
           </select>
         </label>
-        <label className="flex flex-col gap-2 text-sm font-medium sm:col-span-2">
-          {t('admin.posts.slug')}
-          <input
-            {...register('slug')}
-            aria-invalid={Boolean(errors.slug)}
-            aria-describedby={errors.slug ? 'slug-error' : undefined}
-            className={inputClass}
-            autoComplete="off"
-            spellCheck={false}
-          />
+        <div className="sm:col-span-2">
+          <label className="flex flex-col gap-2 text-sm font-medium">
+            {t('admin.posts.slug')}
+            <input
+              {...register('slug')}
+              {...invalidField('slug', Boolean(errors.slug))}
+              className={inputClass}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </label>
           {errors.slug && (
-            <span id="slug-error" role="alert" className="text-sm font-normal text-destructive">
-              {t('admin.posts.slugInvalid')}
-            </span>
+            <FieldError name="slug">
+              {errors.slug.type === 'server' ? errors.slug.message : t('admin.posts.slugInvalid')}
+            </FieldError>
           )}
-        </label>
+        </div>
         {serverError && (
           <p role="alert" className="text-sm text-destructive sm:col-span-2">
             {serverError}

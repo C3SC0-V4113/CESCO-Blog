@@ -43,9 +43,12 @@ describe('admin post creation', () => {
       <AdminPostForm createPost={vi.fn().mockResolvedValue({ error: { code: 'CONFLICT' } })} />
     );
     submitSlug('reservado');
-    expect((await screen.findByRole('alert')).textContent).toBe(
-      'Ese slug ya está reservado para este idioma.'
-    );
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe('Ese slug ya está reservado para este idioma.');
+    const slug = screen.getByLabelText('Slug');
+    expect(slug.getAttribute('aria-invalid')).toBe('true');
+    expect(slug.getAttribute('aria-describedby')).toBe(alert.id);
+    expect(slug.matches(':focus')).toBe(true);
     view.unmount();
   });
 

@@ -81,6 +81,10 @@ describe('AdminSeo', () => {
         'La portada no se puede quitar mientras algún idioma de la publicación esté publicado.'
       )
     );
+    const cover = screen.getByLabelText('Portada editorial limpia');
+    expect(cover.getAttribute('aria-invalid')).toBe('true');
+    expect(cover.getAttribute('aria-describedby')).toBe(screen.getByRole('alert').id);
+    expect(cover.matches(':focus')).toBe(true);
   });
 
   it('saves through the form and shows progress without losing the label', () => {

@@ -3,7 +3,7 @@ import { LoaderCircleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 /*
  * One look for every admin text field, textarea and select. Fields draw the
@@ -17,6 +17,28 @@ const field =
 export const inputClass = cn(field, 'h-10 px-3');
 export const selectClass = inputClass;
 export const textareaClass = cn(field, 'min-h-24 p-3');
+
+export const fieldErrorId = (name: string) => `${name}-error`;
+
+/** What an invalid field carries, so its message is read with it. */
+export function invalidField(
+  name: string,
+  invalid: boolean
+): { 'aria-invalid'?: true; 'aria-describedby'?: string } {
+  return invalid ? { 'aria-invalid': true, 'aria-describedby': fieldErrorId(name) } : {};
+}
+
+/**
+ * The message beside the field it belongs to, found by `fieldErrorId(name)`.
+ * Render it outside the field's `<label>`, or it becomes part of the name.
+ */
+export function FieldError({ name, children }: { name: string; children: ReactNode }) {
+  return (
+    <p id={fieldErrorId(name)} role="alert" className="mt-1 text-sm text-destructive">
+      {children}
+    </p>
+  );
+}
 
 /**
  * A button that stays put while its request runs: disabled, with a spinner,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
@@ -10,7 +11,14 @@ import {
 import { pickCollectionLocalizations } from '@/lib/admin-taxonomy';
 import { cn } from '@/lib/utils';
 
-import { inputClass, PendingButton, selectClass, textareaClass } from './admin-form';
+import {
+  FieldError,
+  inputClass,
+  invalidField,
+  PendingButton,
+  selectClass,
+  textareaClass,
+} from './admin-form';
 
 import type {
   AdminCollectionDetail,
@@ -83,6 +91,7 @@ export function AdminCollectionEditor({
   const [postIds, setPostIds] = useState(() => collection.postIds);
   const [status, setStatus] = useState<'idle' | 'pending' | 'saved' | 'warning' | 'error'>('idle');
   const [error, setError] = useState<UiKey>('admin.common.error');
+  const [invalid, setInvalid] = useState<{ name: string; message: UiKey }>();
   const [localizationIds] = useState(() => ({
     es: collection.localizations.find(({ locale }) => locale === 'es')?.id ?? crypto.randomUUID(),
     en: collection.localizations.find(({ locale }) => locale === 'en')?.id ?? crypto.randomUUID(),
@@ -91,8 +100,18 @@ export function AdminCollectionEditor({
     setError(key);
     setStatus('error');
   };
+  // Rendered before the move, so the field is already marked invalid and
+  // described by its message when focus lands on it.
+  const failField = (form: HTMLFormElement, name: string, message: UiKey) => {
+    flushSync(() => {
+      setInvalid({ name, message });
+      setStatus('idle');
+    });
+    (form.elements.namedItem(name) as HTMLElement | null)?.focus();
+  };
   const save = async (form: HTMLFormElement) => {
     const data = new FormData(form);
+    setInvalid(undefined);
     const read = (locale: 'es' | 'en') => ({
       id: localizationIds[locale],
       slug: String(data.get(`${locale}-slug`) ?? ''),
@@ -104,8 +123,13 @@ export function AdminCollectionEditor({
       { es: read('es'), en: read('en') },
       new Set(collection.localizations.map(({ locale }) => locale))
     );
-    if (incomplete[0]) return fail(`admin.collections.incomplete.${incomplete[0]}`);
-    if (!localizations.length) return fail('admin.collections.localeRequired');
+    const [locale] = incomplete;
+    if (locale) {
+      const field = String(data.get(`${locale}-title`) ?? '').trim() ? 'slug' : 'title';
+      return failField(form, `${locale}-${field}`, `admin.collections.incomplete.${locale}`);
+    }
+    if (!localizations.length)
+      return failField(form, 'es-title', 'admin.collections.localeRequired');
     setStatus('pending');
     const result = await callSaveCollection({
       id: collection.id,
@@ -148,6 +172,7 @@ export function AdminCollectionEditor({
                 name={`${locale}-title`}
                 label={t('admin.collections.fieldTitle')}
                 defaultValue={current?.title}
+                invalid={invalid}
               />
               <Field
                 name={`${locale}-slug`}
@@ -156,6 +181,7 @@ export function AdminCollectionEditor({
                 readOnly={locked}
                 autoComplete="off"
                 spellCheck={false}
+                invalid={invalid}
               />
               {locked && (
                 <p className="text-sm text-muted-foreground">{t('admin.collections.slugLocked')}</p>
@@ -286,12 +312,26 @@ export function AdminCollectionEditor({
 function Field({
   label,
   name,
+  invalid,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string }) {
+}: React.InputHTMLAttributes<HTMLInputElement> & {
+  label: string;
+  name: string;
+  invalid?: { name: string; message: UiKey };
+}) {
+  const message = invalid?.name === name ? invalid.message : undefined;
   return (
-    <label>
-      {label}
-      <input name={name} className={cn('mt-1', inputClass)} {...props} />
-    </label>
+    <div>
+      <label>
+        {label}
+        <input
+          name={name}
+          className={cn('mt-1', inputClass)}
+          {...invalidField(name, Boolean(message))}
+          {...props}
+        />
+      </label>
+      {message && <FieldError name={name}>{t(message)}</FieldError>}
+    </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
@@ -9,7 +10,14 @@ import { effectiveSeo } from '@/lib/seo';
 import { SITE_NAME } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
-import { inputClass, PendingButton, selectClass, textareaClass } from './admin-form';
+import {
+  FieldError,
+  inputClass,
+  invalidField,
+  PendingButton,
+  selectClass,
+  textareaClass,
+} from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { AdminAuthor, AdminSeoState } from '@/db/queries/admin-taxonomy';
@@ -31,8 +39,11 @@ type FormValues = Record<
   string
 >;
 
-const saveErrorCopy: Partial<Record<string, UiKey>> = {
-  'cover-required-while-published': 'admin.seo.coverRequired',
+type Invalid = { name: keyof FormValues; message: UiKey };
+
+// Rejections that belong to one field, so the message sits beside it.
+const fieldErrors: Partial<Record<string, Invalid>> = {
+  'cover-required-while-published': { name: 'coverMediaId', message: 'admin.seo.coverRequired' },
 };
 
 export function AdminSeo({
@@ -59,7 +70,7 @@ export function AdminSeo({
   const [status, setStatus] = useState<
     'idle' | 'pending' | 'saved' | 'warning' | 'error' | 'conflict'
   >('idle');
-  const [error, setError] = useState<UiKey>('admin.common.error');
+  const [invalid, setInvalid] = useState<Invalid>();
   const outcome = useRef<'saved' | 'warning'>('saved');
   // The same values object for an unedited retry, so the queue below replays
   // the lost attempt rather than sending it again under a fresh token.
@@ -85,7 +96,7 @@ export function AdminSeo({
   const author = authors.find(({ id }) => id === values.authorId);
   const set = (key: keyof FormValues, value: string) =>
     setValues((current) => ({ ...current, [key]: value }));
-  const save = async () => {
+  const save = async (form: HTMLFormElement) => {
     if (submitted.current?.from !== values)
       submitted.current = {
         from: values,
@@ -103,6 +114,7 @@ export function AdminSeo({
         },
       };
     setStatus('pending');
+    setInvalid(undefined);
     try {
       await send(submitted.current.value);
       setStatus(outcome.current);
@@ -110,8 +122,14 @@ export function AdminSeo({
       const { code, message } = (caught ?? {}) as { code?: string; message?: string };
       // Another session moved the draft on; saving over it would lose its work.
       if (code === 'CONFLICT') return setStatus('conflict');
-      setError(saveErrorCopy[message ?? ''] ?? 'admin.common.error');
-      setStatus('error');
+      const field = fieldErrors[message ?? ''];
+      if (!field) return setStatus('error');
+      // Rendered before the move, so focus lands on a field already described.
+      flushSync(() => {
+        setInvalid(field);
+        setStatus('idle');
+      });
+      (form.elements.namedItem(field.name) as HTMLElement | null)?.focus();
     }
   };
   return (
@@ -120,7 +138,7 @@ export function AdminSeo({
         className="grid gap-4 rounded-xl border bg-background p-5"
         onSubmit={(event) => {
           event.preventDefault();
-          void save();
+          void save(event.currentTarget);
         }}
       >
         <label>
@@ -158,6 +176,7 @@ export function AdminSeo({
         />
         <Select
           name="coverMediaId"
+          invalid={invalid}
           label={t('admin.seo.cover')}
           value={values.coverMediaId}
           onChange={(value) => set('coverMediaId', value)}
@@ -193,7 +212,7 @@ export function AdminSeo({
           </PendingButton>
           <p role={status === 'error' || status === 'conflict' ? 'alert' : 'status'}>
             {status === 'error'
-              ? t(error)
+              ? t('admin.common.error')
               : status === 'conflict'
                 ? t('admin.editor.status.conflict')
                 : status === 'saved'
@@ -280,23 +299,29 @@ function Select({
   value,
   onChange,
   options,
-}: FieldProps & { options: Array<{ value: string; label: string }> }) {
+  invalid,
+}: FieldProps & { options: Array<{ value: string; label: string }>; invalid?: Invalid }) {
+  const message = invalid?.name === name ? invalid.message : undefined;
   return (
-    <label>
-      {label}
-      <select
-        name={name}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={cn('mt-1', selectClass)}
-      >
-        <option value="">{t('admin.common.none')}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div>
+      <label>
+        {label}
+        <select
+          name={name}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={cn('mt-1', selectClass)}
+          {...invalidField(name, Boolean(message))}
+        >
+          <option value="">{t('admin.common.none')}</option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {message && <FieldError name={name}>{t(message)}</FieldError>}
+    </div>
   );
 }
