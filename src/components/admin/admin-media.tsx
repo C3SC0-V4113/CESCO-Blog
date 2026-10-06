@@ -114,7 +114,7 @@ export function AdminMedia({
     <div className="grid gap-6">
       <section
         aria-label={t('admin.media.upload')}
-        className="rounded-xl border border-dashed bg-background p-4"
+        className="rounded-lg border border-dashed bg-background p-4"
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
@@ -192,7 +192,7 @@ export function AdminMedia({
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {assets.map((asset) => (
-            <li key={asset.id} className="overflow-hidden rounded-xl border bg-background">
+            <li key={asset.id} className="overflow-hidden rounded-lg border bg-background">
               <button type="button" className="w-full text-left" onClick={() => onSelect?.(asset)}>
                 <img
                   src={mediaPath(asset.r2Key)}
