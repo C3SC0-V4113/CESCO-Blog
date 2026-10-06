@@ -20,8 +20,13 @@ const SEEDED_MEMBERS = [
 const actionResponse = (page: Page, name: string) =>
   page.waitForResponse((response) => response.url().includes(`/_actions/admin.${name}`));
 
-// Astro drops `ssr` from an island once it hydrates; a click before that is lost.
-const hydrated = (page: Page) => expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+// Astro drops `ssr` from an island once it has asked React to hydrate, but
+// React commits later, and the admin stays inert until it does. A click or a
+// fill before then lands on nothing, which WebKit reaches late enough to hit.
+const hydrated = async (page: Page) => {
+  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+  await expect(page.locator('[inert]')).toHaveCount(0);
+};
 
 /**
  * A post of its own, published through the screens an editor uses, so nothing

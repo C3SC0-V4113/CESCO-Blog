@@ -44,10 +44,13 @@ const ADMIN_PAGES = [
   { name: 'authors', path: '/admin/authors' },
 ];
 
-// Astro drops `ssr` from an island once it hydrates. The admin is inert until
-// then, and axe skips inert content, so auditing earlier would pass a screen
-// nobody can use yet.
-const hydrated = (page: Page) => expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+// Astro drops `ssr` from an island once it has asked React to hydrate, and the
+// admin stays inert until React commits. axe skips inert content, so auditing
+// earlier would pass a screen nobody can use yet.
+const hydrated = async (page: Page) => {
+  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+  await expect(page.locator('[inert]')).toHaveCount(0);
+};
 
 async function audit(page: Page) {
   const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();

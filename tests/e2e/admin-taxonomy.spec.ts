@@ -7,9 +7,10 @@ test('creates an author through the protected admin workflow', async ({ page }) 
 
   await page.goto('/admin/authors');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Autores');
-  // The screen is inert until it hydrates, and a field typed into before that
-  // would not take the text.
-  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+  // The screen is inert until React commits, and a field typed into before
+  // that would not take the text. The island losing `ssr` comes earlier than
+  // the commit, so the inert attribute itself is what to wait on.
+  await expect(page.locator('[inert]')).toHaveCount(0);
 
   const form = page.getByRole('heading', { name: 'Nuevo autor' }).locator('..');
   await form.getByLabel('Nombre').fill(name);
