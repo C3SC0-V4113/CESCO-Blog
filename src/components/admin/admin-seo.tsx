@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 import {
   FieldError,
+  FormStatus,
   inputClass,
   invalidField,
   PendingButton,
@@ -210,17 +211,22 @@ export function AdminSeo({
           >
             {t('admin.common.save')}
           </PendingButton>
-          <p role={status === 'error' || status === 'conflict' ? 'alert' : 'status'}>
-            {status === 'error'
-              ? t('admin.common.error')
-              : status === 'conflict'
-                ? t('admin.editor.status.conflict')
-                : status === 'saved'
-                  ? t('admin.common.saved')
-                  : status === 'warning'
-                    ? t('admin.common.cacheWarning')
-                    : ''}
-          </p>
+          <FormStatus
+            message={
+              status === 'saved'
+                ? t('admin.common.saved')
+                : status === 'warning'
+                  ? t('admin.common.cacheWarning')
+                  : undefined
+            }
+            error={
+              status === 'error'
+                ? t('admin.common.error')
+                : status === 'conflict'
+                  ? t('admin.editor.status.conflict')
+                  : undefined
+            }
+          />
           {status === 'warning' && (
             <Button
               type="button"

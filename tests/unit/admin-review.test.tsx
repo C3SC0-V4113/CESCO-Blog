@@ -160,4 +160,19 @@ describe('AdminReview', () => {
     expect(screen.getByText('Una sección')).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Una sección' })).toBeNull();
   });
+
+  it('reports a failed action as an alert beside a region that stays', async () => {
+    vi.mocked(callPublish).mockResolvedValue({
+      data: undefined,
+      error: { code: 'INTERNAL_SERVER_ERROR' },
+    } as never);
+    renderReview();
+    const region = screen.getByRole('status');
+    expect(region.textContent).toBe('');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar' }));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/No se pudo/);
+    expect(screen.getByRole('status')).toBe(region);
+    expect(region.textContent).toBe('');
+  });
 });

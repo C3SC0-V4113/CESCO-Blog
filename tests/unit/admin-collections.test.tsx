@@ -187,4 +187,23 @@ describe('AdminCollectionEditor', () => {
     );
     expect(create).toHaveProperty('disabled', false);
   });
+
+  it('keeps the save region when a save fails', async () => {
+    vi.mocked(callSaveCollection).mockResolvedValue({
+      data: undefined,
+      error: { code: 'INTERNAL_SERVER_ERROR', message: 'unexpected' },
+    } as never);
+    render(<AdminCollectionEditor collection={collection} posts={[]} />);
+    // One region for the member list, one for the save.
+    expect(screen.getAllByRole('status')).toHaveLength(2);
+
+    fill('Español', 'Título', 'El sonido en los juegos');
+    fill('Español', 'Slug', 'el-sonido');
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'No se pudieron guardar los cambios.'
+    );
+    expect(screen.getAllByRole('status')).toHaveLength(2);
+  });
 });

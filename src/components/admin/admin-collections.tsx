@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 
 import {
   FieldError,
+  FormStatus,
   inputClass,
   invalidField,
   PendingButton,
@@ -336,15 +337,16 @@ export function AdminCollectionEditor({
         <PendingButton type="submit" pending={status === 'pending'}>
           {t('admin.common.save')}
         </PendingButton>
-        <p role={status === 'error' ? 'alert' : 'status'}>
-          {status === 'error'
-            ? t(error)
-            : status === 'saved'
+        <FormStatus
+          message={
+            status === 'saved'
               ? t('admin.common.saved')
               : status === 'warning'
                 ? t('admin.common.cacheWarning')
-                : ''}
-        </p>
+                : undefined
+          }
+          error={status === 'error' ? t(error) : undefined}
+        />
         {status === 'warning' && (
           <Button
             type="button"

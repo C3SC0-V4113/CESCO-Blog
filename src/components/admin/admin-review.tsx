@@ -12,7 +12,7 @@ import { mediaPath } from '@/lib/media';
 import { isRenameLocalizationRejection } from '@/lib/publishing';
 import { cn } from '@/lib/utils';
 
-import { FieldError, inputClass, invalidField, PendingButton } from './admin-form';
+import { FieldError, FormStatus, inputClass, invalidField, PendingButton } from './admin-form';
 
 import type { ReviewDetail, ReviewQueueItem } from '@/db/queries/admin-review';
 
@@ -375,13 +375,10 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                   {t('admin.review.rename')}
                 </PendingButton>
               </div>
-              <p role={state === 'error' ? 'alert' : 'status'}>
-                {state === 'pending'
-                  ? t('admin.review.pending')
-                  : state === 'error'
-                    ? t('admin.review.error')
-                    : ''}
-              </p>
+              <FormStatus
+                message={state === 'pending' ? t('admin.review.pending') : undefined}
+                error={state === 'error' ? t('admin.review.error') : undefined}
+              />
             </form>
           )}
         </section>

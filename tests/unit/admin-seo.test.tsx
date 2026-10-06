@@ -125,4 +125,23 @@ describe('AdminSeo', () => {
     expect(screen.getByText('Una publicación')).toBeTruthy();
     expect(screen.queryByRole('heading', { level: 3 })).toBeNull();
   });
+
+  it('keeps one polite region and inserts a failure beside it', async () => {
+    vi.mocked(callSaveSeoDraft)
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValue({ data: { status: 'saved' }, error: undefined } as never);
+    renderSeo();
+    const region = screen.getByRole('status');
+    expect(region.textContent).toBe('');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await screen.findByRole('alert');
+    // The region never turns into the alert, so it is still there, and quiet.
+    expect(screen.getByRole('status')).toBe(region);
+    expect(region.textContent).toBe('');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(region.textContent).toBe('Cambios guardados.'));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });

@@ -5,7 +5,7 @@ import { getTranslations } from '@/i18n/utils';
 import { callCreateAuthor, callRetryPendingPurges, callUpdateAuthor } from '@/lib/admin-actions';
 import { cn } from '@/lib/utils';
 
-import { inputClass, PendingButton, selectClass, textareaClass } from './admin-form';
+import { FormStatus, inputClass, PendingButton, selectClass, textareaClass } from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { AdminAuthor } from '@/db/queries/admin-taxonomy';
@@ -143,15 +143,16 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
         <PendingButton type="submit" pending={status === 'pending'}>
           {t('admin.common.save')}
         </PendingButton>
-        <p role={status === 'error' ? 'alert' : 'status'}>
-          {status === 'error'
-            ? t('admin.common.error')
-            : status === 'success'
+        <FormStatus
+          message={
+            status === 'success'
               ? t('admin.common.saved')
               : status === 'warning'
                 ? t('admin.common.cacheWarning')
-                : ''}
-        </p>
+                : undefined
+          }
+          error={status === 'error' ? t('admin.common.error') : undefined}
+        />
         {status === 'warning' && author && (
           <Button
             type="button"

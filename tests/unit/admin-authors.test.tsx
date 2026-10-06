@@ -80,4 +80,22 @@ describe('AdminAuthors', () => {
     expect(slug.getAttribute('spellcheck')).toBe('false');
     expect(existing(screen.getAllByLabelText('Nombre')).getAttribute('autocomplete')).toBe('off');
   });
+
+  it('keeps the polite region of each form and inserts a failure beside it', async () => {
+    vi.mocked(callUpdateAuthor).mockResolvedValue({
+      data: undefined,
+      error: { code: 'INTERNAL_SERVER_ERROR' },
+    } as never);
+    renderAuthors();
+    const region = existing(screen.getAllByRole('status'));
+    fireEvent.submit(
+      (existing(screen.getAllByRole('button', { name: 'Guardar' })) as HTMLButtonElement).form!
+    );
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'No se pudieron guardar los cambios.'
+    );
+    expect(existing(screen.getAllByRole('status'))).toBe(region);
+    expect(region.textContent).toBe('');
+  });
 });

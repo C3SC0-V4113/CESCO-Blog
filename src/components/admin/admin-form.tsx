@@ -1,4 +1,5 @@
 import { LoaderCircleIcon } from 'lucide-react';
+import { useSyncExternalStore } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,43 @@ export function FieldError({ name, children }: { name: string; children: ReactNo
     <p id={fieldErrorId(name)} role="alert" className="mt-1 text-sm text-destructive">
       {children}
     </p>
+  );
+}
+
+/**
+ * A form's outcome. Progress and success go to a polite region that is always
+ * rendered, so assistive technology is already listening when its text
+ * changes; a failure is inserted as an alert of its own. Neither changes role,
+ * which screen readers do not reliably announce. Errors that belong to one
+ * field go to its FieldError instead, so nothing is announced twice.
+ */
+export function FormStatus({ message, error }: { message?: string; error?: string }) {
+  return (
+    <>
+      <p role="status">{error ? '' : message}</p>
+      {error && (
+        <p role="alert" className="text-destructive">
+          {error}
+        </p>
+      )}
+    </>
+  );
+}
+
+const subscribeToNothing = () => () => {};
+
+/**
+ * False for the server render and the hydration pass, true once React owns the
+ * DOM. Every admin form is controlled, so text typed into a server-rendered
+ * input before hydration is reset to the server value when React commits — the
+ * edit vanishes with no error. WebKit reaches that commit late enough for an
+ * editor, and the e2e suite, to lose the first field typed.
+ */
+export function useHydrated() {
+  return useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false
   );
 }
 

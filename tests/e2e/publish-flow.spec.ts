@@ -159,6 +159,9 @@ test('reviews, publishes, withdraws, republishes, and renames one localization',
   expect(JSON.stringify(safeResultData)).not.toContain('redirect-acknowledgement-required');
   await page.reload();
   await expect(page.getByLabel('Slug')).toHaveValue(originalSlug);
+  // The screen is inert until it hydrates, and a field typed into before that
+  // would not take the text.
+  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
 
   const slug = `publicado-${crypto.randomUUID()}`;
   await page.getByLabel('Slug').fill(slug);

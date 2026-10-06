@@ -223,7 +223,8 @@ test('creates a series in Spanish alone and serves it only in Spanish', async ({
   const saved = actionResponse(page, 'saveCollection');
   await page.getByRole('button', { name: 'Guardar' }).click();
   expect((await saved).status()).toBe(200);
-  await expect(page.getByRole('status')).toHaveText('Cambios guardados.');
+  // The member list announces through a region of its own.
+  await expect(page.getByRole('status').filter({ hasText: /\S/ })).toHaveText('Cambios guardados.');
 
   await page.reload();
   await expect(spanish.getByLabel('Título')).toHaveValue(title);

@@ -9,7 +9,7 @@ import { normalizeImage } from '@/lib/image-normalize';
 import { mediaPath } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
-import { FieldError, inputClass, invalidField, PendingButton } from './admin-form';
+import { FieldError, FormStatus, inputClass, invalidField, PendingButton } from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 
@@ -334,15 +334,16 @@ function MetadataForm({
       <PendingButton type="submit" variant="outline" pending={status === 'pending'}>
         {t('admin.media.saveMetadata')}
       </PendingButton>
-      <p role={status === 'error' ? 'alert' : 'status'}>
-        {status === 'pending'
-          ? t('admin.media.metadataPending')
-          : status === 'success'
-            ? t('admin.media.metadataSuccess')
-            : status === 'error'
-              ? t('admin.media.metadataError')
-              : ''}
-      </p>
+      <FormStatus
+        message={
+          status === 'pending'
+            ? t('admin.media.metadataPending')
+            : status === 'success'
+              ? t('admin.media.metadataSuccess')
+              : undefined
+        }
+        error={status === 'error' ? t('admin.media.metadataError') : undefined}
+      />
     </form>
   );
 }

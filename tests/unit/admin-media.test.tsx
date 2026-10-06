@@ -211,4 +211,20 @@ describe('AdminMedia', () => {
     );
     expect(list.getAttribute('aria-busy')).toBe('false');
   });
+
+  it('reports failed metadata as an alert beside a region that stays', async () => {
+    vi.mocked(callUpdateMediaAsset).mockResolvedValue({
+      error: { code: 'INTERNAL_SERVER_ERROR' },
+    } as never);
+    render(<AdminMedia assets={[asset]} />);
+    fireEvent.click(screen.getByText('Editar metadatos'));
+    const region = screen.getByRole('status');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar metadatos' }));
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'No se pudieron guardar los metadatos. Intenta de nuevo.'
+    );
+    expect(screen.getByRole('status')).toBe(region);
+    expect(region.textContent).toBe('');
+  });
 });
