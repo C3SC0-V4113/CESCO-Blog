@@ -20,7 +20,7 @@
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.963 0.002 197.1);
-  --muted-foreground: oklch(0.56 0.021 213.5);
+  --muted-foreground: oklch(0.52 0.021 213.5);
   --accent: oklch(0.511 0.096 186.391);
   --accent-foreground: oklch(0.984 0.014 180.72);
   --destructive: oklch(0.577 0.245 27.325);
@@ -142,6 +142,12 @@
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  /*
+   * De-emphasized text sits on muted surfaces as often as on the page: table
+   * heads, disclosures, the admin's tinted canvas. The light value is set for
+   * the darkest of them, 4.91:1 on `--muted` and 5.46:1 on white, rather than
+   * for white alone, where the registry's value fell to 4.13:1 on `--muted`.
+   */
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
