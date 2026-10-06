@@ -18,7 +18,9 @@ import { callSaveDraft } from '@/lib/admin-actions';
 import { createDraftSave, DraftAutosave } from '@/lib/draft-autosave';
 import { parseDraftContent } from '@/lib/drafts';
 import { imageFilesToUpload, imageNode, mediaPath } from '@/lib/media';
+import { cn } from '@/lib/utils';
 
+import { inputClass, textareaClass } from './admin-form';
 import { AdminMedia, type MediaUploader } from './admin-media';
 import { MediaImage } from './media-image-extension';
 
@@ -228,32 +230,40 @@ export function AdminEditor({
           })}
         </div>
       </div>
-      <label>
-        {t('admin.editor.postTitle')}
-        <input
-          aria-describedby="editor-title-constraint"
-          className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
-          defaultValue={draft.title}
-          maxLength={300}
-          onChange={(event) => editField('title', event.target.value)}
-        />
-        <span id="editor-title-constraint" className="mt-1 block text-sm text-muted-foreground">
+      {/* Each constraint sits outside its label: inside, it would be read twice,
+          once in the name and again as the description. */}
+      <div>
+        <label>
+          {t('admin.editor.postTitle')}
+          <input
+            name="title"
+            aria-describedby="editor-title-constraint"
+            className={cn('mt-1', inputClass)}
+            defaultValue={draft.title}
+            maxLength={300}
+            onChange={(event) => editField('title', event.target.value)}
+          />
+        </label>
+        <p id="editor-title-constraint" className="mt-1 text-sm text-muted-foreground">
           {t('admin.editor.titleConstraint')}
-        </span>
-      </label>
-      <label>
-        {t('admin.editor.excerpt')}
-        <textarea
-          aria-describedby="editor-excerpt-constraint"
-          className="mt-1 min-h-20 w-full rounded-lg border bg-background p-3"
-          defaultValue={draft.excerpt ?? ''}
-          maxLength={1000}
-          onChange={(event) => editField('excerpt', event.target.value)}
-        />
-        <span id="editor-excerpt-constraint" className="mt-1 block text-sm text-muted-foreground">
+        </p>
+      </div>
+      <div>
+        <label>
+          {t('admin.editor.excerpt')}
+          <textarea
+            name="excerpt"
+            aria-describedby="editor-excerpt-constraint"
+            className={cn('mt-1 min-h-20', textareaClass)}
+            defaultValue={draft.excerpt ?? ''}
+            maxLength={1000}
+            onChange={(event) => editField('excerpt', event.target.value)}
+          />
+        </label>
+        <p id="editor-excerpt-constraint" className="mt-1 text-sm text-muted-foreground">
           {t('admin.editor.excerptConstraint')}
-        </span>
-      </label>
+        </p>
+      </div>
       <div className="flex flex-wrap gap-2" role="toolbar" aria-label={t('admin.editor.toolbar')}>
         {tools.map(([label, Icon, run]) => (
           <Button

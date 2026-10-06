@@ -92,6 +92,48 @@ describe('AdminMedia', () => {
     expect((view.getByLabelText('Elegir imagen') as HTMLInputElement).value).toBe('');
   });
 
+  it('leaves the disabled state to the file input the label wraps', () => {
+    vi.mocked(fetch).mockReturnValue(new Promise(() => {}));
+    render(<AdminMedia assets={[]} onSelect={vi.fn()} />);
+    const input = screen.getByLabelText('Elegir imagen') as HTMLInputElement;
+    fireEvent.change(screen.getByLabelText('Texto alternativo'), { target: { value: 'Mapa' } });
+    fireEvent.change(input, {
+      target: { files: [new File(['png'], 'mapa.png', { type: 'image/png' })] },
+    });
+
+    expect(input.disabled).toBe(true);
+    expect(
+      screen.getByText('Elegir imagen', { selector: 'label' }).hasAttribute('aria-disabled')
+    ).toBe(false);
+  });
+
+  it('labels every metadata field visibly and saves through the form', async () => {
+    vi.mocked(callUpdateMediaAsset).mockReturnValue(new Promise(() => {}));
+    render(<AdminMedia assets={[asset]} />);
+    const form = (screen.getByRole('button', { name: 'Guardar metadatos' }) as HTMLButtonElement)
+      .form!;
+    const view = within(form);
+    for (const name of ['URL de origen', 'URL de licencia']) {
+      const field = view.getByLabelText(name) as HTMLInputElement;
+      expect(field.hasAttribute('aria-label')).toBe(false);
+      expect(view.getByText(name, { selector: 'label' })).toBeTruthy();
+      expect(field.type).toBe('url');
+      expect(field.inputMode).toBe('url');
+    }
+    expect(view.getByLabelText('Pie de imagen').hasAttribute('aria-label')).toBe(false);
+    expect(view.getByText('Pie de imagen', { selector: 'label' })).toBeTruthy();
+    const save = view.getByRole('button', { name: 'Guardar metadatos' });
+    expect(save.getAttribute('type')).toBe('submit');
+
+    expect(fireEvent.submit(form)).toBe(false);
+
+    await waitFor(() => expect(save).toHaveProperty('disabled', true));
+    expect(callUpdateMediaAsset).toHaveBeenCalledTimes(1);
+    expect(save.textContent).toBe('Guardar metadatos');
+    expect(save.innerHTML).toMatch(/<svg[^>]*animate-spin motion-reduce:animate-none/);
+    expect(save.innerHTML).toContain('aria-hidden="true"');
+  });
+
   it('preserves failed metadata and publishes successful metadata to selection', async () => {
     vi.mocked(callUpdateMediaAsset)
       .mockResolvedValueOnce({ error: { code: 'INTERNAL_SERVER_ERROR' } } as never)

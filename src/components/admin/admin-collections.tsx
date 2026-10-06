@@ -10,6 +10,8 @@ import {
 import { pickCollectionLocalizations } from '@/lib/admin-taxonomy';
 import { cn } from '@/lib/utils';
 
+import { inputClass, PendingButton, selectClass, textareaClass } from './admin-form';
+
 import type {
   AdminCollectionDetail,
   AdminCollectionSummary,
@@ -117,13 +119,19 @@ export function AdminCollectionEditor({
   const selectedPostIds = new Set(postIds);
   const available = posts.filter(({ id }) => !selectedPostIds.has(id));
   return (
-    <form className="grid gap-6">
+    <form
+      className="grid gap-6"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void save(event.currentTarget);
+      }}
+    >
       <label>
         {t('admin.collections.lifecycle')}
         <select
           name="editorialState"
           defaultValue={collection.editorialState}
-          className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
+          className={cn('mt-1', selectClass)}
         >
           <option value="active">{t('admin.posts.state.active')}</option>
           <option value="archived">{t('admin.posts.state.archived')}</option>
@@ -146,6 +154,8 @@ export function AdminCollectionEditor({
                 label={t('admin.collections.slug')}
                 defaultValue={current?.slug}
                 readOnly={locked}
+                autoComplete="off"
+                spellCheck={false}
               />
               {locked && (
                 <p className="text-sm text-muted-foreground">{t('admin.collections.slugLocked')}</p>
@@ -155,7 +165,7 @@ export function AdminCollectionEditor({
                 <textarea
                   name={`${locale}-description`}
                   defaultValue={current?.description ?? ''}
-                  className="mt-1 min-h-24 w-full rounded-lg border bg-background p-3"
+                  className={cn('mt-1', textareaClass)}
                 />
               </label>
               <label>
@@ -163,7 +173,7 @@ export function AdminCollectionEditor({
                 <select
                   name={`${locale}-status`}
                   defaultValue={current?.status ?? 'draft'}
-                  className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
+                  className={cn('mt-1', selectClass)}
                 >
                   <option value="draft">{t('admin.posts.locale.draft')}</option>
                   <option value="published">{t('admin.posts.locale.published')}</option>
@@ -224,7 +234,7 @@ export function AdminCollectionEditor({
         <label>
           {t('admin.collections.add')}
           <select
-            className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
+            className={cn('mt-1', selectClass)}
             value=""
             onChange={(event) => {
               if (event.target.value) setPostIds((items) => [...items, event.target.value]);
@@ -240,13 +250,9 @@ export function AdminCollectionEditor({
         </label>
       </section>
       <div className="flex items-center gap-3">
-        <Button
-          type="button"
-          disabled={status === 'pending'}
-          onClick={(event) => void save(event.currentTarget.form!)}
-        >
+        <PendingButton type="submit" pending={status === 'pending'}>
           {t('admin.common.save')}
-        </Button>
+        </PendingButton>
         <p role={status === 'error' ? 'alert' : 'status'}>
           {status === 'error'
             ? t(error)
@@ -285,11 +291,7 @@ function Field({
   return (
     <label>
       {label}
-      <input
-        name={name}
-        className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
-        {...props}
-      />
+      <input name={name} className={cn('mt-1', inputClass)} {...props} />
     </label>
   );
 }

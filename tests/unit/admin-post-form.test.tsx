@@ -49,6 +49,26 @@ describe('admin post creation', () => {
     view.unmount();
   });
 
+  it('keeps the label and shows progress while the post is created', async () => {
+    const view = render(
+      <AdminPostForm createPost={vi.fn().mockReturnValue(new Promise(() => {}))} />
+    );
+    const create = screen.getByRole('button', { name: 'Crear publicación' });
+    expect(create).toHaveProperty('disabled', false);
+    submitSlug('en-curso');
+    await waitFor(() => expect(create).toHaveProperty('disabled', true));
+    expect(create.textContent).toBe('Crear publicación');
+    expect(create.innerHTML).toMatch(/<svg[^>]*animate-spin motion-reduce:animate-none/);
+    expect(create.innerHTML).toContain('aria-hidden="true"');
+    view.unmount();
+  });
+
+  it('marks the slug as a plain identifier, not prose', () => {
+    const view = render(<AdminPostForm />);
+    expect(screen.getByLabelText('Slug').getAttribute('spellcheck')).toBe('false');
+    view.unmount();
+  });
+
   it('returns to the post list once the post exists', async () => {
     const navigate = vi.fn();
     const view = render(<AdminPostForm navigate={navigate} />);

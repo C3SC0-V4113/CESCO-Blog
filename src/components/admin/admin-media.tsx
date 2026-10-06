@@ -6,6 +6,9 @@ import { getTranslations } from '@/i18n/utils';
 import { callUpdateMediaAsset } from '@/lib/admin-actions';
 import { normalizeImage } from '@/lib/image-normalize';
 import { mediaPath } from '@/lib/media';
+import { cn } from '@/lib/utils';
+
+import { inputClass, PendingButton } from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 
@@ -18,6 +21,7 @@ const metadataFields = [
   'licenseLabel',
   'licenseUrl',
 ] as const;
+const urlFields: ReadonlySet<string> = new Set(['sourceUrl', 'licenseUrl']);
 /** Lets the editor hand over files pasted or dropped outside the upload box. */
 export type MediaUploader = { upload(files: File[]): void };
 type Props = {
@@ -115,7 +119,8 @@ export function AdminMedia({
           <label className="grow">
             {t('admin.media.alt')}
             <input
-              className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
+              name="altText"
+              className={cn('mt-1', inputClass)}
               disabled={decorative}
               value={altText}
               onChange={(event) => setAltText(event.target.value)}
@@ -123,13 +128,21 @@ export function AdminMedia({
           </label>
           <label className="flex h-10 items-center gap-2">
             <input
+              name="decorative"
               type="checkbox"
               checked={decorative}
               onChange={(event) => setDecorative(event.target.checked)}
             />
             {t('admin.media.decorative')}
           </label>
-          <label className={buttonVariants()} aria-disabled={status === 'loading'}>
+          {/* The label is the visible control, so it draws the focus ring and the
+              disabled look of the file input it wraps. */}
+          <label
+            className={cn(
+              buttonVariants(),
+              'has-focus-visible:border-ring has-focus-visible:ring-3 has-focus-visible:ring-ring has-disabled:pointer-events-none has-disabled:opacity-50'
+            )}
+          >
             <input
               className="sr-only"
               ref={fileInput}
@@ -139,9 +152,12 @@ export function AdminMedia({
               onChange={(event) => event.target.files && void upload(event.target.files)}
             />
             {status === 'loading' ? (
-              <LoaderCircleIcon className="animate-spin" />
+              <LoaderCircleIcon
+                aria-hidden="true"
+                className="animate-spin motion-reduce:animate-none"
+              />
             ) : (
-              <ImagePlusIcon />
+              <ImagePlusIcon aria-hidden="true" />
             )}
             {t('admin.media.choose')}
           </label>
@@ -233,32 +249,43 @@ function MetadataForm({
     }
   };
   return (
-    <form className="mt-3 grid gap-2">
-      <input name="altText" aria-label={t('admin.media.alt')} defaultValue={asset.altText ?? ''} />
+    <form
+      className="mt-3 grid gap-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void save(event.currentTarget);
+      }}
+    >
+      <label>
+        {t('admin.media.alt')}
+        <input
+          name="altText"
+          defaultValue={asset.altText ?? ''}
+          className={cn('mt-1', inputClass)}
+        />
+      </label>
       <label>
         <input name="decorative" type="checkbox" defaultChecked={asset.altText === ''} />{' '}
         {t('admin.media.decorative')}
       </label>
       {metadataFields.map((field) => (
-        <input
-          key={field}
-          name={field}
-          aria-label={t(`admin.media.${field}`)}
-          defaultValue={asset[field] ?? ''}
-        />
+        <label key={field}>
+          {t(`admin.media.${field}`)}
+          <input
+            name={field}
+            defaultValue={asset[field] ?? ''}
+            className={cn('mt-1', inputClass)}
+            {...(urlFields.has(field) && { type: 'url', inputMode: 'url' as const })}
+          />
+        </label>
       ))}
       <label>
         <input name="isOwnWork" type="checkbox" defaultChecked={asset.isOwnWork} />{' '}
         {t('admin.media.isOwnWork')}
       </label>
-      <Button
-        type="button"
-        variant="outline"
-        disabled={status === 'pending'}
-        onClick={(event) => void save(event.currentTarget.form!)}
-      >
+      <PendingButton type="submit" variant="outline" pending={status === 'pending'}>
         {t('admin.media.saveMetadata')}
-      </Button>
+      </PendingButton>
       <p role={status === 'error' ? 'alert' : 'status'}>
         {status === 'pending'
           ? t('admin.media.metadataPending')

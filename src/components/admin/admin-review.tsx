@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 
-import { Button } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
 import {
   callPublish,
@@ -10,6 +9,9 @@ import {
 } from '@/lib/admin-actions';
 import { mediaPath } from '@/lib/media';
 import { isRenameLocalizationRejection } from '@/lib/publishing';
+import { cn } from '@/lib/utils';
+
+import { inputClass, PendingButton } from './admin-form';
 
 import type { ReviewDetail, ReviewQueueItem } from '@/db/queries/admin-review';
 
@@ -23,6 +25,7 @@ type Props = {
   pendingPurges: number;
 };
 type State = 'idle' | 'pending' | 'error' | 'acknowledgement-error';
+type Action = 'publish' | 'unpublish' | 'rename';
 
 // Every outcome reloads, including one whose purge failed: the change recorded
 // its tags when it committed (ADR-0037), so the server renders the pending
@@ -44,14 +47,14 @@ function PendingPurgesNotice() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/40 p-4 text-sm">
       <p>{t('admin.review.pendingPurges')}</p>
-      <Button
+      <PendingButton
         type="button"
         variant="outline"
-        disabled={state === 'pending'}
+        pending={state === 'pending'}
         onClick={() => void retry()}
       >
         {t('admin.review.retryPurge')}
-      </Button>
+      </PendingButton>
       {state === 'error' && (
         <p role="alert" className="basis-full">
           {t('admin.review.pendingPurgesError')}
@@ -121,11 +124,13 @@ function reviewUrl(page: number, selection?: ReviewDetail | ReviewQueueItem | nu
 
 export function AdminReview({ items, detail, page, pageSize, total, pendingPurges }: Props) {
   const [state, setState] = useState<State>('idle');
+  const [running, setRunning] = useState<Action>();
   const [renameConfirmed, setRenameConfirmed] = useState(false);
   const operationId = useRef<string | null>(null);
   const mutation = detail ? { postId: detail.postId, localizationId: detail.localizationId } : null;
-  const run = async (work: () => Promise<{ error?: unknown; data?: unknown }>) => {
+  const run = async (action: Action, work: () => Promise<{ error?: unknown; data?: unknown }>) => {
     setState('pending');
+    setRunning(action);
     try {
       const result = await work();
       if (result.error) throw result.error;
@@ -140,7 +145,7 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
     // Kept across a failed call, so retrying after a lost response replays the
     // same revision instead of publishing a second one.
     operationId.current ??= crypto.randomUUID();
-    const data = await run(() =>
+    const data = await run('publish', () =>
       callPublish({
         ...mutation!,
         draftToken: detail.draftToken!,
@@ -153,7 +158,27 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
     }
   };
   const blocked = !detail?.draftToken || !detail.title?.trim() || !detail.coverAssetId;
-  const everPublished = Boolean(detail?.firstPublishedAt);
+  const needsAcknowledgement = Boolean(detail?.firstPublishedAt);
+  const renameBlocked = state === 'pending' || (needsAcknowledgement && !renameConfirmed);
+  const rename = async (form: HTMLFormElement) => {
+    // Enter in the slug field submits as well, so this repeats the guard the
+    // disabled button already applies.
+    if (renameBlocked) return;
+    const slug = new FormData(form).get('slug');
+    const data = await run('rename', () =>
+      callRenameLocalization({
+        ...mutation!,
+        slug: String(slug),
+        acknowledgePermanentRedirect: renameConfirmed,
+      })
+    );
+    if (isRenameLocalizationRejection(data)) {
+      setState('acknowledgement-error');
+    } else if (data) {
+      setRenameConfirmed(false);
+      reload();
+    }
+  };
   const firstItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const lastItem = Math.min(page * pageSize, total);
 
@@ -210,7 +235,13 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
           {!detail ? (
             <p>{t('admin.review.select')}</p>
           ) : (
-            <form className="grid gap-4">
+            <form
+              className="grid gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void rename(event.currentTarget);
+              }}
+            >
               <div>
                 <h2 className="text-xl font-semibold">{detail.title || detail.slug}</h2>
                 <p className="text-sm text-muted-foreground">
@@ -241,17 +272,21 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                 <input
                   name="slug"
                   defaultValue={detail.slug}
+                  required
+                  autoComplete="off"
+                  spellCheck={false}
                   onChange={(event) => {
                     if (event.target.value === detail.slug) setRenameConfirmed(false);
                   }}
-                  className="mt-1 h-10 w-full rounded-lg border px-3"
+                  className={cn('mt-1', inputClass)}
                 />
               </label>
-              {everPublished && (
+              {needsAcknowledgement && (
                 <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
                   <p>{t('admin.review.renameWarning')}</p>
                   <label className="flex items-start gap-2">
                     <input
+                      name="acknowledgePermanentRedirect"
                       type="checkbox"
                       autoComplete="off"
                       checked={renameConfirmed}
@@ -263,8 +298,9 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
               )}
               {blocked && <p role="alert">{t('admin.review.blocked')}</p>}
               <div className="flex flex-wrap gap-2">
-                <Button
+                <PendingButton
                   type="button"
+                  pending={state === 'pending' && running === 'publish'}
                   disabled={blocked || state === 'pending'}
                   onClick={() => void publish()}
                 >
@@ -273,13 +309,14 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                       ? 'admin.review.republish'
                       : 'admin.review.publish'
                   )}
-                </Button>
-                <Button
+                </PendingButton>
+                <PendingButton
                   type="button"
                   variant="outline"
+                  pending={state === 'pending' && running === 'unpublish'}
                   disabled={detail.status !== 'published' || state === 'pending'}
                   onClick={() =>
-                    void run(() =>
+                    void run('unpublish', () =>
                       callUnpublish({
                         ...mutation!,
                         publishedRevisionId: detail.publishedRevisionId ?? undefined,
@@ -290,31 +327,16 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                   }
                 >
                   {t('admin.review.unpublish')}
-                </Button>
-                <Button
-                  type="button"
+                </PendingButton>
+                {/* The form's only submit button, so Enter in the slug field renames. */}
+                <PendingButton
+                  type="submit"
                   variant="outline"
-                  disabled={state === 'pending' || (everPublished && !renameConfirmed)}
-                  onClick={(event) => {
-                    const slug = new FormData(event.currentTarget.form!).get('slug');
-                    void run(() =>
-                      callRenameLocalization({
-                        ...mutation!,
-                        slug: String(slug),
-                        acknowledgePermanentRedirect: renameConfirmed,
-                      })
-                    ).then((data) => {
-                      if (isRenameLocalizationRejection(data)) {
-                        setState('acknowledgement-error');
-                      } else if (data) {
-                        setRenameConfirmed(false);
-                        reload();
-                      }
-                    });
-                  }}
+                  pending={state === 'pending' && running === 'rename'}
+                  disabled={renameBlocked}
                 >
                   {t('admin.review.rename')}
-                </Button>
+                </PendingButton>
               </div>
               <p role={state === 'error' || state === 'acknowledgement-error' ? 'alert' : 'status'}>
                 {state === 'pending'

@@ -7,6 +7,9 @@ import { createDraftSave } from '@/lib/draft-autosave';
 import { mediaPath } from '@/lib/media';
 import { effectiveSeo } from '@/lib/seo';
 import { SITE_NAME } from '@/lib/site';
+import { cn } from '@/lib/utils';
+
+import { inputClass, PendingButton, selectClass, textareaClass } from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { AdminAuthor, AdminSeoState } from '@/db/queries/admin-taxonomy';
@@ -113,66 +116,81 @@ export function AdminSeo({
   };
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.8fr)]">
-      <form className="grid gap-4 rounded-xl border bg-background p-5">
+      <form
+        className="grid gap-4 rounded-xl border bg-background p-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void save();
+        }}
+      >
         <label>
           {t('admin.seo.canonical')}
           <input
+            name="canonical"
             readOnly
             value={canonical}
-            className="mt-1 h-10 w-full rounded-lg border bg-muted px-3"
+            className={cn('mt-1 bg-muted', inputClass)}
           />
         </label>
         <Text
+          name="seoTitle"
           label={t('admin.seo.title')}
           value={values.seoTitle}
           onChange={(value) => set('seoTitle', value)}
         />
         <Area
+          name="seoDescription"
           label={t('admin.seo.description')}
           value={values.seoDescription}
           onChange={(value) => set('seoDescription', value)}
         />
         <Text
+          name="ogTitle"
           label={t('admin.seo.ogTitle')}
           value={values.ogTitle}
           onChange={(value) => set('ogTitle', value)}
         />
         <Area
+          name="ogDescription"
           label={t('admin.seo.ogDescription')}
           value={values.ogDescription}
           onChange={(value) => set('ogDescription', value)}
         />
         <Select
+          name="coverMediaId"
           label={t('admin.seo.cover')}
           value={values.coverMediaId}
           onChange={(value) => set('coverMediaId', value)}
           options={media.map((asset) => ({ value: asset.id, label: asset.altText || asset.r2Key }))}
         />
         <Select
+          name="authorId"
           label={t('admin.seo.author')}
           value={values.authorId}
           onChange={(value) => set('authorId', value)}
           options={authors.map((item) => ({ value: item.id, label: item.name }))}
         />
         <Select
+          name="ogImageMediaId"
           label={t('admin.seo.ogImage')}
           value={values.ogImageMediaId}
           onChange={(value) => set('ogImageMediaId', value)}
           options={media.map((asset) => ({ value: asset.id, label: asset.altText || asset.r2Key }))}
         />
         <Text
+          name="ogImageAlt"
           label={t('admin.seo.ogAlt')}
           value={values.ogImageAlt}
           onChange={(value) => set('ogImageAlt', value)}
         />
         <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            disabled={status === 'pending' || status === 'conflict'}
-            onClick={() => void save()}
+          <PendingButton
+            type="submit"
+            pending={status === 'pending'}
+            disabled={status === 'conflict'}
           >
             {t('admin.common.save')}
-          </Button>
+          </PendingButton>
           <p role={status === 'error' || status === 'conflict' ? 'alert' : 'status'}>
             {status === 'error'
               ? t(error)
@@ -224,64 +242,53 @@ export function AdminSeo({
     </div>
   );
 }
-function Text({
-  label,
-  value,
-  onChange,
-}: {
+type FieldProps = {
+  name: keyof FormValues;
   label: string;
   value: string;
   onChange(value: string): void;
-}) {
+};
+function Text({ name, label, value, onChange }: FieldProps) {
   return (
     <label>
       {label}
       <input
+        name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
+        className={cn('mt-1', inputClass)}
       />
     </label>
   );
 }
-function Area({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange(value: string): void;
-}) {
+function Area({ name, label, value, onChange }: FieldProps) {
   return (
     <label>
       {label}
       <textarea
+        name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 min-h-24 w-full rounded-lg border bg-background p-3"
+        className={cn('mt-1', textareaClass)}
       />
     </label>
   );
 }
 function Select({
+  name,
   label,
   value,
   onChange,
   options,
-}: {
-  label: string;
-  value: string;
-  onChange(value: string): void;
-  options: Array<{ value: string; label: string }>;
-}) {
+}: FieldProps & { options: Array<{ value: string; label: string }> }) {
   return (
     <label>
       {label}
       <select
+        name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
+        className={cn('mt-1', selectClass)}
       >
         <option value="">{t('admin.common.none')}</option>
         {options.map((option) => (

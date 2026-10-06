@@ -83,6 +83,22 @@ describe('AdminSeo', () => {
     );
   });
 
+  it('saves through the form and shows progress without losing the label', () => {
+    vi.mocked(callSaveSeoDraft).mockReturnValue(new Promise(() => {}));
+    renderSeo();
+    const save = screen.getByRole('button', { name: 'Guardar' });
+    expect(save.getAttribute('type')).toBe('submit');
+    expect(save).toHaveProperty('disabled', false);
+
+    expect(fireEvent.submit((save as HTMLButtonElement).form!)).toBe(false);
+
+    expect(callSaveSeoDraft).toHaveBeenCalledTimes(1);
+    expect(save).toHaveProperty('disabled', true);
+    expect(save.textContent).toBe('Guardar');
+    expect(save.innerHTML).toMatch(/<svg[^>]*animate-spin motion-reduce:animate-none/);
+    expect(save.innerHTML).toContain('aria-hidden="true"');
+  });
+
   it('stops at a conflict instead of overwriting the other session', async () => {
     vi.mocked(callSaveSeoDraft).mockResolvedValue({
       data: undefined,
