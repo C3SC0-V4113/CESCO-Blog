@@ -42,9 +42,28 @@ in both themes without any per-component work.
 | `card` / `card-foreground`         | Raised surfaces: post cards, metadata panels      |
 | `popover` / `popover-foreground`   | Floating surfaces: menus, tooltips                |
 | `primary` / `secondary` / `accent` | Actions and emphasis                              |
+| `primary-text`                     | The accent as text and small glyphs               |
 | `muted` / `muted-foreground`       | De-emphasized text: dates, reading time, captions |
 | `destructive`                      | Errors only                                       |
 | `border` / `input` / `ring`        | Edges and focus                                   |
+| `image-outline`                    | Inset hairline on covers and body figures         |
+
+`--primary` is a **fill**: in dark it is chosen for light text on top of it, and
+as text it falls to 2.62:1 on the background. Text and small glyphs in the accent
+colour use `--primary-text` (`text-primary-text`, `hover:text-primary-text`)
+instead: `--primary` in light, `oklch(0.704 0.14 182.503)` in dark, at 8.14:1 on
+the background, 7.17:1 on card and 6.10:1 on muted. Buttons and other fills keep
+`--primary`.
+
+`--image-outline` is pure black in light and pure white in dark, both at 10%,
+drawn as a 1px outline offset by -1px so it sits inside the image's edge
+(`outline -outline-offset-1 outline-image-outline`). It replaces a layout border
+on covers and body figures. Where the image scales on hover, the outline goes on
+a pseudo-element of the clipping frame so the zoom cannot carry it past the clip.
+
+`--muted-foreground` is set for the darkest surface it sits on, not for white:
+in light it clears 4.91:1 on `--muted` and 5.46:1 on white, so de-emphasized
+text stays at AA in table heads, disclosures and the admin's tinted canvas.
 
 The radius scale derives from a single `--radius` (`0.625rem`), exposed as
 `--radius-sm` through `--radius-4xl`. Use the scale; do not write pixel radii.
@@ -61,8 +80,8 @@ Governed by
 | `h1`–`h3`, post card titles | Merriweather | `--font-heading` |
 | Body copy, UI, navigation   | Figtree      | `--font-sans`    |
 
-Both are already installed and imported. The heading rule is specified but **not
-yet applied** — `global.css` currently sends everything through `font-sans`.
+Both are installed and imported, and `@layer base` in `global.css` applies
+`font-heading` to headings.
 
 ---
 
@@ -546,6 +565,76 @@ is a change to that ADR, not a styling choice.
 
 ---
 
+## Interaction and accessibility
+
+The interface targets WCAG 2.2 AA in both themes.
+`tests/e2e/accessibility.spec.ts` runs axe with the `wcag2a`, `wcag2aa`,
+`wcag21a`, `wcag21aa` and `wcag22aa` tags over the homes, an article, the
+listings, the series index, a tag page, the 404 and the main admin screens, in
+light and dark, and expects no violations. A violation is fixed in source, not
+silenced by disabling a rule.
+
+### Focus
+
+A base `:focus-visible` rule draws a 2px `--ring` outline offset by 2px on every
+focusable element. `--ring` is the teal of `--primary` in light (5.39:1 on white,
+4.84:1 on muted) and the brighter teal in dark (8.14:1 on the background, 7.17:1
+on card), so it clears the 3:1 of WCAG 1.4.11 on every surface it sits on.
+Components that draw their own ring, such as Button and the admin fields, keep it
+at full `ring-ring` and set `outline-none`; a ring at a fraction of `--ring` does
+not clear 3:1. Never remove an outline without drawing a ring in its place.
+
+### Hit areas
+
+| Control                                       | Minimum |
+| --------------------------------------------- | ------- |
+| Header controls, header section links         | 40px    |
+| Pagination links, previous, next and ellipsis | 40px    |
+| Footer links and admin text actions           | 24px    |
+| Inline links in running text                  | exempt  |
+
+Grow a target inside space the row already has (`min-h-10`, `size-10`) rather
+than by changing the layout around it.
+
+### Admin forms
+
+`src/components/admin/admin-form.tsx` holds the conventions every admin form
+follows:
+
+- **Native submit.** Each form has an `onSubmit` that prevents navigation and
+  runs its save; the primary action is its one `type="submit"` button and every
+  other action is `type="button"`. Enter and `required` therefore work.
+- **Field classes.** `inputClass`, `selectClass` and `textareaClass` carry the
+  focus ring, the `aria-invalid` border, disabled styles and a transition with
+  its reduced-motion opt-out. They are a product helper beside the forms, not a
+  `ui/` primitive.
+- **Errors belong to their field.** `invalidField(name, invalid)` sets
+  `aria-invalid` and points `aria-describedby` at `FieldError`, rendered outside
+  the field's label under `fieldErrorId(name)`, and focus moves to the field.
+- **Stable status regions.** `FormStatus` keeps an always-rendered polite region
+  for progress and success and inserts an alert only when something fails.
+  Neither region changes role. Field errors stay out of it.
+- **Pending actions.** `PendingButton` disables the running action, adds a
+  spinner hidden from assistive technology and held still under reduced motion,
+  and keeps its label.
+- **Hydration gate.** `useHydrated` reports when React has committed, and the
+  shell keeps its content `inert` until then, so nothing typed into
+  server-rendered markup is lost (ADR-0023).
+
+The admin shell opens with a skip link to a `main` landmark that takes focus
+without joining the tab order.
+
+### Strings with values
+
+A translated string that carries a value uses named placeholders filled by
+`interpolate` from `src/i18n/utils.ts` (`'Subir «{title}»'`), never
+concatenation, so each locale keeps its own word order
+([ADR-0027](docs/adr/0027-localize-ui-strings-with-a-typed-dictionary.md)). An
+accessible name that differs from the visible text still contains it, first
+where the sentence allows (WCAG 2.5.3).
+
+---
+
 ## Motion
 
 Governed by
@@ -567,20 +656,36 @@ Rules that apply everywhere:
 - Nothing exceeds 300 ms; exits run ~20% faster than entrances.
 - Paired elements share identical easing and duration.
 - Enter from `scale(0.95)`, never `scale(0)`.
-- Every animation carries `@media (prefers-reduced-motion: reduce)`.
+- Every animation carries its reduced-motion opt-out:
+  `motion-reduce:transition-none` or `motion-reduce:animate-none`. Motion stays
+  on for everyone else, and reduced motion gets no motion rather than an
+  opacity-only stand-in.
 - Hover effects sit inside `@media (hover: hover) and (pointer: fine)`.
-- High-frequency controls — primary nav, body links — are not animated.
+- High-frequency controls — primary nav, body links — do not move. A colour
+  transition of 150 ms or less is allowed.
+- Press feedback is the `--scale-press` token (`0.96`), applied as
+  `active:scale-press`. Never write the scale inline.
 
 Where motion is used:
 
-| Surface                | Motion                                                                |
-| ---------------------- | --------------------------------------------------------------------- |
-| Mobile nav             | Drawer slide + overlay fade, shared timing                            |
-| Dropdowns, tooltips    | Fade + `scale(0.95)` from the trigger's `transform-origin`            |
-| Theme toggle           | Icon crossfade only                                                   |
-| Post card hover        | Subtle cover scale, desktop pointers only                             |
-| Page navigation        | Native CSS View Transitions, `@view-transition { navigation: auto; }` |
-| Article body, listings | **None.** Content does not animate in.                                |
+| Surface                | Motion                                                              |
+| ---------------------- | ------------------------------------------------------------------- |
+| Mobile nav             | Drawer slide + overlay fade, shared timing                          |
+| Dropdowns, tooltips    | Fade + `scale(0.95)` from the trigger's `transform-origin`          |
+| Buttons                | Press to `--scale-press`; colour, border and ring changes at 150 ms |
+| Theme toggle           | Icon crossfade only                                                 |
+| Post card hover        | Subtle cover scale, desktop pointers only                           |
+| Page navigation        | Native CSS View Transitions, public layout only                     |
+| Article body, listings | **None.** Content does not animate in.                              |
+
+Two exceptions, both recorded in the ADR-0022 amendment:
+
+- **Theme swaps suppress transitions for one frame**, so the page snaps to the
+  new palette instead of animating every colour across. That is a rendering fix,
+  not a motion preference.
+- **The admin has no view transitions.** `src/styles/page-transitions.css` holds
+  the `@view-transition` rule and is imported by the public layout only; both
+  documents must opt in, so the admin's reloads snap.
 
 ---
 
@@ -615,9 +720,6 @@ Resolved in the pre-implementation phase: component folders now exist and
 `home-hero.tsx` sits in `common/`; identifiers, UI strings, timestamps, runtime
 access, and the D1 test harness are in place.
 
-- **`--font-heading` is still inert.** Merriweather is installed and tokenized,
-  but no selector consumes it; everything renders in Figtree until the rule lands
-  in `@layer base`.
 - **`chanhdai` TOC Minimap: audited and rejected.** Its registry entry declares
   `registryDependencies: ["hover-card", "@soundcn/u-mini-map-open"]` — the second
   is a **sound**, played through `useSound` when the card opens. Independently of
@@ -634,12 +736,7 @@ access, and the D1 test harness are in place.
   performance requirement and
   [ADR-0019](docs/adr/0019-render-astro-first-with-react-islands-for-behavior.md)
   should be amended.
-- **Dark mode has no toggle yet.** The `.dark` variant and its full token set
-  exist in `global.css`; nothing activates them.
 - **Editor autosave is conflict-safe.** One mutable draft per localization uses
   serialized, debounced compare-and-swap saves; see ADR-0032 and ADR-0035.
-- **No bundle guard.** Nothing detects an admin import leaking into a public
-  route. That boundary is currently a convention, and a size check on the public
-  bundles would make it enforceable.
 - **Shiki theming is a one-way door.** Trust-safe structured tokens are stored
   inside published `content_json`, so changing the theme requires republishing.
