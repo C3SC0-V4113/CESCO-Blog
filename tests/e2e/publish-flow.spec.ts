@@ -227,6 +227,28 @@ test('keeps long unbroken review titles inside the queue at desktop and mobile w
   expect(mobile.scrollWidth).toBeLessThanOrEqual(mobile.clientWidth);
 });
 
+test('does not cache unknown public article or taxonomy slugs', async ({ request }) => {
+  const slug = `not-yet-published-${crypto.randomUUID()}`;
+  const paths = [
+    `/es/analisis/${slug}`,
+    `/es/opinion/${slug}`,
+    `/en/analysis/${slug}`,
+    `/en/opinion/${slug}`,
+    `/es/series/${slug}`,
+    `/en/series/${slug}`,
+    `/es/etiquetas/${slug}`,
+    `/en/tags/${slug}`,
+    `/es/juegos/${slug}`,
+    `/en/games/${slug}`,
+  ];
+
+  for (const path of paths) {
+    const response = await request.get(path);
+    expect(response.status(), path).toBe(404);
+    expect(response.headers()['cache-control'], path).not.toMatch(/public\s*,\s*max-age=/i);
+  }
+});
+
 test('never renders unsafe attribution URL schemes from legacy snapshots', async ({ page }) => {
   await page.goto('/es/analisis/el-peso-del-silencio');
   await expect(page.getByRole('img', { name: 'Un pixel de ejemplo' })).toBeVisible();
