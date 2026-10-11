@@ -202,7 +202,7 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
           className="order-last max-h-[70vh] overflow-auto rounded-xl border bg-background p-1.5 lg:order-first"
         >
           {items.length ? (
-            <ul className="grid gap-1.5">
+            <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
               {items.map((item) => (
                 <li key={item.localizationId}>
                   <a
@@ -250,7 +250,7 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
         </section>
         <section
           aria-label={t('admin.review.detail')}
-          className="order-first rounded-xl border bg-background p-4 lg:order-last"
+          className="order-first min-w-0 rounded-xl border bg-background p-4 lg:order-last"
         >
           {!detail ? (
             <p>{t('admin.review.select')}</p>
@@ -263,7 +263,9 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
               }}
             >
               <div>
-                <h2 className="text-xl font-semibold">{detail.title || detail.slug}</h2>
+                <h2 className="text-xl font-semibold [overflow-wrap:anywhere]">
+                  {detail.title || detail.slug}
+                </h2>
                 <p className="text-sm text-muted-foreground">
                   {detail.locale.toUpperCase()} · {t(`admin.posts.locale.${detail.status}`)}
                 </p>

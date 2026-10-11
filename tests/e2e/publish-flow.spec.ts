@@ -199,6 +199,71 @@ test('paginates the complete review queue', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Siguiente' })).toHaveCount(0);
 });
 
+test('keeps long unbroken review titles inside the queue at desktop and mobile widths', async ({
+  page,
+}) => {
+  const slug = `review-overflow-${crypto.randomUUID()}`;
+  const title = 'UnbrokenTitle'.repeat(23);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/admin/posts/new');
+  await page.getByLabel('Slug').fill(slug);
+  await page.getByRole('button', { name: 'Crear publicación' }).click();
+  await expect(page).toHaveURL(/\/admin\/posts$/);
+
+  const editorUrl = await findEditorUrl(page, slug);
+  expect(editorUrl).toBeTruthy();
+  await page.goto(editorUrl!);
+  await page.getByLabel(/Título/).fill(title);
+  const saved = actionResponse(page, 'saveDraft');
+  await page.getByRole('link', { name: /Ir a revisión/ }).click();
+  await saved;
+
+  const reviewList = page.getByRole('region', { name: 'Cola de revisión' }).locator('ul');
+  await expect(reviewList.getByText(title, { exact: true }).first()).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/review\?/);
+
+  const desktop = await reviewList.evaluate((list) => ({
+    scrollWidth: list.scrollWidth,
+    clientWidth: list.clientWidth,
+    pageScrollWidth: document.documentElement.scrollWidth,
+    pageClientWidth: document.documentElement.clientWidth,
+  }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobile = await reviewList.evaluate((list) => ({
+    scrollWidth: list.scrollWidth,
+    clientWidth: list.clientWidth,
+    pageScrollWidth: document.documentElement.scrollWidth,
+    pageClientWidth: document.documentElement.clientWidth,
+  }));
+  expect(desktop.scrollWidth).toBeLessThanOrEqual(desktop.clientWidth);
+  expect(mobile.scrollWidth).toBeLessThanOrEqual(mobile.clientWidth);
+  expect(desktop.pageScrollWidth).toBeLessThanOrEqual(desktop.pageClientWidth);
+  expect(mobile.pageScrollWidth).toBeLessThanOrEqual(mobile.pageClientWidth);
+});
+
+test('does not cache unknown public article or taxonomy slugs', async ({ request }) => {
+  const slug = `not-yet-published-${crypto.randomUUID()}`;
+  const paths = [
+    `/es/analisis/${slug}`,
+    `/es/opinion/${slug}`,
+    `/en/analysis/${slug}`,
+    `/en/opinion/${slug}`,
+    `/es/series/${slug}`,
+    `/en/series/${slug}`,
+    `/es/etiquetas/${slug}`,
+    `/en/tags/${slug}`,
+    `/es/juegos/${slug}`,
+    `/en/games/${slug}`,
+  ];
+
+  for (const path of paths) {
+    const response = await request.get(path);
+    expect(response.status(), path).toBe(404);
+    expect(response.headers()['cache-control'], path).not.toMatch(/public\s*,\s*max-age=/i);
+  }
+});
+
 test('never renders unsafe attribution URL schemes from legacy snapshots', async ({ page }) => {
   await page.goto('/es/analisis/el-peso-del-silencio');
   await expect(page.getByRole('img', { name: 'Un pixel de ejemplo' })).toBeVisible();

@@ -5,7 +5,7 @@ import PostCard from '@/components/post/post-card.astro';
 import { listCollectionPosts, resolveCollectionUrl } from '@/db/queries/collections';
 import { getTranslations, resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
-import { cacheTagHeader } from '@/lib/cache-tags';
+import { cacheTagHeader, setNotFoundCachePolicy } from '@/lib/cache-tags';
 import { getDb } from '@/lib/runtime';
 
 /**
@@ -36,8 +36,10 @@ if (resolution.kind === 'render') {
     'Cache-Tag',
     cacheTagHeader([`collection-${resolution.collection.collectionId}`, `locale-${locale}`])
   );
-} else {
+} else if (resolution.kind === 'gone') {
   Astro.response.headers.set('Cache-Control', 'public, max-age=300');
+} else {
+  setNotFoundCachePolicy(Astro.response.headers);
 }
 
 if (resolution.kind === 'gone') Astro.response.status = 410;

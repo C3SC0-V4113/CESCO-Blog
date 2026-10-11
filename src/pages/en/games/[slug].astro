@@ -5,7 +5,7 @@ import PostCard from '@/components/post/post-card.astro';
 import { findGame, listPostsByGame } from '@/db/queries/taxonomy';
 import { getTranslations, resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
-import { cacheTagHeader } from '@/lib/cache-tags';
+import { cacheTagHeader, setNotFoundCachePolicy } from '@/lib/cache-tags';
 import { getDb } from '@/lib/runtime';
 
 /**
@@ -35,7 +35,7 @@ if (game) {
   );
 } else {
   Astro.response.status = 404;
-  Astro.response.headers.set('Cache-Control', 'public, max-age=300');
+  setNotFoundCachePolicy(Astro.response.headers);
 }
 ---
 

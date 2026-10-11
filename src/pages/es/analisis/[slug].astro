@@ -7,7 +7,12 @@ import { findPostSeries } from '@/db/queries/collections';
 import { resolveArticleUrl } from '@/db/queries/posts';
 import { resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
-import { ERROR_RESPONSE_MAX_AGE, cacheTagHeader, postDetailTags } from '@/lib/cache-tags';
+import {
+  ERROR_RESPONSE_MAX_AGE,
+  cacheTagHeader,
+  postDetailTags,
+  setNotFoundCachePolicy,
+} from '@/lib/cache-tags';
 import { mediaPath } from '@/lib/media';
 import { articleAlternates } from '@/lib/routes';
 import { getDb } from '@/lib/runtime';
@@ -56,14 +61,15 @@ if (resolution.kind === 'render') {
     'Cache-Tag',
     cacheTagHeader(postDetailTags(resolution.post.postId, locale, section))
   );
-} else {
+} else if (resolution.kind === 'gone') {
   // A long-lived cached 410 outlives the republication that should end it.
   Astro.response.headers.set('Cache-Control', `public, max-age=${ERROR_RESPONSE_MAX_AGE}`);
-  if (resolution.kind === 'gone')
-    Astro.response.headers.set(
-      'Cache-Tag',
-      cacheTagHeader(postDetailTags(resolution.postId, locale, section))
-    );
+  Astro.response.headers.set(
+    'Cache-Tag',
+    cacheTagHeader(postDetailTags(resolution.postId, locale, section))
+  );
+} else {
+  setNotFoundCachePolicy(Astro.response.headers);
 }
 
 if (resolution.kind === 'gone') Astro.response.status = 410;

@@ -1,6 +1,4 @@
-// Vitest globals are disabled, so Testing Library cannot register automatic cleanup.
-// eslint-disable-next-line testing-library/no-manual-cleanup
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/admin-actions', () => ({
@@ -14,7 +12,6 @@ import { callSaveSeoDraft } from '@/lib/admin-actions';
 import type { AdminSeoState } from '@/db/queries/admin-taxonomy';
 
 afterEach(() => {
-  cleanup();
   vi.clearAllMocks();
 });
 

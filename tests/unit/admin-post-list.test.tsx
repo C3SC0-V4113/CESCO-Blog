@@ -1,7 +1,5 @@
-// Vitest globals are disabled, so Testing Library cannot register automatic cleanup.
-// eslint-disable-next-line testing-library/no-manual-cleanup
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/admin-actions', () => ({
   callRetryPendingPurges: vi.fn(),
@@ -12,8 +10,6 @@ import { AdminPostList } from '@/components/admin/admin-post-list';
 import { callSetFeatured } from '@/lib/admin-actions';
 
 import type { AdminPostSummary } from '@/db/queries/admin-posts';
-
-afterEach(cleanup);
 
 describe('AdminPostList', () => {
   it('opens a localization from its status and offers its SEO screen beside it', () => {

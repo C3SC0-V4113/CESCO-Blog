@@ -183,6 +183,13 @@ const eslintConfig = defineConfig([
     ],
     ...playwrightPlugin.configs['flat/recommended'],
   },
+  {
+    files: ['tests/unit/setup.ts'],
+    rules: {
+      // The shared Vitest setup must register cleanup because Vitest globals are disabled.
+      'testing-library/no-manual-cleanup': 'off',
+    },
+  },
   eslintConfigPrettier,
   globalIgnores([
     'dist/**',
