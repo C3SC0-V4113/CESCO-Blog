@@ -1,4 +1,4 @@
-# ADR-0025: Test D1 through the Workers Vitest pool
+# ADR-0025: Test D1 through the Workers Vitest integration
 
 ## Status
 
@@ -24,7 +24,7 @@ share it: workerd is a different runtime, not a different environment.
 
 ## Decision
 
-Use `@cloudflare/vitest-pool-workers`, which runs tests inside workerd with D1
+Use `@cloudflare/vitest-plugin`, which runs tests inside workerd with D1
 provided by Miniflare.
 
 `vitest.config.mts` declares **two Vitest projects**:
