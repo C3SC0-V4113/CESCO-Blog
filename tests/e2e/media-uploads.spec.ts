@@ -2,8 +2,6 @@ import { expect, test } from '@playwright/test';
 
 import type { APIRequestContext, Page } from '@playwright/test';
 
-const POST = 'c1d4e7f0-3a29-4b6c-8d5e-2f7a9b0c1d34';
-const ES = '4f8b1c2d-5e6a-4079-8b1c-2d3e4f5a6b7c';
 const webp = Buffer.from(
   'UklGRgYCAABXRUJQVlA4WAoAAAAgAAAAAQAAAAAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADZWUDggGAAAADABAJ0BKgIAAQABQCIlpAADcAD+/W5IAA==',
   'base64'
@@ -21,11 +19,33 @@ const rawUpload = (request: APIRequestContext, altText: string) =>
 
 type MediaPage = { assets: { altText: string | null; r2Key: string }[]; total: number };
 
+async function openNewDraft(page: Page) {
+  const slug = `media-uploads-${crypto.randomUUID()}`;
+  await page.goto('/admin/posts/new');
+  await page.getByLabel('Slug').fill(slug);
+  await page.getByRole('button', { name: 'Crear publicación' }).click();
+  const row = page.getByRole('row').filter({ has: page.getByRole('cell', { name: slug }) });
+  await row.getByRole('link', { name: 'Borrador' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Editor');
+}
+
 async function createCandidates(request: APIRequestContext, prefix: string) {
   for (let index = 0; index < 21; index++) {
     const response = await rawUpload(request, `${prefix} ${index}`);
     expect(response.status()).toBe(201);
   }
+}
+
+let candidatePrefix: string | undefined;
+let candidateSetup: Promise<void> | undefined;
+
+async function findReusableCandidate(request: APIRequestContext) {
+  if (!candidateSetup) {
+    candidatePrefix = `Reutilizable ${crypto.randomUUID()}`;
+    candidateSetup = createCandidates(request, candidatePrefix);
+  }
+  await candidateSetup;
+  return findCandidatePage(request, candidatePrefix!);
 }
 
 async function findCandidatePage(request: APIRequestContext, prefix: string) {
@@ -37,49 +57,100 @@ async function findCandidatePage(request: APIRequestContext, prefix: string) {
     const result = (await response.json()) as MediaPage;
     pages = Math.max(pages, Math.ceil(result.total / 20));
     const target = page > 1 && result.assets.find((asset) => asset.altText?.startsWith(prefix));
-    if (target) return { page, alt: target.altText! };
+    if (target) return { alt: target.altText! };
     page++;
   }
   throw Error('candidate-not-found');
 }
 
-async function loadPickerPage(page: Page, target: { page: number; alt: string }) {
-  for (let next = 2; next <= target.page; next++) {
-    const loaded = page.waitForResponse((response) => {
-      const url = new URL(response.url());
-      return (
-        url.pathname === '/admin/media/page.json' && url.searchParams.get('page') === `${next}`
-      );
-    });
-    await page.getByRole('button', { name: 'Siguiente' }).click();
-    const result = (await (await loaded).json()) as MediaPage;
-    const first = result.assets[0];
-    if (first) await expect(page.locator(`details img[src="/${first.r2Key}"]`)).toBeVisible();
-    if (next === target.page)
-      expect(result.assets).toEqual(
-        expect.arrayContaining([expect.objectContaining({ altText: target.alt })])
-      );
+async function loadPickerPage(page: Page, target: { alt: string }) {
+  let currentPage = 1;
+  for (let scan = 0; scan < 3; scan++) {
+    while (await page.getByRole('button', { name: 'Siguiente' }).count()) {
+      const next = currentPage + 1;
+      const loaded = page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return (
+          url.pathname === '/admin/media/page.json' && url.searchParams.get('page') === `${next}`
+        );
+      });
+      await page.getByRole('button', { name: 'Siguiente' }).click();
+      const result = (await (await loaded).json()) as MediaPage;
+      currentPage = next;
+      const candidate = result.assets.find((asset) => asset.altText === target.alt);
+      if (candidate) {
+        await expect(page.locator(`details img[src="/${candidate.r2Key}"]`)).toBeVisible();
+        return;
+      }
+      const first = result.assets[0];
+      if (first) await expect(page.locator(`details img[src="/${first.r2Key}"]`)).toBeVisible();
+    }
+    while (currentPage > 1) {
+      const previous = currentPage - 1;
+      const loaded = page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return (
+          url.pathname === '/admin/media/page.json' &&
+          url.searchParams.get('page') === `${previous}`
+        );
+      });
+      await page.getByRole('button', { name: 'Anterior' }).click();
+      await loaded;
+      currentPage = previous;
+    }
   }
+  throw Error('candidate-not-found-in-picker');
 }
 
 async function uploadFromPicker(page: Page, alt: string) {
   const altInput = page.getByLabel('Texto alternativo').first();
-  const decorative = page.getByLabel('Imagen decorativa').first();
-  await expect(async () => {
-    await decorative.setChecked(false);
-    await decorative.setChecked(true);
-    await expect(altInput).toBeDisabled();
-  }).toPass();
+  const decorative = page.getByRole('checkbox', { name: 'Imagen decorativa' }).first();
+  await expect(altInput).toBeEnabled();
+  await expect(decorative).toBeEnabled();
+  await decorative.setChecked(true);
+  await expect(altInput).toBeDisabled();
   await decorative.setChecked(false);
   await expect(altInput).toBeEnabled();
   await altInput.fill(alt);
+  const fileInput = page.getByLabel('Elegir imagen');
+  await expect(fileInput).toBeEnabled();
   const uploaded = page.waitForResponse((response) => {
     const url = new URL(response.url());
     return url.pathname === '/admin/media/upload' && response.request().method() === 'POST';
   });
-  await page.getByLabel('Elegir imagen').setInputFiles('.wrangler/seed-media.png');
+  await fileInput.setInputFiles('.wrangler/seed-media.png');
   expect((await uploaded).status()).toBe(201);
 }
+
+test('associates visible checkbox labels in upload and metadata forms', async ({ page }) => {
+  await page.goto('/admin/media');
+  const uploadRegion = page.getByRole('region', { name: 'Carga de imagen' });
+  const uploadDecorative = uploadRegion.getByRole('checkbox', { name: 'Imagen decorativa' });
+  const uploadAlt = uploadRegion.getByLabel('Texto alternativo');
+  await expect(uploadDecorative).toBeEnabled();
+  await expect(uploadAlt).toBeEnabled();
+  await uploadRegion.getByText('Imagen decorativa', { exact: true }).click();
+  await expect(uploadDecorative).toBeChecked();
+  await expect(uploadAlt).toBeDisabled();
+  await uploadRegion.getByText('Imagen decorativa', { exact: true }).click();
+  await expect(uploadDecorative).not.toBeChecked();
+  await expect(uploadAlt).toBeEnabled();
+
+  const metadata = page.locator('details').first();
+  await metadata.locator('summary').click();
+  const metadataForm = metadata.locator('form');
+  const metadataDecorative = metadataForm.getByRole('checkbox', { name: 'Imagen decorativa' });
+  await expect(metadataDecorative).toBeEnabled();
+  await metadataForm.getByText('Imagen decorativa', { exact: true }).click();
+  await expect(metadataDecorative).toBeChecked();
+
+  const ownWork = metadataForm.getByRole('checkbox', { name: 'Trabajo propio' });
+  await expect(ownWork).toBeEnabled();
+  const ownWorkLabel = metadataForm.locator('label').filter({ hasText: 'Trabajo propio' });
+  await ownWork.uncheck();
+  await ownWorkLabel.click();
+  await expect(ownWork).toBeChecked();
+});
 
 test('normalizes, delivers, paginates reuse, and keeps the image block stable', async ({
   page,
@@ -97,11 +168,9 @@ test('normalizes, delivers, paginates reuse, and keeps the image block stable', 
   expect(delivered.headers()['content-type']).toBe('image/webp');
   await page.screenshot({ path: testInfo.outputPath('media-populated.png'), fullPage: true });
 
-  const prefix = `Reutilizable ${crypto.randomUUID()}`;
-  await createCandidates(page.request, prefix);
-  const target = await findCandidatePage(page.request, prefix);
+  const target = await findReusableCandidate(page.request);
 
-  await page.goto(`/admin/posts/${POST}/edit?localization=${ES}`);
+  await openNewDraft(page);
   await page.getByText('Insertar imagen').click();
   await expect(page.locator('details ul > li')).toHaveCount(20);
   await loadPickerPage(page, target);
@@ -111,7 +180,11 @@ test('normalizes, delivers, paginates reuse, and keeps the image block stable', 
     response.url().includes('/_actions/admin.saveDraft')
   );
   await reusable.click();
-  await saved;
+  const saveResponse = await saved;
+  expect(saveResponse.status()).toBeGreaterThanOrEqual(200);
+  expect(saveResponse.status()).toBeLessThan(300);
+  const saveResult = (await saveResponse.json()) as { error?: { code?: string } };
+  expect(saveResult.error?.code).not.toBe('CONFLICT');
   const block = page
     .getByRole('textbox', { name: 'Contenido' })
     .locator(`img[alt="${target.alt}"]`);
@@ -149,7 +222,9 @@ test('drains rejected metadata, clamps pages, and shows client rejection', async
   await expect(page).toHaveURL(/\/admin\/media\?page=\d+$/);
   await expect(page.getByText('No hay imágenes todavía.')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('media-empty-mobile.png'), fullPage: true });
-  await page.getByLabel('Elegir imagen').setInputFiles({
+  const fileInput = page.getByLabel('Elegir imagen');
+  await expect(fileInput).toBeEnabled();
+  await fileInput.setInputFiles({
     name: 'oversize.png',
     mimeType: 'image/png',
     buffer: Buffer.alloc(25 * 1024 * 1024 + 1),

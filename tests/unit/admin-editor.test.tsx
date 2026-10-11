@@ -75,6 +75,28 @@ beforeAll(() => {
 describe('admin editor', () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it('exposes the title and excerpt as labeled fields with their constraints as descriptions', async () => {
+    const view = render(
+      <AdminEditor
+        postId="p1"
+        localizationId="l1"
+        localizations={{ es: 'l1' }}
+        draft={draft}
+        mediaAssets={[]}
+        referencedAssets={[]}
+        mediaTotal={0}
+      />
+    );
+
+    const title = await screen.findByRole('textbox', { name: /^Título$/ });
+    const excerpt = screen.getByRole('textbox', { name: /^Resumen$/ });
+    expect(title.getAttribute('aria-describedby')).toBe('editor-title-constraint');
+    expect(screen.getByText('Máximo 300 caracteres.').textContent).toMatch(/300/);
+    expect(excerpt.getAttribute('aria-describedby')).toBe('editor-excerpt-constraint');
+    expect(screen.getByText('Máximo 1000 caracteres.').textContent).toMatch(/1000/);
+    view.unmount();
+  });
+
   it('reports an edit the draft contract rejects and recovers on the next valid one', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const view = render(
