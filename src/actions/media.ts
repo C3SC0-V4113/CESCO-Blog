@@ -32,36 +32,37 @@ export async function persistMediaUpload(
   const r2Key = mediaKey(id, input.now);
   const { width, height } = parseWebp(bytes);
   if (await bucket.head(r2Key)) throw Error('media-collision');
-  await bucket.put(r2Key, bytes, {
-    httpMetadata: {
+  // A D1 row without its object is visible but misses briefly; an R2 object
+  // without its row is invisible, billable, and can survive a Worker crash.
+  const [asset] = await db
+    .insert(schema.mediaAssets)
+    .values({
+      id,
+      r2Key,
+      altText: input.altText,
       contentType: 'image/webp',
-      cacheControl: 'public, max-age=31536000, immutable',
-    },
-  });
+      width,
+      height,
+      sizeBytes: bytes.byteLength,
+    })
+    .returning();
   try {
-    const [asset] = await db
-      .insert(schema.mediaAssets)
-      .values({
-        id,
-        r2Key,
-        altText: input.altText,
+    await bucket.put(r2Key, bytes, {
+      httpMetadata: {
         contentType: 'image/webp',
-        width,
-        height,
-        sizeBytes: bytes.byteLength,
-      })
-      .returning();
-    return asset!;
+        cacheControl: 'public, max-age=31536000, immutable',
+      },
+    });
   } catch (error) {
-    // The D1 failure is the one the caller must see. A failed cleanup is logged
-    // by key so the orphaned object can be found, and never replaces it.
+    // A failed row cleanup is logged and never replaces the R2 error.
     try {
-      await bucket.delete(r2Key);
+      await db.delete(schema.mediaAssets).where(eq(schema.mediaAssets.id, id));
     } catch {
-      console.error(`Media upload left an orphaned R2 object: ${r2Key}`);
+      console.error(`Media upload left a row without an R2 object: ${id} ${r2Key}`);
     }
     throw error;
   }
+  return asset!;
 }
 
 export async function updateMediaAsset(db: Db, raw: z.input<typeof mediaMetadataSchema>) {

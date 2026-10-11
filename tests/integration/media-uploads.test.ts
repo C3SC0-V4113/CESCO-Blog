@@ -38,49 +38,78 @@ describe('media uploads', () => {
     ]);
   });
 
-  it('compensates the R2 object when D1 rejects the row', async () => {
+  it('does not write an R2 object when D1 rejects the row', async () => {
     const db = createDb(env.DB);
     const id = crypto.randomUUID();
     await db
       .insert(schema.mediaAssets)
       .values({ id, r2Key: `existing/${id}`, contentType: 'image/webp' });
+    const bucket = {
+      head: vi.fn((key: string) => env.BUCKET.head(key)),
+      put: vi.fn((key: string, value: Uint8Array, options?: R2PutOptions) =>
+        env.BUCKET.put(key, value, options)
+      ),
+      delete: vi.fn((key: string) => env.BUCKET.delete(key)),
+    } as unknown as R2Bucket;
     await expect(
-      persistMediaUpload(db, env.BUCKET, webp(), {
+      persistMediaUpload(db, bucket, webp(), {
         id,
         altText: '',
         now: new Date('2027-01-01T00:00:00Z'),
       })
     ).rejects.toThrow();
-    expect(await env.BUCKET.get(`media/2027/01/${id}.webp`)).toBeNull();
+    expect(bucket.put).not.toHaveBeenCalled();
+    expect(bucket.delete).not.toHaveBeenCalled();
   });
 
-  it('logs a failed compensation by key and still surfaces the D1 error', async () => {
+  it('deletes the D1 row and rethrows the original error when R2 put fails', async () => {
     const db = createDb(env.DB);
     const id = crypto.randomUUID();
-    await db
-      .insert(schema.mediaAssets)
-      .values({ id, r2Key: `existing/${id}`, contentType: 'image/webp' });
-    const cleanup = Error('r2-unavailable');
+    const putError = Error('r2-unavailable');
     const bucket = {
-      head: (key: string) => env.BUCKET.head(key),
-      put: (key: string, value: Uint8Array, options?: R2PutOptions) =>
-        env.BUCKET.put(key, value, options),
-      delete: () => Promise.reject(cleanup),
+      head: vi.fn((key: string) => env.BUCKET.head(key)),
+      put: vi.fn(() => Promise.reject(putError)),
+      delete: vi.fn((key: string) => env.BUCKET.delete(key)),
     } as unknown as R2Bucket;
-    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const error: unknown = await persistMediaUpload(db, bucket, webp(), {
       id,
       altText: 'Secreto',
       now: new Date('2029-03-01T00:00:00Z'),
     }).catch((reason: unknown) => reason);
-    expect(error).toBeInstanceOf(Error);
-    expect(error).not.toBe(cleanup);
-    expect(String(error)).toMatch(/media_assets/);
-    expect(log).toHaveBeenCalledExactlyOnceWith(
-      expect.stringContaining(`media/2029/03/${id}.webp`)
+    expect(error).toBe(putError);
+    expect(bucket.delete).not.toHaveBeenCalled();
+    expect(await db.select().from(schema.mediaAssets).where(eq(schema.mediaAssets.id, id))).toEqual(
+      []
     );
+  });
+
+  it('logs the asset id and key when D1 compensation fails, preserving the R2 error', async () => {
+    const db = createDb(env.DB);
+    const id = crypto.randomUUID();
+    const putError = Error('r2-unavailable');
+    const bucket = {
+      head: vi.fn((key: string) => env.BUCKET.head(key)),
+      put: vi.fn(() => Promise.reject(putError)),
+      delete: vi.fn((key: string) => env.BUCKET.delete(key)),
+    } as unknown as R2Bucket;
+    const deleteSpy = vi.spyOn(db, 'delete').mockImplementation(() => {
+      throw Error('d1-unavailable');
+    });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    await expect(
+      persistMediaUpload(db, bucket, webp(), {
+        id,
+        altText: 'Secreto',
+        now: new Date('2029-03-01T00:00:00Z'),
+      })
+    ).rejects.toBe(putError);
+
+    expect(deleteSpy).toHaveBeenCalledOnce();
+    expect(log).toHaveBeenCalledOnce();
+    expect(log.mock.calls[0]?.[0]).toContain(id);
+    expect(log.mock.calls[0]?.[0]).toContain(`media/2029/03/${id}.webp`);
     expect(JSON.stringify(log.mock.calls)).not.toContain('Secreto');
-    await env.BUCKET.delete(`media/2029/03/${id}.webp`);
   });
 
   it('finds more assets than one D1 statement can bind', async () => {
