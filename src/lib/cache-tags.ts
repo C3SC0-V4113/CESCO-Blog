@@ -28,6 +28,11 @@ import type { Locale } from '@/i18n/locales';
  */
 export const ERROR_RESPONSE_MAX_AGE = 300;
 
+/** Unknown slugs may become live after publishing, so keep their 404s uncached. */
+export function setNotFoundCachePolicy(headers: Headers): void {
+  headers.set('Cache-Control', 'no-store');
+}
+
 /**
  * Tags sent per purge request. Cloudflare's purge documentation caps a request
  * at 100 operations without saying whether each tag counts as one, so this

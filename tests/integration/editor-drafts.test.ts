@@ -51,6 +51,53 @@ async function storedDraft(db: Db, localizationId: string) {
 }
 
 describe('editor drafts', () => {
+  it('normalizes published heading levels before the loaded document is saved', async () => {
+    const db = createDb(env.DB);
+    const postId = newPostId(),
+      localizationId = newPostLocalizationId(),
+      revisionId = newPostRevisionId();
+    const publishedContent = {
+      type: 'doc',
+      content: [
+        { type: 'heading', attrs: { blockId: 'h1', level: 1 }, content: [] },
+        { type: 'heading', attrs: { blockId: 'h4', level: 4 }, content: [] },
+      ],
+    };
+    await db.insert(schema.posts).values({ id: postId, section: 'analysis' });
+    await db
+      .insert(schema.postLocalizations)
+      .values({ id: localizationId, postId, locale: 'en', slug: `published-${localizationId}` });
+    await db.insert(schema.postRevisions).values({
+      id: revisionId,
+      postLocalizationId: localizationId,
+      version: 1,
+      title: 'Published',
+      contentJson: publishedContent,
+    });
+    await db
+      .update(schema.postLocalizations)
+      .set({ publishedRevisionId: revisionId })
+      .where(eq(schema.postLocalizations.id, localizationId));
+
+    const loaded = await loadEditorDraft(db, postId, localizationId);
+    expect(loaded).not.toBeNull();
+    const nextToken = token();
+    await expect(
+      saveDraft(db, {
+        postId,
+        localizationId,
+        draftToken: loaded!.draftToken,
+        nextToken,
+        title: loaded!.title,
+        excerpt: loaded!.excerpt,
+        contentJson: loaded!.contentJson,
+      })
+    ).resolves.toEqual({ draftToken: nextToken });
+    expect(
+      loaded!.contentJson.content.map((node) => (node.type === 'heading' ? node.attrs.level : null))
+    ).toEqual([2, 3]);
+  });
+
   it('loads draft, published clone, then empty document without losing metadata', async () => {
     const db = createDb(env.DB);
     const postId = newPostId(),
