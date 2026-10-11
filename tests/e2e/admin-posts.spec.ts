@@ -93,6 +93,7 @@ test('opens the section select by keyboard and keeps its popup in a mobile viewp
   await page.goto('/admin/posts/new');
 
   const section = page.getByRole('combobox', { name: 'Sección' });
+  await expect(section).toBeEnabled();
   const listbox = page.getByRole('listbox');
   for (const key of ['Enter', 'Space', 'ArrowDown']) {
     await section.focus();
@@ -104,6 +105,7 @@ test('opens the section select by keyboard and keeps its popup in a mobile viewp
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
     await section.press('Escape');
     await expect(listbox).toBeHidden();
+    await expect(section).toBeFocused();
   }
 
   await section.focus();
@@ -114,4 +116,5 @@ test('opens the section select by keyboard and keeps its popup in a mobile viewp
   await expect(section).toContainText('Opiniones');
   await section.press('Escape');
   await expect(listbox).toBeHidden();
+  await expect(section).toBeFocused();
 });
