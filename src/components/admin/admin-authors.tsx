@@ -1,6 +1,17 @@
 import { useId, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { getTranslations } from '@/i18n/utils';
 import { callCreateAuthor, callRetryPendingPurges, callUpdateAuthor } from '@/lib/admin-actions';
 import { cn } from '@/lib/utils';
@@ -11,6 +22,7 @@ import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { AdminAuthor } from '@/db/queries/admin-taxonomy';
 
 const t = getTranslations('es');
+const NO_AVATAR = '__no-avatar__';
 
 export function AdminAuthors({
   authors,
@@ -30,10 +42,13 @@ export function AdminAuthors({
 }
 
 function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMediaAsset[] }) {
+  const id = useId();
+  const avatarId = `${id}-avatar`;
+  const sameAsHelpId = `${id}-same-as-help`;
+  const [avatarMediaId, setAvatarMediaId] = useState(author?.avatarMediaId ?? '');
   const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'warning' | 'error'>(
     'idle'
   );
-  const sameAsHelpId = useId();
   const save = async (form: HTMLFormElement) => {
     const data = new FormData(form);
     setStatus('pending');
@@ -77,15 +92,17 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
       }}
     >
       <h2 className="text-lg font-semibold">{author ? author.name : t('admin.authors.new')}</h2>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field
+      <FieldGroup className="grid gap-4 md:grid-cols-2">
+        <TextField
+          id={`${id}-name`}
           label={t('admin.authors.name')}
           name="name"
           defaultValue={author?.name}
           autoComplete="off"
           required
         />
-        <Field
+        <TextField
+          id={`${id}-slug`}
           label={t('admin.authors.slug')}
           name="slug"
           defaultValue={author?.slug}
@@ -93,52 +110,65 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
           spellCheck={false}
           required
         />
-        <Field
+        <TextField
+          id={`${id}-website`}
           label={t('admin.authors.website')}
           name="websiteUrl"
           type="url"
           inputMode="url"
           defaultValue={author?.websiteUrl ?? ''}
         />
-        <label>
-          {t('admin.authors.avatar')}
-          <select
-            name="avatarMediaId"
-            defaultValue={author?.avatarMediaId ?? ''}
-            className={cn('mt-1', selectClass)}
+        <Field className="gap-1">
+          <FieldLabel htmlFor={avatarId}>{t('admin.authors.avatar')}</FieldLabel>
+          <Select
+            value={avatarMediaId || NO_AVATAR}
+            items={[
+              { value: NO_AVATAR, label: t('admin.common.none') },
+              ...media.map((asset) => ({
+                value: asset.id,
+                label: asset.altText || asset.r2Key,
+              })),
+            ]}
+            onValueChange={(value) => setAvatarMediaId(value === NO_AVATAR ? '' : (value ?? ''))}
           >
-            <option value="">{t('admin.common.none')}</option>
-            {media.map((asset) => (
-              <option key={asset.id} value={asset.id}>
-                {asset.altText || asset.r2Key}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <label>
-        {t('admin.authors.bio')}
-        <textarea
+            <SelectTrigger id={avatarId} className={cn('h-10', selectClass)}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value={NO_AVATAR}>{t('admin.common.none')}</SelectItem>
+                {media.map((asset) => (
+                  <SelectItem key={asset.id} value={asset.id}>
+                    {asset.altText || asset.r2Key}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Input type="hidden" name="avatarMediaId" value={avatarMediaId} />
+        </Field>
+        <TextAreaField
+          id={`${id}-bio`}
+          className="md:col-span-2"
+          label={t('admin.authors.bio')}
           name="bio"
           defaultValue={author?.bio ?? ''}
-          className={cn('mt-1', textareaClass)}
+          rows={4}
         />
-      </label>
-      <div>
-        <label>
-          {t('admin.authors.sameAs')}
-          <textarea
-            name="sameAs"
-            defaultValue={sameAs.join('\n')}
-            aria-describedby={sameAsHelpId}
-            spellCheck={false}
-            className={cn('mt-1 min-h-20', textareaClass)}
-          />
-        </label>
-        <p id={sameAsHelpId} className="mt-1 text-sm text-muted-foreground">
+        <TextAreaField
+          id={`${id}-same-as`}
+          className="md:col-span-2"
+          label={t('admin.authors.sameAs')}
+          name="sameAs"
+          defaultValue={sameAs.join('\n')}
+          aria-describedby={sameAsHelpId}
+          spellCheck={false}
+          rows={3}
+        />
+        <FieldDescription id={sameAsHelpId} className="md:col-span-2">
           {t('admin.authors.sameAsHelp')}
-        </p>
-      </div>
+        </FieldDescription>
+      </FieldGroup>
       <div className="flex items-center gap-3">
         <PendingButton type="submit" pending={status === 'pending'}>
           {t('admin.common.save')}
@@ -174,15 +204,35 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
   );
 }
 
-function Field({
+function TextField({
+  id,
   label,
   name,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string }) {
+}: React.InputHTMLAttributes<HTMLInputElement> & { id: string; label: string; name: string }) {
   return (
-    <label>
-      {label}
-      <input name={name} className={cn('mt-1', inputClass)} {...props} />
-    </label>
+    <Field className="gap-1">
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Input id={id} name={name} className={cn('h-10', inputClass)} {...props} />
+    </Field>
+  );
+}
+
+function TextAreaField({
+  id,
+  label,
+  name,
+  className,
+  ...props
+}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  id: string;
+  label: string;
+  name: string;
+}) {
+  return (
+    <Field className={className}>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Textarea id={id} name={name} className={cn('p-3', textareaClass)} {...props} />
+    </Field>
   );
 }

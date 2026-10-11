@@ -11,6 +11,7 @@ async function openNewDraft(page: Page) {
   const row = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: slug }) });
   await row.getByRole('link', { name: 'Borrador' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Editor');
+  await expect(page.locator('[inert]')).toHaveCount(0);
 }
 
 const nextUpload = (page: Page) =>
@@ -26,16 +27,22 @@ test('uploads an image pasted or dropped on the canvas and inserts an image bloc
   // Read here rather than at import: the seed writes it after the spec is collected.
   const png = await readFile('.wrangler/seed-media.png', { encoding: 'base64' });
   await openNewDraft(page);
+  await expect(page.getByRole('textbox', { name: 'Título' })).toBeEnabled();
   const canvas = page.getByRole('textbox', { name: 'Contenido' });
   const alt = `Lienzo ${crypto.randomUUID()}`;
   const blocks = canvas.locator(`img[alt="${alt}"]`);
 
   // Canvas uploads obey the picker's alt-text rule, so the text goes there first.
-  await page.getByText('Insertar imagen').click();
-  await page
-    .getByRole('region', { name: 'Carga de imagen' })
-    .getByLabel('Texto alternativo')
-    .fill(alt);
+  const picker = page.locator('details').filter({
+    has: page.getByText('Insertar imagen', { exact: true }),
+  });
+  await picker.getByText('Insertar imagen', { exact: true }).click();
+  await expect(picker).toHaveAttribute('open', '');
+  const uploadRegion = page.getByRole('region', { name: 'Carga de imagen' });
+  await expect(uploadRegion).toBeVisible();
+  const altInput = uploadRegion.getByLabel('Texto alternativo');
+  await expect(altInput).toBeEnabled();
+  await altInput.fill(alt);
 
   await canvas.click();
   const pasted = nextUpload(page);

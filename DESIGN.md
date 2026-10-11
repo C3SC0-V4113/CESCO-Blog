@@ -422,6 +422,15 @@ including its route-model extension.
 | `/admin/collections/[id]` | Bilingual metadata, lifecycle, membership, and authored ordering    | `collections`, `collection_localizations`, `collection_posts`                |
 | `/admin/authors`          | Author profiles for bylines and structured data                     | `authors`                                                                    |
 
+Admin forms use shadcn field primitives on Base UI: `Field` and `FieldGroup`
+compose labels, validation, and controls; text controls use `Input`; predefined
+choices use the custom `Select`, wired through React Hook Form `Controller`.
+Selects keep native form names and values and are tested through their
+accessible combobox/listbox roles.
+
+The navigation trigger stays disabled until the admin island hydrates, so an
+activation against server-rendered markup is not lost (ADR-0023).
+
 ### `/admin/posts/[id]/edit`
 
 The editor is governed by

@@ -2,6 +2,17 @@ import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import {
+  Select as BaseSelect,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { getTranslations } from '@/i18n/utils';
 import { callRetryPendingPurges, callSaveSeoDraft } from '@/lib/admin-actions';
 import { createDraftSave } from '@/lib/draft-autosave';
@@ -130,7 +141,7 @@ export function AdminSeo({
         setInvalid(field);
         setStatus('idle');
       });
-      (form.elements.namedItem(field.name) as HTMLElement | null)?.focus();
+      form.querySelector<HTMLElement>(`#seo-${field.name}`)?.focus();
     }
   };
   return (
@@ -142,15 +153,16 @@ export function AdminSeo({
           void save(event.currentTarget);
         }}
       >
-        <label>
-          {t('admin.seo.canonical')}
-          <input
+        <Field className="gap-1">
+          <FieldLabel htmlFor="seo-canonical">{t('admin.seo.canonical')}</FieldLabel>
+          <Input
+            id="seo-canonical"
             name="canonical"
             readOnly
             value={canonical}
-            className={cn('mt-1 bg-muted', inputClass)}
+            className={cn('h-10 bg-muted', inputClass)}
           />
-        </label>
+        </Field>
         <Text
           name="seoTitle"
           label={t('admin.seo.title')}
@@ -175,7 +187,7 @@ export function AdminSeo({
           value={values.ogDescription}
           onChange={(value) => set('ogDescription', value)}
         />
-        <Select
+        <ChoiceField
           name="coverMediaId"
           invalid={invalid}
           label={t('admin.seo.cover')}
@@ -183,14 +195,14 @@ export function AdminSeo({
           onChange={(value) => set('coverMediaId', value)}
           options={media.map((asset) => ({ value: asset.id, label: asset.altText || asset.r2Key }))}
         />
-        <Select
+        <ChoiceField
           name="authorId"
           label={t('admin.seo.author')}
           value={values.authorId}
           onChange={(value) => set('authorId', value)}
           options={authors.map((item) => ({ value: item.id, label: item.name }))}
         />
-        <Select
+        <ChoiceField
           name="ogImageMediaId"
           label={t('admin.seo.ogImage')}
           value={values.ogImageMediaId}
@@ -276,31 +288,34 @@ type FieldProps = {
 };
 function Text({ name, label, value, onChange }: FieldProps) {
   return (
-    <label>
-      {label}
-      <input
+    <Field className="gap-1">
+      <FieldLabel htmlFor={`seo-${name}`}>{label}</FieldLabel>
+      <Input
+        id={`seo-${name}`}
         name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={cn('mt-1', inputClass)}
+        className={cn('h-10', inputClass)}
       />
-    </label>
+    </Field>
   );
 }
 function Area({ name, label, value, onChange }: FieldProps) {
   return (
-    <label>
-      {label}
-      <textarea
+    <Field className="gap-1">
+      <FieldLabel htmlFor={`seo-${name}`}>{label}</FieldLabel>
+      <Textarea
+        id={`seo-${name}`}
         name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={cn('mt-1', textareaClass)}
+        className={cn('min-h-24', textareaClass)}
       />
-    </label>
+    </Field>
   );
 }
-function Select({
+const NO_SELECTION = '__no-selection__';
+function ChoiceField({
   name,
   label,
   value,
@@ -310,25 +325,32 @@ function Select({
 }: FieldProps & { options: Array<{ value: string; label: string }>; invalid?: Invalid }) {
   const message = invalid?.name === name ? invalid.message : undefined;
   return (
-    <div>
-      <label>
-        {label}
-        <select
-          name={name}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className={cn('mt-1', selectClass)}
+    <Field data-invalid={Boolean(message)} className="gap-1">
+      <FieldLabel htmlFor={`seo-${name}`}>{label}</FieldLabel>
+      <BaseSelect
+        value={value || NO_SELECTION}
+        onValueChange={(next) => onChange(next === NO_SELECTION ? '' : (next ?? ''))}
+        items={[{ value: NO_SELECTION, label: t('admin.common.none') }, ...options]}
+      >
+        <SelectTrigger
+          id={`seo-${name}`}
+          className={cn('h-10 w-full', selectClass)}
           {...invalidField(name, Boolean(message))}
         >
-          <option value="">{t('admin.common.none')}</option>
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value={NO_SELECTION}>{t('admin.common.none')}</SelectItem>
+            {options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </BaseSelect>
       {message && <FieldError name={name}>{t(message)}</FieldError>}
-    </div>
+    </Field>
   );
 }

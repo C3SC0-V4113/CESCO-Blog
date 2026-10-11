@@ -3,6 +3,17 @@ import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Field as UiField, FieldError as UiFieldError, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { getTranslations, interpolate } from '@/i18n/utils';
 import {
   callCreateCollection,
@@ -12,15 +23,7 @@ import {
 import { pickCollectionLocalizations } from '@/lib/admin-taxonomy';
 import { cn } from '@/lib/utils';
 
-import {
-  FieldError,
-  FormStatus,
-  inputClass,
-  invalidField,
-  PendingButton,
-  selectClass,
-  textareaClass,
-} from './admin-form';
+import { FormStatus, inputClass, PendingButton, selectClass, textareaClass } from './admin-form';
 
 import type {
   AdminCollectionDetail,
@@ -109,7 +112,7 @@ export function AdminCollectionEditor({
   // again by post id and direction. What happened is spoken by a region that
   // is always present, so the change is announced and not just inserted.
   const memberButtons = useRef(new Map<string, HTMLButtonElement>());
-  const addSelect = useRef<HTMLSelectElement>(null);
+  const addSelect = useRef<HTMLButtonElement>(null);
   const [membersStatus, setMembersStatus] = useState('');
   const [localizationIds] = useState(() => ({
     es: collection.localizations.find(({ locale }) => locale === 'es')?.id ?? crypto.randomUUID(),
@@ -203,66 +206,30 @@ export function AdminCollectionEditor({
         void save(event.currentTarget);
       }}
     >
-      <label>
-        {t('admin.collections.lifecycle')}
-        <select
+      <UiField className="gap-1">
+        <FieldLabel htmlFor="collection-editorial-state">
+          {t('admin.collections.lifecycle')}
+        </FieldLabel>
+        <Select
           name="editorialState"
           defaultValue={collection.editorialState}
-          className={cn('mt-1', selectClass)}
+          items={[
+            { value: 'active', label: t('admin.posts.state.active') },
+            { value: 'archived', label: t('admin.posts.state.archived') },
+          ]}
         >
-          <option value="active">{t('admin.posts.state.active')}</option>
-          <option value="archived">{t('admin.posts.state.archived')}</option>
-        </select>
-      </label>
-      <div className="grid gap-5 lg:grid-cols-2">
-        {(['es', 'en'] as const).map((locale) => {
-          const current = collection.localizations.find((item) => item.locale === locale);
-          const locked = Boolean(current?.firstPublishedAt);
-          return (
-            <fieldset key={locale} className="grid gap-3 rounded-xl border bg-background p-5">
-              <legend className="px-2 font-semibold">{t(`locale.${locale}`)}</legend>
-              <Field
-                name={`${locale}-title`}
-                label={t('admin.collections.fieldTitle')}
-                defaultValue={current?.title}
-                invalid={invalid}
-              />
-              <Field
-                name={`${locale}-slug`}
-                label={t('admin.collections.slug')}
-                defaultValue={current?.slug}
-                readOnly={locked}
-                autoComplete="off"
-                spellCheck={false}
-                invalid={invalid}
-              />
-              {locked && (
-                <p className="text-sm text-muted-foreground">{t('admin.collections.slugLocked')}</p>
-              )}
-              <label>
-                {t('admin.collections.description')}
-                <textarea
-                  name={`${locale}-description`}
-                  defaultValue={current?.description ?? ''}
-                  className={cn('mt-1', textareaClass)}
-                />
-              </label>
-              <label>
-                {t('admin.collections.status')}
-                <select
-                  name={`${locale}-status`}
-                  defaultValue={current?.status ?? 'draft'}
-                  className={cn('mt-1', selectClass)}
-                >
-                  <option value="draft">{t('admin.posts.locale.draft')}</option>
-                  <option value="published">{t('admin.posts.locale.published')}</option>
-                  <option value="archived">{t('admin.posts.locale.archived')}</option>
-                </select>
-              </label>
-            </fieldset>
-          );
-        })}
-      </div>
+          <SelectTrigger id="collection-editorial-state" className={cn('h-10 w-full', selectClass)}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="active">{t('admin.posts.state.active')}</SelectItem>
+              <SelectItem value="archived">{t('admin.posts.state.archived')}</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </UiField>
+      <CollectionLocalizations collection={collection} invalid={invalid} />
       <section className="grid gap-3 rounded-xl border bg-background p-5">
         <h2 className="font-semibold">{t('admin.collections.members')}</h2>
         {postIds.map((id, index) => {
@@ -314,24 +281,33 @@ export function AdminCollectionEditor({
         <p id="members-status" role="status" className="sr-only">
           {membersStatus}
         </p>
-        <label>
-          {t('admin.collections.add')}
-          <select
-            ref={addSelect}
-            className={cn('mt-1', selectClass)}
-            value=""
-            onChange={(event) => {
-              if (event.target.value) setPostIds((items) => [...items, event.target.value]);
+        <UiField className="gap-1">
+          <FieldLabel htmlFor="collection-add-post">{t('admin.collections.add')}</FieldLabel>
+          <Select
+            value={null}
+            items={available.map((post) => ({ value: post.id, label: post.title }))}
+            onValueChange={(value) => {
+              if (value) setPostIds((items) => [...items, value]);
             }}
           >
-            <option value="">{t('admin.collections.choose')}</option>
-            {available.map((post) => (
-              <option key={post.id} value={post.id}>
-                {post.title}
-              </option>
-            ))}
-          </select>
-        </label>
+            <SelectTrigger
+              ref={addSelect}
+              id="collection-add-post"
+              className={cn('h-10 w-full', selectClass)}
+            >
+              <SelectValue placeholder={t('admin.collections.choose')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {available.map((post) => (
+                  <SelectItem key={post.id} value={post.id}>
+                    {post.title}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </UiField>
       </section>
       <div className="flex items-center gap-3">
         <PendingButton type="submit" pending={status === 'pending'}>
@@ -380,17 +356,96 @@ function Field({
 }) {
   const message = invalid?.name === name ? invalid.message : undefined;
   return (
-    <div>
-      <label>
-        {label}
-        <input
-          name={name}
-          className={cn('mt-1', inputClass)}
-          {...invalidField(name, Boolean(message))}
-          {...props}
-        />
-      </label>
-      {message && <FieldError name={name}>{t(message)}</FieldError>}
+    <UiField data-invalid={Boolean(message)} className="gap-1">
+      <FieldLabel htmlFor={name}>{label}</FieldLabel>
+      <Input
+        id={name}
+        name={name}
+        className={cn('h-10', inputClass)}
+        aria-invalid={Boolean(message)}
+        aria-describedby={message ? `${name}-error` : undefined}
+        {...props}
+      />
+      {message && <UiFieldError id={`${name}-error`}>{t(message)}</UiFieldError>}
+    </UiField>
+  );
+}
+
+function CollectionLocalizations({
+  collection,
+  invalid,
+}: {
+  collection: AdminCollectionDetail;
+  invalid?: { name: string; message: UiKey };
+}) {
+  return (
+    <div className="grid gap-5 lg:grid-cols-2">
+      {(['es', 'en'] as const).map((locale) => {
+        const current = collection.localizations.find((item) => item.locale === locale);
+        const locked = Boolean(current?.firstPublishedAt);
+        return (
+          <fieldset key={locale} className="grid gap-3 rounded-xl border bg-background p-5">
+            <legend className="px-2 font-semibold">{t(`locale.${locale}`)}</legend>
+            <Field
+              name={`${locale}-title`}
+              label={t('admin.collections.fieldTitle')}
+              defaultValue={current?.title}
+              invalid={invalid}
+            />
+            <Field
+              name={`${locale}-slug`}
+              label={t('admin.collections.slug')}
+              defaultValue={current?.slug}
+              readOnly={locked}
+              autoComplete="off"
+              spellCheck={false}
+              invalid={invalid}
+            />
+            {locked && (
+              <p className="text-sm text-muted-foreground">{t('admin.collections.slugLocked')}</p>
+            )}
+            <UiField className="gap-1">
+              <FieldLabel htmlFor={`collection-${locale}-description`}>
+                {t('admin.collections.description')}
+              </FieldLabel>
+              <Textarea
+                id={`collection-${locale}-description`}
+                name={`${locale}-description`}
+                defaultValue={current?.description ?? ''}
+                className={cn('min-h-20', textareaClass)}
+              />
+            </UiField>
+            <UiField className="gap-1">
+              <FieldLabel htmlFor={`collection-${locale}-status`}>
+                {t('admin.collections.status')}
+              </FieldLabel>
+              <Select
+                name={`${locale}-status`}
+                defaultValue={current?.status ?? 'draft'}
+                items={[
+                  { value: 'draft', label: t('admin.posts.locale.draft') },
+                  { value: 'published', label: t('admin.posts.locale.published') },
+                  { value: 'archived', label: t('admin.posts.locale.archived') },
+                ]}
+              >
+                <SelectTrigger
+                  id={`collection-${locale}-status`}
+                  className={cn('h-10 w-full', selectClass)}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="draft">{t('admin.posts.locale.draft')}</SelectItem>
+                    <SelectItem value="published">{t('admin.posts.locale.published')}</SelectItem>
+                    <SelectItem value="archived">{t('admin.posts.locale.archived')}</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </UiField>
+          </fieldset>
+        );
+      })}
     </div>
   );
 }

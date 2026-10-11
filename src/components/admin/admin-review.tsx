@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
+import { Checkbox } from '@/components/ui/checkbox';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { getTranslations } from '@/i18n/utils';
 import {
   callPublish,
@@ -129,7 +132,7 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
   // Set when the server asks for the redirect confirmation this page did not
   // know it needed, because the localization went live after it loaded.
   const [acknowledgementRejected, setAcknowledgementRejected] = useState(false);
-  const acknowledgement = useRef<HTMLInputElement>(null);
+  const acknowledgement = useRef<HTMLButtonElement>(null);
   const operationId = useRef<string | null>(null);
   const mutation = detail ? { postId: detail.postId, localizationId: detail.localizationId } : null;
   const run = async (action: Action, work: () => Promise<{ error?: unknown; data?: unknown }>) => {
@@ -289,35 +292,37 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                 </div>
               </dl>
               <ReviewPreview detail={detail} />
-              <label>
-                {t('admin.posts.slug')}
-                <input
+              <Field className="gap-1">
+                <FieldLabel htmlFor="review-slug">{t('admin.posts.slug')}</FieldLabel>
+                <Input
+                  id="review-slug"
                   name="slug"
                   defaultValue={detail.slug}
-                  required
                   autoComplete="off"
+                  required
                   spellCheck={false}
                   onChange={(event) => {
                     if (event.target.value === detail.slug) setRenameConfirmed(false);
                   }}
-                  className={cn('mt-1', inputClass)}
+                  className={cn('h-10', inputClass)}
                 />
-              </label>
+              </Field>
               {needsAcknowledgement && (
                 <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
                   <p>{t('admin.review.renameWarning')}</p>
-                  <label className="flex items-start gap-2">
-                    <input
+                  <Field orientation="horizontal" className="items-start">
+                    <Checkbox
+                      id="review-rename-confirmation"
                       ref={acknowledgement}
                       name="acknowledgePermanentRedirect"
-                      type="checkbox"
-                      autoComplete="off"
                       checked={renameConfirmed}
-                      onChange={(event) => setRenameConfirmed(event.target.checked)}
+                      onCheckedChange={(checked) => setRenameConfirmed(checked === true)}
                       {...invalidField('acknowledgePermanentRedirect', acknowledgementMissing)}
                     />
-                    {t('admin.review.renameConfirm')}
-                  </label>
+                    <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
+                      {t('admin.review.renameConfirm')}
+                    </FieldLabel>
+                  </Field>
                   {acknowledgementMissing && (
                     <FieldError name="acknowledgePermanentRedirect">
                       {t('admin.review.renameAcknowledgementError')}

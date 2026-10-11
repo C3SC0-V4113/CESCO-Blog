@@ -1,7 +1,7 @@
 import { PlusIcon, StarIcon } from 'lucide-react';
 import { useState } from 'react';
 
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { formatDate, getTranslations, interpolate } from '@/i18n/utils';
 import { callRetryPendingPurges, callSetFeatured } from '@/lib/admin-actions';
 import { pageCount } from '@/lib/pagination';
@@ -12,10 +12,8 @@ import type { UiKey } from '@/i18n/ui';
 
 const t = getTranslations('es');
 const statusKey = (status: AdminLocaleStatus) => `admin.posts.locale.${status}` as UiKey;
-
-// Small text links need a 24px target (WCAG 2.5.8) without growing the row.
 const textAction =
-  'inline-flex min-h-6 items-center underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex min-h-6 items-center underline underline-offset-4 disabled:opacity-50';
 
 function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | 'en' }) {
   const id = post.localizationIds[locale];
@@ -24,7 +22,6 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
   const [failed, setFailed] = useState(false);
   const featured = post.featured[locale] ?? false;
   const label = t(statusKey(post.locales[locale]));
-  // Every row repeats these actions, so each names the post and locale it acts on.
   const name = (action: string) =>
     interpolate(t('admin.posts.rowAction'), {
       action,
@@ -32,22 +29,22 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
       locale: t(`locale.${locale}`),
     });
   if (!id) return <span>{label}</span>;
-  const settle = (outcome: Promise<boolean>) => {
+  const settle = (work: Promise<boolean>) => {
     setPending(true);
     setFailed(false);
-    void outcome
+    void work
       .catch(() => false)
       .then((done) => {
-        if (done) return;
-        setPending(false);
-        setFailed(true);
+        if (!done) {
+          setPending(false);
+          setFailed(true);
+        }
       });
   };
   const toggleFeatured = () =>
     settle(
       callSetFeatured({ localizationId: id, featured: !featured }).then((result) => {
         if (result.error) return false;
-        // The change is saved either way; only the cache is behind.
         if (result.data.status.includes('warning')) {
           setCacheWarning(true);
           setPending(false);
@@ -74,7 +71,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
       >
         {label}
       </a>
-      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+      <div className="flex flex-wrap gap-2 text-xs">
         <a
           className={textAction}
           href={`/admin/posts/${post.id}/seo?localization=${id}`}
@@ -82,23 +79,22 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
         >
           {t('admin.posts.seo')}
         </a>
-        {/* The toggle keeps one label and reports its state as pressed. Once
-            the cache is behind it is replaced by a retry, which is an action
-            with no on or off. */}
         {post.locales[locale] === 'published' &&
           (cacheWarning ? (
-            <button
+            <Button
               type="button"
+              variant="link"
               className={textAction}
               disabled={pending}
               aria-label={name(t('admin.common.retryCache'))}
               onClick={retryCache}
             >
               {t('admin.common.retryCache')}
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="link"
               className={cn(textAction, 'gap-1')}
               disabled={pending}
               aria-pressed={featured}
@@ -107,7 +103,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
             >
               <StarIcon aria-hidden="true" className={cn('size-3', featured && 'fill-current')} />
               {t('admin.posts.feature')}
-            </button>
+            </Button>
           ))}
       </div>
       {failed && (
@@ -176,7 +172,7 @@ export function AdminPostList({ posts, page, total }: AdminPostListProps) {
                   <td className="px-4 py-4">
                     {t(`admin.posts.state.${post.editorialState}` as UiKey)}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap tabular-nums">
+                  <td className="px-4 py-4 whitespace-nowrap">
                     {formatDate(post.updatedAt, 'es')}
                   </td>
                 </tr>
@@ -195,7 +191,7 @@ export function AdminPostList({ posts, page, total }: AdminPostListProps) {
               {t('listing.previous')}
             </a>
           )}
-          <span className="text-sm text-muted-foreground tabular-nums">
+          <span className="text-sm text-muted-foreground">
             {page} / {totalPages}
           </span>
           {page < totalPages && (

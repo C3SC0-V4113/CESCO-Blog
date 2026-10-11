@@ -1,8 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm, type Control } from 'react-hook-form';
 
 import { buttonVariants } from '@/components/ui/button';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { getTranslations } from '@/i18n/utils';
 import { callCreatePost } from '@/lib/admin-actions';
 import {
@@ -13,18 +23,71 @@ import {
 import { cn } from '@/lib/utils';
 
 import {
-  FieldError,
-  inputClass,
-  invalidField,
+  FieldError as AdminFieldError,
   PendingButton,
-  selectClass,
+  invalidField,
   useHydrated,
 } from './admin-form';
-
 const t = getTranslations('es');
-const fieldsClass = 'grid gap-5 rounded-xl border bg-card p-5 shadow-sm sm:grid-cols-2';
+const fieldsClass = 'rounded-xl border bg-card p-5 shadow-sm';
+const sections = [
+  { value: 'analysis', label: t('nav.analysis') },
+  { value: 'opinion', label: t('nav.opinion') },
+] as const;
+const locales = [
+  { value: 'es', label: t('locale.es') },
+  { value: 'en', label: t('locale.en') },
+] as const;
 type CreatePost = (input: ValidCreatePostInput) => ReturnType<typeof callCreatePost>;
 const assignLocation = (href: string) => window.location.assign(href);
+
+function ControlledSelect({
+  control,
+  name,
+  id,
+  label,
+  items,
+  disabled,
+}: {
+  control: Control<CreatePostInput, unknown, ValidCreatePostInput>;
+  name: 'section' | 'locale';
+  id: string;
+  label: string;
+  items: readonly { value: string; label: string }[];
+  disabled: boolean;
+}) {
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Controller
+        name={name}
+        control={control}
+        render={({ field }) => (
+          <Select
+            name={field.name}
+            value={field.value}
+            onValueChange={field.onChange}
+            items={items}
+            disabled={disabled}
+          >
+            <SelectTrigger id={id} ref={field.ref} onBlur={field.onBlur} className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {items.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        )}
+      />
+    </Field>
+  );
+}
 export function AdminPostForm({
   createPost = callCreatePost,
   navigate = assignLocation,
@@ -35,6 +98,7 @@ export function AdminPostForm({
   const [serverError, setServerError] = useState<string>();
   const ready = useHydrated();
   const {
+    control,
     register,
     handleSubmit,
     setError,
@@ -67,37 +131,40 @@ export function AdminPostForm({
       noValidate
     >
       <fieldset disabled={!ready} className={fieldsClass}>
-        <label className="flex flex-col gap-2 text-sm font-medium">
-          {t('admin.posts.section')}
-          <select {...register('section')} className={selectClass}>
-            <option value="analysis">{t('nav.analysis')}</option>
-            <option value="opinion">{t('nav.opinion')}</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-2 text-sm font-medium">
-          {t('admin.posts.locale')}
-          <select {...register('locale')} className={selectClass}>
-            <option value="es">{t('locale.es')}</option>
-            <option value="en">{t('locale.en')}</option>
-          </select>
-        </label>
-        <div className="sm:col-span-2">
-          <label className="flex flex-col gap-2 text-sm font-medium">
-            {t('admin.posts.slug')}
-            <input
+        <FieldGroup className="grid w-full gap-5 sm:grid-cols-2">
+          <ControlledSelect
+            control={control}
+            name="section"
+            id="section"
+            label={t('admin.posts.section')}
+            items={sections}
+            disabled={!ready}
+          />
+          <ControlledSelect
+            control={control}
+            name="locale"
+            id="locale"
+            label={t('admin.posts.locale')}
+            items={locales}
+            disabled={!ready}
+          />
+          <Field data-invalid={Boolean(errors.slug)} className="sm:col-span-2">
+            <FieldLabel htmlFor="slug">{t('admin.posts.slug')}</FieldLabel>
+            <Input
               {...register('slug')}
+              id="slug"
               {...invalidField('slug', Boolean(errors.slug))}
-              className={inputClass}
+              className="h-9 font-normal"
               autoComplete="off"
               spellCheck={false}
             />
-          </label>
-          {errors.slug && (
-            <FieldError name="slug">
-              {errors.slug.type === 'server' ? errors.slug.message : t('admin.posts.slugInvalid')}
-            </FieldError>
-          )}
-        </div>
+            {errors.slug && (
+              <AdminFieldError name="slug">
+                {errors.slug.type === 'server' ? errors.slug.message : t('admin.posts.slugInvalid')}
+              </AdminFieldError>
+            )}
+          </Field>
+        </FieldGroup>
         {serverError && (
           <p role="alert" className="text-sm text-destructive sm:col-span-2">
             {serverError}

@@ -18,7 +18,7 @@ import { AdminAuthors } from './admin-authors';
 import { AdminCollectionEditor, AdminCollections } from './admin-collections';
 import { AdminDashboard } from './admin-dashboard';
 import { AdminEditor } from './admin-editor';
-import { useHydrated } from './admin-form';
+import { useHydrated } from './admin-hydration';
 import { AdminMedia } from './admin-media';
 import { AdminPostForm } from './admin-post-form';
 import { AdminPostList } from './admin-post-list';

@@ -1,8 +1,11 @@
 import { ImagePlusIcon, LoaderCircleIcon } from 'lucide-react';
-import { useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { useId, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { flushSync } from 'react-dom';
 
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { getTranslations } from '@/i18n/utils';
 import { callUpdateMediaAsset } from '@/lib/admin-actions';
 import { normalizeImage } from '@/lib/image-normalize';
@@ -53,6 +56,9 @@ export function AdminMedia({
   const [pageStatus, setPageStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const fileInput = useRef<HTMLInputElement>(null);
   const altInput = useRef<HTMLInputElement>(null);
+  const altId = useId();
+  const fileId = useId();
+  const decorativeId = useId();
 
   async function loadPage(next: number) {
     setPageStatus('loading');
@@ -133,12 +139,13 @@ export function AdminMedia({
         }}
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className="grow">
-            {t('admin.media.alt')}
-            <input
+          <Field className="min-w-0 flex-1">
+            <FieldLabel htmlFor={altId}>{t('admin.media.alt')}</FieldLabel>
+            <Input
+              id={altId}
               ref={altInput}
               name="altText"
-              className={cn('mt-1', inputClass)}
+              className={cn('mt-1 h-10', inputClass)}
               disabled={decorative}
               value={altText}
               onChange={(event) => {
@@ -147,28 +154,32 @@ export function AdminMedia({
               }}
               {...invalidField('altText', altMissing)}
             />
-          </label>
-          <label className="flex h-10 items-center gap-2">
-            <input
-              name="decorative"
-              type="checkbox"
+          </Field>
+          <Field orientation="horizontal" className="h-10 w-auto items-center gap-2">
+            <Checkbox
+              id={decorativeId}
               checked={decorative}
-              onChange={(event) => {
-                setDecorative(event.target.checked);
+              onCheckedChange={(checked) => {
+                setDecorative(checked === true);
                 setAltMissing(false);
               }}
             />
-            {t('admin.media.decorative')}
-          </label>
-          {/* The label is the visible control, so it draws the focus ring and the
-              disabled look of the file input it wraps. */}
-          <label
-            className={cn(
-              buttonVariants(),
-              'has-focus-visible:border-ring has-focus-visible:ring-3 has-focus-visible:ring-ring has-disabled:pointer-events-none has-disabled:opacity-50'
-            )}
-          >
-            <input
+            <FieldLabel htmlFor={decorativeId}>{t('admin.media.decorative')}</FieldLabel>
+          </Field>
+          <Field className="w-auto">
+            <FieldLabel
+              htmlFor={fileId}
+              className={buttonVariants({ className: status === 'loading' ? 'opacity-50' : '' })}
+            >
+              {status === 'loading' ? (
+                <LoaderCircleIcon aria-hidden="true" />
+              ) : (
+                <ImagePlusIcon aria-hidden="true" />
+              )}
+              {t('admin.media.choose')}
+            </FieldLabel>
+            <Input
+              id={fileId}
               className="sr-only"
               ref={fileInput}
               type="file"
@@ -176,16 +187,7 @@ export function AdminMedia({
               accept="image/png,image/jpeg,image/webp"
               onChange={(event) => event.target.files && void upload(event.target.files)}
             />
-            {status === 'loading' ? (
-              <LoaderCircleIcon
-                aria-hidden="true"
-                className="animate-spin motion-reduce:animate-none"
-              />
-            ) : (
-              <ImagePlusIcon aria-hidden="true" />
-            )}
-            {t('admin.media.choose')}
-          </label>
+          </Field>
         </div>
         {altMissing && <FieldError name="altText">{t('admin.media.altRequired')}</FieldError>}
         <p className="mt-2 text-sm text-muted-foreground">{t('admin.media.help')}</p>
@@ -201,13 +203,14 @@ export function AdminMedia({
           {assets.map((asset) => (
             <li key={asset.id} className="overflow-hidden rounded-lg border bg-background">
               {onSelect ? (
-                <button
+                <Button
                   type="button"
-                  className="w-full text-left outline-none focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
+                  variant="ghost"
+                  className="h-auto w-full flex-col items-stretch justify-start rounded-none p-0 text-left font-normal whitespace-normal hover:bg-transparent focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
                   onClick={() => onSelect(asset)}
                 >
                   <MediaCard asset={asset} />
-                </button>
+                </Button>
               ) : (
                 <MediaCard asset={asset} />
               )}
@@ -276,6 +279,7 @@ function MetadataForm({
   onSaved(asset: AdminMediaAsset): void;
 }) {
   const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const formId = useId();
   const save = async (form: HTMLFormElement) => {
     setStatus('pending');
     const data = new FormData(form);
@@ -304,33 +308,39 @@ function MetadataForm({
         void save(event.currentTarget);
       }}
     >
-      <label>
-        {t('admin.media.alt')}
-        <input
+      <Field className="gap-1">
+        <FieldLabel htmlFor={`${formId}-alt`}>{t('admin.media.alt')}</FieldLabel>
+        <Input
+          id={`${formId}-alt`}
           name="altText"
           defaultValue={asset.altText ?? ''}
-          className={cn('mt-1', inputClass)}
+          className={cn('h-10', inputClass)}
         />
-      </label>
-      <label>
-        <input name="decorative" type="checkbox" defaultChecked={asset.altText === ''} />{' '}
-        {t('admin.media.decorative')}
-      </label>
+      </Field>
+      <Field orientation="horizontal" className="items-center">
+        <Checkbox
+          id={`${formId}-decorative`}
+          name="decorative"
+          defaultChecked={asset.altText === ''}
+        />
+        <FieldLabel htmlFor={`${formId}-decorative`}>{t('admin.media.decorative')}</FieldLabel>
+      </Field>
       {metadataFields.map((field) => (
-        <label key={field}>
-          {t(`admin.media.${field}`)}
-          <input
+        <Field key={field} className="gap-1">
+          <FieldLabel htmlFor={`${formId}-${field}`}>{t(`admin.media.${field}`)}</FieldLabel>
+          <Input
+            id={`${formId}-${field}`}
             name={field}
             defaultValue={asset[field] ?? ''}
-            className={cn('mt-1', inputClass)}
+            className={cn('h-10', inputClass)}
             {...(urlFields.has(field) && { type: 'url', inputMode: 'url' as const })}
           />
-        </label>
+        </Field>
       ))}
-      <label>
-        <input name="isOwnWork" type="checkbox" defaultChecked={asset.isOwnWork} />{' '}
-        {t('admin.media.isOwnWork')}
-      </label>
+      <Field orientation="horizontal" className="items-center">
+        <Checkbox id={`${formId}-own-work`} name="isOwnWork" defaultChecked={asset.isOwnWork} />
+        <FieldLabel htmlFor={`${formId}-own-work`}>{t('admin.media.isOwnWork')}</FieldLabel>
+      </Field>
       <PendingButton type="submit" variant="outline" pending={status === 'pending'}>
         {t('admin.media.saveMetadata')}
       </PendingButton>

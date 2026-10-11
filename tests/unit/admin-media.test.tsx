@@ -34,7 +34,10 @@ const asset = {
 };
 
 describe('AdminMedia', () => {
-  beforeEach(() => vi.stubGlobal('fetch', vi.fn()));
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn());
+  });
   afterEach(() => document.body.replaceChildren());
 
   it.each(['javascript:alert(1)', 'data:text/html,x'])('rejects unsafe metadata URL %s', (url) => {
@@ -52,6 +55,25 @@ describe('AdminMedia', () => {
     render(<AdminMedia assets={[]} page={1} total={0} />);
     expect(screen.getByText('No hay imágenes todavía.')).toBeTruthy();
     expect(screen.queryByText('Anterior')).toBeNull();
+  });
+
+  it('renders the upload and metadata fields with the shared admin primitives', () => {
+    render(<AdminMedia assets={[asset]} />);
+
+    expect(screen.getAllByLabelText('Texto alternativo')[0]!.getAttribute('data-slot')).toBe(
+      'input'
+    );
+    expect(screen.getByLabelText('Elegir imagen').getAttribute('data-slot')).toBe('input');
+    expect(
+      screen.getAllByRole('checkbox', { name: 'Imagen decorativa' })[0]!.getAttribute('data-slot')
+    ).toBe('checkbox');
+    fireEvent.click(screen.getByText('Editar metadatos'));
+    expect(screen.getAllByLabelText('Texto alternativo')[1]!.getAttribute('data-slot')).toBe(
+      'input'
+    );
+    expect(screen.getByRole('checkbox', { name: 'Trabajo propio' }).getAttribute('data-slot')).toBe(
+      'checkbox'
+    );
   });
 
   it('normalizes and selects only after a successful upload', async () => {
@@ -84,7 +106,7 @@ describe('AdminMedia', () => {
     const select = vi.fn();
     const { container } = render(<AdminMedia assets={[]} onSelect={select} />);
     const view = within(container);
-    fireEvent.click(view.getByLabelText('Imagen decorativa'));
+    fireEvent.click(view.getByRole('checkbox', { name: 'Imagen decorativa' }));
     fireEvent.change(view.getByLabelText('Elegir imagen'), {
       target: { files: [new File(['png'], 'mapa.png', { type: 'image/png' })] },
     });
@@ -163,9 +185,15 @@ describe('AdminMedia', () => {
     fireEvent.click(screen.getByText('Editar metadatos'));
     const alt = screen.getAllByLabelText('Texto alternativo')[1]!;
     fireEvent.change(alt, { target: { value: 'Mapa actualizado' } });
+    fireEvent.click(screen.getAllByText('Imagen decorativa', { exact: true })[1]!);
+    fireEvent.click(screen.getByText('Trabajo propio', { exact: true }));
     fireEvent.click(screen.getByRole('button', { name: 'Guardar metadatos' }));
     await screen.findByRole('alert');
     expect((alt as HTMLInputElement).value).toBe('Mapa actualizado');
+    expect(vi.mocked(callUpdateMediaAsset).mock.calls[0]?.[0]).toMatchObject({
+      decorative: true,
+      isOwnWork: true,
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar metadatos' }));
     await screen.findByText('Metadatos guardados.');
     fireEvent.click(screen.getByRole('button', { name: /Mapa actualizado/ }));

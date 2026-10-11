@@ -1,5 +1,6 @@
 import { LoaderCircleIcon } from 'lucide-react';
-import { useSyncExternalStore } from 'react';
+
+export { useHydrated } from './admin-hydration';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -61,28 +62,6 @@ export function FormStatus({ message, error }: { message?: string; error?: strin
   );
 }
 
-const subscribeToNothing = () => () => {};
-
-/**
- * False for the server render and the hydration pass, true once React owns the
- * DOM. Every admin form is controlled, so text typed into a server-rendered
- * input before hydration is reset to the server value when React commits — the
- * edit vanishes with no error. WebKit reaches that commit late enough for an
- * editor, and the e2e suite, to lose the first field typed.
- */
-export function useHydrated() {
-  return useSyncExternalStore(
-    subscribeToNothing,
-    () => true,
-    () => false
-  );
-}
-
-/**
- * A button that stays put while its request runs: disabled, with a spinner,
- * and still saying what it does, so the label carries the state even with the
- * spinner held still for reduced motion (ADR-0022).
- */
 export function PendingButton({
   pending,
   disabled,

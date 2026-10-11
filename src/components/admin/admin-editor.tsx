@@ -5,6 +5,9 @@ import StarterKit from '@tiptap/starter-kit';
 import { useEffect, useRef, useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { getTranslations } from '@/i18n/utils';
 import { callSaveDraft } from '@/lib/admin-actions';
 import { createDraftSave, DraftAutosave } from '@/lib/draft-autosave';
@@ -222,38 +225,36 @@ export function AdminEditor({
       </div>
       {/* Each constraint sits outside its label: inside, it would be read twice,
           once in the name and again as the description. */}
-      <div>
-        <label>
-          {t('admin.editor.postTitle')}
-          <input
-            name="title"
-            aria-describedby="editor-title-constraint"
-            className={cn('mt-1', inputClass)}
-            defaultValue={draft.title}
-            maxLength={300}
-            onChange={(event) => editField('title', event.target.value)}
-          />
-        </label>
-        <p id="editor-title-constraint" className="mt-1 text-sm text-muted-foreground">
+      <Field className="gap-2">
+        <FieldLabel htmlFor="editor-title">{t('admin.editor.postTitle')}</FieldLabel>
+        <Input
+          id="editor-title"
+          name="title"
+          aria-describedby="editor-title-constraint"
+          className={cn('h-10', inputClass)}
+          defaultValue={draft.title}
+          maxLength={300}
+          onChange={(event) => editField('title', event.target.value)}
+        />
+        <FieldDescription id="editor-title-constraint">
           {t('admin.editor.titleConstraint')}
-        </p>
-      </div>
-      <div>
-        <label>
-          {t('admin.editor.excerpt')}
-          <textarea
-            name="excerpt"
-            aria-describedby="editor-excerpt-constraint"
-            className={cn('mt-1 min-h-20', textareaClass)}
-            defaultValue={draft.excerpt ?? ''}
-            maxLength={1000}
-            onChange={(event) => editField('excerpt', event.target.value)}
-          />
-        </label>
-        <p id="editor-excerpt-constraint" className="mt-1 text-sm text-muted-foreground">
+        </FieldDescription>
+      </Field>
+      <Field className="gap-2">
+        <FieldLabel htmlFor="editor-excerpt">{t('admin.editor.excerpt')}</FieldLabel>
+        <Textarea
+          id="editor-excerpt"
+          name="excerpt"
+          aria-describedby="editor-excerpt-constraint"
+          className={cn('min-h-20', textareaClass)}
+          defaultValue={draft.excerpt ?? ''}
+          maxLength={1000}
+          onChange={(event) => editField('excerpt', event.target.value)}
+        />
+        <FieldDescription id="editor-excerpt-constraint">
           {t('admin.editor.excerptConstraint')}
-        </p>
-      </div>
+        </FieldDescription>
+      </Field>
       <EditorToolbar editor={editor} />
       <div>
         <p id="editor-body-label" className="mb-1 text-sm font-medium">

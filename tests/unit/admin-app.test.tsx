@@ -236,7 +236,7 @@ describe('AdminApp', () => {
     fireEvent.click(confirmation);
     expect(rename).toHaveProperty('disabled', false);
     fireEvent.change(slug, { target: { value: 'publicado' } });
-    expect(confirmation).toHaveProperty('checked', false);
+    expect(confirmation.getAttribute('aria-checked')).toBe('false');
     expect(rename).toHaveProperty('disabled', true);
     fireEvent.change(slug, { target: { value: 'nuevo-slug' } });
     fireEvent.click(confirmation);
@@ -246,7 +246,7 @@ describe('AdminApp', () => {
         expect.objectContaining({ acknowledgePermanentRedirect: true })
       )
     );
-    await waitFor(() => expect(confirmation).toHaveProperty('checked', false));
+    await waitFor(() => expect(confirmation.getAttribute('aria-checked')).toBe('false'));
   });
 
   it('uses the serialized action result code when publication interleaves before rename', async () => {
