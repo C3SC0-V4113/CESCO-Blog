@@ -203,13 +203,13 @@ export async function unpublishLocalization(db: Db, raw: UnpublishInput, purge: 
   const [withdrawn] = await db.$client.batch([
     db.$client
       .prepare(
-        `UPDATE post_localizations SET status = 'draft', published_revision_id = NULL, updated_at = ?
+        `UPDATE post_localizations SET status = 'draft', published_revision_id = NULL, featured_at = NULL, updated_at = ?
 WHERE id = ? AND post_id = ? AND published_revision_id IS NOT NULL AND (? IS NULL OR published_revision_id = ?)`
       )
       .bind(toDbTimestamp(), input.localizationId, input.postId, expected, expected),
     recordPendingPurge(
       db,
-      publicationTags(source.postId, source.section, source.locale),
+      [...publicationTags(source.postId, source.section, source.locale), 'featured'],
       'unpublish',
       'changes() = 1'
     ),
