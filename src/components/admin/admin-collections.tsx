@@ -1,6 +1,17 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { getTranslations } from '@/i18n/utils';
 import {
   callCreateCollection,
@@ -117,179 +128,216 @@ export function AdminCollectionEditor({
   const selectedPostIds = new Set(postIds);
   const available = posts.filter(({ id }) => !selectedPostIds.has(id));
   return (
-    <form className="grid gap-6">
-      <label>
-        {t('admin.collections.lifecycle')}
-        <select
-          name="editorialState"
-          defaultValue={collection.editorialState}
-          className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
-        >
-          <option value="active">{t('admin.posts.state.active')}</option>
-          <option value="archived">{t('admin.posts.state.archived')}</option>
-        </select>
-      </label>
-      <div className="grid gap-5 lg:grid-cols-2">
-        {(['es', 'en'] as const).map((locale) => {
-          const current = collection.localizations.find((item) => item.locale === locale);
-          const locked = Boolean(current?.firstPublishedAt);
-          return (
-            <fieldset key={locale} className="grid gap-3 rounded-xl border bg-background p-5">
-              <legend className="px-2 font-semibold">{t(`locale.${locale}`)}</legend>
-              <Field
-                name={`${locale}-title`}
-                label={t('admin.collections.fieldTitle')}
-                defaultValue={current?.title}
-              />
-              <Field
-                name={`${locale}-slug`}
-                label={t('admin.collections.slug')}
-                defaultValue={current?.slug}
-                readOnly={locked}
-              />
-              {locked && (
-                <p className="text-sm text-muted-foreground">{t('admin.collections.slugLocked')}</p>
-              )}
-              <label>
-                {t('admin.collections.description')}
-                <textarea
-                  name={`${locale}-description`}
-                  defaultValue={current?.description ?? ''}
-                  className="mt-1 min-h-24 w-full rounded-lg border bg-background p-3"
-                />
-              </label>
-              <label>
-                {t('admin.collections.status')}
-                <select
-                  name={`${locale}-status`}
-                  defaultValue={current?.status ?? 'draft'}
-                  className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
-                >
-                  <option value="draft">{t('admin.posts.locale.draft')}</option>
-                  <option value="published">{t('admin.posts.locale.published')}</option>
-                  <option value="archived">{t('admin.posts.locale.archived')}</option>
-                </select>
-              </label>
-            </fieldset>
-          );
-        })}
-      </div>
-      <section className="grid gap-3 rounded-xl border bg-background p-5">
-        <h2 className="font-semibold">{t('admin.collections.members')}</h2>
-        {postIds.map((id, index) => {
-          const post = posts.find((item) => item.id === id);
-          return (
-            <div key={id} className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
-              <span className="grow">
-                {index + 1}. {post?.title ?? id}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={index === 0}
-                onClick={() =>
-                  setPostIds((items) =>
-                    items.map((value, position) =>
-                      position === index - 1 ? id : position === index ? items[index - 1]! : value
-                    )
-                  )
-                }
-              >
-                ↑
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={index === postIds.length - 1}
-                onClick={() =>
-                  setPostIds((items) =>
-                    items.map((value, position) =>
-                      position === index + 1 ? id : position === index ? items[index + 1]! : value
-                    )
-                  )
-                }
-              >
-                ↓
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setPostIds((items) => items.filter((value) => value !== id))}
-              >
-                {t('admin.collections.remove')}
-              </Button>
-            </div>
-          );
-        })}
-        <label>
-          {t('admin.collections.add')}
-          <select
-            className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
-            value=""
-            onChange={(event) => {
-              if (event.target.value) setPostIds((items) => [...items, event.target.value]);
-            }}
+    <form>
+      <FieldGroup className="gap-6">
+        <Field className="gap-1">
+          <FieldLabel htmlFor="collection-editorial-state">
+            {t('admin.collections.lifecycle')}
+          </FieldLabel>
+          <Select
+            name="editorialState"
+            defaultValue={collection.editorialState}
+            items={[
+              { value: 'active', label: t('admin.posts.state.active') },
+              { value: 'archived', label: t('admin.posts.state.archived') },
+            ]}
           >
-            <option value="">{t('admin.collections.choose')}</option>
-            {available.map((post) => (
-              <option key={post.id} value={post.id}>
-                {post.title}
-              </option>
-            ))}
-          </select>
-        </label>
-      </section>
-      <div className="flex items-center gap-3">
-        <Button
-          type="button"
-          disabled={status === 'pending'}
-          onClick={(event) => void save(event.currentTarget.form!)}
-        >
-          {t('admin.common.save')}
-        </Button>
-        <p role={status === 'error' ? 'alert' : 'status'}>
-          {status === 'error'
-            ? t(error)
-            : status === 'saved'
-              ? t('admin.common.saved')
-              : status === 'warning'
-                ? t('admin.common.cacheWarning')
-                : ''}
-        </p>
-        {status === 'warning' && (
+            <SelectTrigger id="collection-editorial-state" className="h-10 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="active">{t('admin.posts.state.active')}</SelectItem>
+                <SelectItem value="archived">{t('admin.posts.state.archived')}</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
+        <div className="grid gap-5 lg:grid-cols-2">
+          {(['es', 'en'] as const).map((locale) => {
+            const current = collection.localizations.find((item) => item.locale === locale);
+            const locked = Boolean(current?.firstPublishedAt);
+            return (
+              <fieldset key={locale} className="grid gap-3 rounded-xl border bg-background p-5">
+                <legend className="px-2 font-semibold">{t(`locale.${locale}`)}</legend>
+                <TextField
+                  name={`${locale}-title`}
+                  label={t('admin.collections.fieldTitle')}
+                  defaultValue={current?.title}
+                />
+                <TextField
+                  name={`${locale}-slug`}
+                  label={t('admin.collections.slug')}
+                  defaultValue={current?.slug}
+                  readOnly={locked}
+                />
+                {locked && (
+                  <p className="text-sm text-muted-foreground">
+                    {t('admin.collections.slugLocked')}
+                  </p>
+                )}
+                <Field className="gap-1">
+                  <FieldLabel htmlFor={`collection-${locale}-description`}>
+                    {t('admin.collections.description')}
+                  </FieldLabel>
+                  <Textarea
+                    id={`collection-${locale}-description`}
+                    name={`${locale}-description`}
+                    defaultValue={current?.description ?? ''}
+                    className="min-h-24 p-3"
+                  />
+                </Field>
+                <Field className="gap-1">
+                  <FieldLabel htmlFor={`collection-${locale}-status`}>
+                    {t('admin.collections.status')}
+                  </FieldLabel>
+                  <Select
+                    name={`${locale}-status`}
+                    defaultValue={current?.status ?? 'draft'}
+                    items={[
+                      { value: 'draft', label: t('admin.posts.locale.draft') },
+                      { value: 'published', label: t('admin.posts.locale.published') },
+                      { value: 'archived', label: t('admin.posts.locale.archived') },
+                    ]}
+                  >
+                    <SelectTrigger id={`collection-${locale}-status`} className="h-10 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="draft">{t('admin.posts.locale.draft')}</SelectItem>
+                        <SelectItem value="published">
+                          {t('admin.posts.locale.published')}
+                        </SelectItem>
+                        <SelectItem value="archived">{t('admin.posts.locale.archived')}</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </fieldset>
+            );
+          })}
+        </div>
+        <section className="grid gap-3 rounded-xl border bg-background p-5">
+          <h2 className="font-semibold">{t('admin.collections.members')}</h2>
+          {postIds.map((id, index) => {
+            const post = posts.find((item) => item.id === id);
+            return (
+              <div key={id} className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
+                <span className="grow">
+                  {index + 1}. {post?.title ?? id}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={index === 0}
+                  onClick={() =>
+                    setPostIds((items) =>
+                      items.map((value, position) =>
+                        position === index - 1 ? id : position === index ? items[index - 1]! : value
+                      )
+                    )
+                  }
+                >
+                  ↑
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={index === postIds.length - 1}
+                  onClick={() =>
+                    setPostIds((items) =>
+                      items.map((value, position) =>
+                        position === index + 1 ? id : position === index ? items[index + 1]! : value
+                      )
+                    )
+                  }
+                >
+                  ↓
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPostIds((items) => items.filter((value) => value !== id))}
+                >
+                  {t('admin.collections.remove')}
+                </Button>
+              </div>
+            );
+          })}
+          <Field className="gap-1">
+            <FieldLabel htmlFor="collection-add-post">{t('admin.collections.add')}</FieldLabel>
+            <Select
+              value={null}
+              items={available.map((post) => ({ value: post.id, label: post.title }))}
+              onValueChange={(value) => {
+                if (value) setPostIds((items) => [...items, value]);
+              }}
+            >
+              <SelectTrigger id="collection-add-post" className="h-10 w-full">
+                <SelectValue placeholder={t('admin.collections.choose')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {available.map((post) => (
+                    <SelectItem key={post.id} value={post.id}>
+                      {post.title}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </Field>
+        </section>
+        <div className="flex items-center gap-3">
           <Button
             type="button"
-            variant="outline"
-            onClick={() => {
-              setStatus('pending');
-              void callRetryPendingPurges().then((result) =>
-                setStatus(
-                  result.error ? 'error' : result.data.status === 'purged' ? 'saved' : 'warning'
-                )
-              );
-            }}
+            disabled={status === 'pending'}
+            onClick={(event) => void save(event.currentTarget.form!)}
           >
-            {t('admin.common.retryCache')}
+            {t('admin.common.save')}
           </Button>
-        )}
-      </div>
+          <p role={status === 'error' ? 'alert' : 'status'}>
+            {status === 'error'
+              ? t(error)
+              : status === 'saved'
+                ? t('admin.common.saved')
+                : status === 'warning'
+                  ? t('admin.common.cacheWarning')
+                  : ''}
+          </p>
+          {status === 'warning' && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setStatus('pending');
+                void callRetryPendingPurges().then((result) =>
+                  setStatus(
+                    result.error ? 'error' : result.data.status === 'purged' ? 'saved' : 'warning'
+                  )
+                );
+              }}
+            >
+              {t('admin.common.retryCache')}
+            </Button>
+          )}
+        </div>
+      </FieldGroup>
     </form>
   );
 }
 
-function Field({
+function TextField({
   label,
   name,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string }) {
+  const id = useId();
   return (
-    <label>
-      {label}
-      <input
-        name={name}
-        className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
-        {...props}
-      />
-    </label>
+    <Field className="gap-1">
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Input id={id} name={name} className="h-10" {...props} />
+    </Field>
   );
 }

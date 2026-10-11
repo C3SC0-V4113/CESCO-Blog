@@ -6,12 +6,20 @@ test('creates an author through the protected admin workflow', async ({ page }) 
   const name = `Editorial author ${id}`;
 
   await page.goto('/admin/authors');
+  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Autores');
 
   const form = page.getByRole('heading', { name: 'Nuevo autor' }).locator('..');
-  await form.getByLabel('Nombre').fill(name);
+  const authorName = form.getByLabel('Nombre');
+  await expect(authorName).toBeEnabled();
+  await authorName.fill(name);
   await form.getByLabel('Slug').fill(slug);
   await form.getByLabel('Sitio web').fill('https://example.com/profile');
+  const avatar = form.getByRole('combobox', { name: 'Avatar' });
+  await expect(avatar).toBeEnabled();
+  await avatar.click();
+  await page.getByRole('listbox').getByRole('option').nth(1).click();
+  const selectedAvatar = (await avatar.innerText()).trim();
   await form
     .getByLabel('Perfiles relacionados (una URL por línea)')
     .fill('https://social.example/profile');
@@ -21,6 +29,7 @@ test('creates an author through the protected admin workflow', async ({ page }) 
   const saved = page.getByRole('heading', { name }).locator('..');
   await expect(saved.getByLabel('Slug')).toHaveValue(slug);
   await expect(saved.getByLabel('Sitio web')).toHaveValue('https://example.com/profile');
+  await expect(saved.getByRole('combobox', { name: 'Avatar' })).toContainText(selectedAvatar);
   await expect(saved.getByLabel('Perfiles relacionados (una URL por línea)')).toHaveValue(
     'https://social.example/profile'
   );

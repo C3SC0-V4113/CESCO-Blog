@@ -1,7 +1,7 @@
 import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { formatDate, getTranslations } from '@/i18n/utils';
 import { callRetryPendingPurges, callSetFeatured } from '@/lib/admin-actions';
 import { pageCount } from '@/lib/pagination';
@@ -38,9 +38,10 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
           {t('admin.posts.seo')}
         </a>
         {post.locales[locale] === 'published' && (
-          <button
+          <Button
             type="button"
-            className="underline underline-offset-4"
+            variant="link"
+            className="h-auto p-0 text-xs underline underline-offset-4"
             disabled={pending}
             aria-pressed={featured}
             onClick={() => {
@@ -68,7 +69,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
             {cacheWarning
               ? t('admin.common.retryCache')
               : t(featured ? 'admin.posts.unfeature' : 'admin.posts.feature')}
-          </button>
+          </Button>
         )}
       </div>
     </div>

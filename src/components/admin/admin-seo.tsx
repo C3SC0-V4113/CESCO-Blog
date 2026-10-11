@@ -1,6 +1,17 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import {
+  Select as SelectRoot,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { getTranslations } from '@/i18n/utils';
 import { callRetryPendingPurges, callSaveSeoDraft } from '@/lib/admin-actions';
 import { createDraftSave } from '@/lib/draft-autosave';
@@ -14,6 +25,7 @@ import type { UiKey } from '@/i18n/ui';
 import type { SeoDraftInput } from '@/lib/admin-taxonomy';
 
 const t = getTranslations('es');
+const NO_SELECTION = '__no-selection__';
 
 type SeoValues = Omit<SeoDraftInput, 'draftToken' | 'nextToken'>;
 type FormValues = Record<
@@ -113,94 +125,98 @@ export function AdminSeo({
   };
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.8fr)]">
-      <form className="grid gap-4 rounded-xl border bg-background p-5">
-        <label>
-          {t('admin.seo.canonical')}
-          <input
-            readOnly
-            value={canonical}
-            className="mt-1 h-10 w-full rounded-lg border bg-muted px-3"
+      <form>
+        <FieldGroup className="gap-4 rounded-xl border bg-background p-5">
+          <Field className="gap-1">
+            <FieldLabel htmlFor="seo-canonical">{t('admin.seo.canonical')}</FieldLabel>
+            <Input id="seo-canonical" readOnly value={canonical} className="h-10 bg-muted" />
+          </Field>
+          <TextField
+            label={t('admin.seo.title')}
+            value={values.seoTitle}
+            onChange={(value) => set('seoTitle', value)}
           />
-        </label>
-        <Text
-          label={t('admin.seo.title')}
-          value={values.seoTitle}
-          onChange={(value) => set('seoTitle', value)}
-        />
-        <Area
-          label={t('admin.seo.description')}
-          value={values.seoDescription}
-          onChange={(value) => set('seoDescription', value)}
-        />
-        <Text
-          label={t('admin.seo.ogTitle')}
-          value={values.ogTitle}
-          onChange={(value) => set('ogTitle', value)}
-        />
-        <Area
-          label={t('admin.seo.ogDescription')}
-          value={values.ogDescription}
-          onChange={(value) => set('ogDescription', value)}
-        />
-        <Select
-          label={t('admin.seo.cover')}
-          value={values.coverMediaId}
-          onChange={(value) => set('coverMediaId', value)}
-          options={media.map((asset) => ({ value: asset.id, label: asset.altText || asset.r2Key }))}
-        />
-        <Select
-          label={t('admin.seo.author')}
-          value={values.authorId}
-          onChange={(value) => set('authorId', value)}
-          options={authors.map((item) => ({ value: item.id, label: item.name }))}
-        />
-        <Select
-          label={t('admin.seo.ogImage')}
-          value={values.ogImageMediaId}
-          onChange={(value) => set('ogImageMediaId', value)}
-          options={media.map((asset) => ({ value: asset.id, label: asset.altText || asset.r2Key }))}
-        />
-        <Text
-          label={t('admin.seo.ogAlt')}
-          value={values.ogImageAlt}
-          onChange={(value) => set('ogImageAlt', value)}
-        />
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            disabled={status === 'pending' || status === 'conflict'}
-            onClick={() => void save()}
-          >
-            {t('admin.common.save')}
-          </Button>
-          <p role={status === 'error' || status === 'conflict' ? 'alert' : 'status'}>
-            {status === 'error'
-              ? t(error)
-              : status === 'conflict'
-                ? t('admin.editor.status.conflict')
-                : status === 'saved'
-                  ? t('admin.common.saved')
-                  : status === 'warning'
-                    ? t('admin.common.cacheWarning')
-                    : ''}
-          </p>
-          {status === 'warning' && (
+          <TextAreaField
+            label={t('admin.seo.description')}
+            value={values.seoDescription}
+            onChange={(value) => set('seoDescription', value)}
+          />
+          <TextField
+            label={t('admin.seo.ogTitle')}
+            value={values.ogTitle}
+            onChange={(value) => set('ogTitle', value)}
+          />
+          <TextAreaField
+            label={t('admin.seo.ogDescription')}
+            value={values.ogDescription}
+            onChange={(value) => set('ogDescription', value)}
+          />
+          <ChoiceField
+            label={t('admin.seo.cover')}
+            value={values.coverMediaId}
+            onChange={(value) => set('coverMediaId', value)}
+            options={media.map((asset) => ({
+              value: asset.id,
+              label: asset.altText || asset.r2Key,
+            }))}
+          />
+          <ChoiceField
+            label={t('admin.seo.author')}
+            value={values.authorId}
+            onChange={(value) => set('authorId', value)}
+            options={authors.map((item) => ({ value: item.id, label: item.name }))}
+          />
+          <ChoiceField
+            label={t('admin.seo.ogImage')}
+            value={values.ogImageMediaId}
+            onChange={(value) => set('ogImageMediaId', value)}
+            options={media.map((asset) => ({
+              value: asset.id,
+              label: asset.altText || asset.r2Key,
+            }))}
+          />
+          <TextField
+            label={t('admin.seo.ogAlt')}
+            value={values.ogImageAlt}
+            onChange={(value) => set('ogImageAlt', value)}
+          />
+          <div className="flex items-center gap-3">
             <Button
               type="button"
-              variant="outline"
-              onClick={() => {
-                setStatus('pending');
-                void callRetryPendingPurges().then((result) =>
-                  setStatus(
-                    result.error ? 'error' : result.data.status === 'purged' ? 'saved' : 'warning'
-                  )
-                );
-              }}
+              disabled={status === 'pending' || status === 'conflict'}
+              onClick={() => void save()}
             >
-              {t('admin.common.retryCache')}
+              {t('admin.common.save')}
             </Button>
-          )}
-        </div>
+            <p role={status === 'error' || status === 'conflict' ? 'alert' : 'status'}>
+              {status === 'error'
+                ? t(error)
+                : status === 'conflict'
+                  ? t('admin.editor.status.conflict')
+                  : status === 'saved'
+                    ? t('admin.common.saved')
+                    : status === 'warning'
+                      ? t('admin.common.cacheWarning')
+                      : ''}
+            </p>
+            {status === 'warning' && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setStatus('pending');
+                  void callRetryPendingPurges().then((result) =>
+                    setStatus(
+                      result.error ? 'error' : result.data.status === 'purged' ? 'saved' : 'warning'
+                    )
+                  );
+                }}
+              >
+                {t('admin.common.retryCache')}
+              </Button>
+            )}
+          </div>
+        </FieldGroup>
       </form>
       <aside>
         <h2 className="mb-3 font-semibold">{t('admin.seo.preview')}</h2>
@@ -224,7 +240,7 @@ export function AdminSeo({
     </div>
   );
 }
-function Text({
+function TextField({
   label,
   value,
   onChange,
@@ -233,18 +249,20 @@ function Text({
   value: string;
   onChange(value: string): void;
 }) {
+  const id = useId();
   return (
-    <label>
-      {label}
-      <input
+    <Field className="gap-1">
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Input
+        id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
+        className="h-10"
       />
-    </label>
+    </Field>
   );
 }
-function Area({
+function TextAreaField({
   label,
   value,
   onChange,
@@ -253,18 +271,20 @@ function Area({
   value: string;
   onChange(value: string): void;
 }) {
+  const id = useId();
   return (
-    <label>
-      {label}
-      <textarea
+    <Field className="gap-1">
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Textarea
+        id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 min-h-24 w-full rounded-lg border bg-background p-3"
+        className="min-h-24 p-3"
       />
-    </label>
+    </Field>
   );
 }
-function Select({
+function ChoiceField({
   label,
   value,
   onChange,
@@ -275,21 +295,29 @@ function Select({
   onChange(value: string): void;
   options: Array<{ value: string; label: string }>;
 }) {
+  const id = useId();
   return (
-    <label>
-      {label}
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
+    <Field className="gap-1">
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <SelectRoot
+        value={value || NO_SELECTION}
+        items={[{ value: NO_SELECTION, label: t('admin.common.none') }, ...options]}
+        onValueChange={(selected) => onChange(selected === NO_SELECTION ? '' : (selected ?? ''))}
       >
-        <option value="">{t('admin.common.none')}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+        <SelectTrigger id={id} className="h-10 w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value={NO_SELECTION}>{t('admin.common.none')}</SelectItem>
+            {options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </SelectRoot>
+    </Field>
   );
 }

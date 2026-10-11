@@ -69,7 +69,10 @@ async function publishNewPost(page: Page) {
 
   await page.goto(`/admin/posts/${postId}/seo?localization=${localizationId}`);
   await hydrated(page);
-  await page.getByLabel('Portada editorial limpia').selectOption({ index: 1 });
+  const coverSelect = page.getByRole('combobox', { name: 'Portada editorial limpia' });
+  await expect(coverSelect).toBeEnabled();
+  await coverSelect.click();
+  await page.getByRole('listbox').getByRole('option').nth(1).click();
   const covered = actionResponse(page, 'saveSeoDraft');
   await page.getByRole('button', { name: 'Guardar' }).click();
   expect((await covered).status()).toBe(200);
@@ -207,12 +210,14 @@ test('creates a series in Spanish alone and serves it only in Spanish', async ({
   expect((await created).status()).toBe(200);
   await expect(page).toHaveURL(/\/admin\/collections\/[0-9a-f-]{36}$/);
   await hydrated(page);
-
   const spanish = page.getByRole('group', { name: 'Español' });
   const english = page.getByRole('group', { name: 'English' });
   await spanish.getByLabel('Título').fill(title);
   await spanish.getByLabel('Slug').fill(slug);
-  await spanish.getByLabel('Estado de publicación').selectOption('published');
+  const statusSelect = spanish.getByRole('combobox', { name: 'Estado de publicación' });
+  await expect(statusSelect).toBeEnabled();
+  await statusSelect.click();
+  await page.getByRole('listbox').getByRole('option', { name: 'Publicado', exact: true }).click();
   const saved = actionResponse(page, 'saveCollection');
   await page.getByRole('button', { name: 'Guardar' }).click();
   expect((await saved).status()).toBe(200);
