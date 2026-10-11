@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 
 import { AdminDashboard } from './admin-dashboard';
 import { AdminEditor } from './admin-editor';
+import { useHydrated } from './admin-hydration';
 import { AdminMedia } from './admin-media';
 import { AdminPostForm } from './admin-post-form';
 import { AdminPostList } from './admin-post-list';
@@ -69,6 +70,7 @@ const screenCopy = {
 } as const;
 
 export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }) {
+  const isHydrated = useHydrated();
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const navigationLabel = isNavigationOpen
     ? t('admin.navigation.close')
@@ -88,6 +90,7 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
             variant="outline"
             size="icon"
             className="md:hidden"
+            disabled={!isHydrated}
             aria-label={navigationLabel}
             aria-controls="admin-navigation"
             aria-expanded={isNavigationOpen}
