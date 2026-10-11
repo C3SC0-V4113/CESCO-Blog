@@ -76,6 +76,46 @@ const draftRow = (database: ReturnType<typeof db>, localizationId: string) =>
     .where(eq(schema.postDrafts.postLocalizationId, localizationId));
 
 describe('authors', () => {
+  it('reports a missing avatar media id on author creation', async () => {
+    await expect(
+      createAuthor(db(), {
+        id: crypto.randomUUID(),
+        slug: `author-${crypto.randomUUID()}`,
+        name: 'Missing avatar',
+        avatarMediaId: crypto.randomUUID(),
+        websiteUrl: null,
+        sameAs: [],
+      })
+    ).rejects.toThrow('avatar-not-found');
+  });
+
+  it('reports a missing avatar media id on author update', async () => {
+    const database = db();
+    const id = crypto.randomUUID();
+    await createAuthor(database, {
+      id,
+      slug: `author-${id}`,
+      name: 'Existing author',
+      avatarMediaId: null,
+      websiteUrl: null,
+      sameAs: [],
+    });
+    await expect(
+      updateAuthor(
+        database,
+        {
+          id,
+          slug: `author-${id}`,
+          name: 'Existing author',
+          avatarMediaId: crypto.randomUUID(),
+          websiteUrl: null,
+          sameAs: [],
+        },
+        vi.fn().mockResolvedValue(undefined)
+      )
+    ).rejects.toThrow('avatar-not-found');
+  });
+
   it('creates and updates a safe profile while preserving unique normalized slugs', async () => {
     const database = db();
     const avatarMediaId = await media(database);
@@ -142,6 +182,51 @@ describe('collections', () => {
     title: 'Serie',
     description: null,
     status,
+  });
+
+  it('reports a missing collection id instead of leaking a batch error', async () => {
+    await expect(
+      saveCollection(
+        db(),
+        {
+          id: crypto.randomUUID(),
+          editorialState: 'active',
+          localizations: [spanish(crypto.randomUUID(), `missing-${crypto.randomUUID()}`)],
+          postIds: [],
+        },
+        vi.fn().mockResolvedValue(undefined)
+      )
+    ).rejects.toThrow('collection-not-found');
+  });
+
+  it('reports a stale collection localization id as a conflict', async () => {
+    const database = db();
+    const collectionId = crypto.randomUUID();
+    const storedId = crypto.randomUUID();
+    await createCollection(database, { id: collectionId });
+    await saveCollection(
+      database,
+      {
+        id: collectionId,
+        editorialState: 'active',
+        localizations: [spanish(storedId, `stored-${collectionId}`)],
+        postIds: [],
+      },
+      vi.fn().mockResolvedValue(undefined)
+    );
+
+    await expect(
+      saveCollection(
+        database,
+        {
+          id: collectionId,
+          editorialState: 'active',
+          localizations: [spanish(crypto.randomUUID(), `updated-${collectionId}`)],
+          postIds: [],
+        },
+        vi.fn().mockResolvedValue(undefined)
+      )
+    ).rejects.toThrow('collection-localization-stale');
   });
 
   it('writes bilingual lifecycle and contiguous authored membership atomically', async () => {
@@ -406,6 +491,33 @@ describe('collections', () => {
 });
 
 describe('featured posts and SEO', () => {
+  it('reports an unknown localization when changing its featured state', async () => {
+    await expect(
+      setFeaturedLocalization(
+        db(),
+        { localizationId: crypto.randomUUID(), featured: true },
+        vi.fn().mockResolvedValue(undefined)
+      )
+    ).rejects.toThrow('localization-not-found');
+  });
+
+  it('returns the unfeatured cache warning when the feature purge fails', async () => {
+    const database = db();
+    const published = await post(database, 'es');
+    await setFeaturedLocalization(
+      database,
+      { localizationId: published.localizationId, featured: true },
+      vi.fn().mockResolvedValue(undefined)
+    );
+    await expect(
+      setFeaturedLocalization(
+        database,
+        { localizationId: published.localizationId, featured: false },
+        vi.fn().mockRejectedValue(Error('purge unavailable'))
+      )
+    ).resolves.toEqual({ status: 'unfeatured-with-cache-warning' });
+  });
+
   it('keeps exactly one active published feature per locale and rejects drafts', async () => {
     const database = db();
     const first = await post(database, 'es');

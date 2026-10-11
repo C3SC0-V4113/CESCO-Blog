@@ -54,6 +54,7 @@ export const server = {
         } catch (error) {
           const message = error instanceof Error ? error.message : '';
           if (message === 'author-slug-reserved') throw new ActionError({ code: 'CONFLICT' });
+          if (message === 'avatar-not-found') throw new ActionError({ code: 'NOT_FOUND' });
           context.logger.error(
             `Author creation failed: ${error instanceof Error ? error.stack : String(error)}`
           );
@@ -69,6 +70,7 @@ export const server = {
         } catch (error) {
           const message = error instanceof Error ? error.message : '';
           if (message === 'author-slug-reserved') throw new ActionError({ code: 'CONFLICT' });
+          if (message === 'avatar-not-found') throw new ActionError({ code: 'NOT_FOUND' });
           if (message === 'author-not-found') throw new ActionError({ code: 'NOT_FOUND' });
           context.logger.error(
             `Author update failed: ${error instanceof Error ? error.stack : String(error)}`
@@ -98,7 +100,13 @@ export const server = {
         } catch (error) {
           const message = error instanceof Error ? error.message : '';
           // Named, so the editor can say which of the two it was.
-          if (['collection-slug-locked', 'collection-slug-reserved'].includes(message))
+          if (
+            [
+              'collection-slug-locked',
+              'collection-slug-reserved',
+              'collection-localization-stale',
+            ].includes(message)
+          )
             throw new ActionError({ code: 'CONFLICT', message });
           if (['collection-not-found', 'collection-post-not-found'].includes(message))
             throw new ActionError({ code: 'NOT_FOUND' });

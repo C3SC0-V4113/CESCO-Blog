@@ -56,8 +56,23 @@ function isUniqueError(error: unknown) {
   return false;
 }
 
+async function assertAvatarExists(db: Db, mediaId: string | null) {
+  if (
+    mediaId &&
+    !(
+      await db
+        .select({ id: schema.mediaAssets.id })
+        .from(schema.mediaAssets)
+        .where(eq(schema.mediaAssets.id, mediaId))
+        .limit(1)
+    ).length
+  )
+    throw Error('avatar-not-found');
+}
+
 export async function createAuthor(db: Db, raw: AuthorInput) {
   const input = authorInputSchema.parse(raw);
+  await assertAvatarExists(db, input.avatarMediaId);
   try {
     await db.insert(schema.authors).values(input);
   } catch (error) {
@@ -69,6 +84,7 @@ export async function createAuthor(db: Db, raw: AuthorInput) {
 
 export async function updateAuthor(db: Db, raw: AuthorInput, purge: PurgeTags) {
   const input = authorInputSchema.parse(raw);
+  await assertAvatarExists(db, input.avatarMediaId);
   const postIds = await db
     .select({ id: schema.posts.id })
     .from(schema.posts)
@@ -133,7 +149,11 @@ export async function saveCollection(
   date: Date = new Date()
 ) {
   const input = collectionInputSchema.parse(raw);
-  const [current, oldMemberships, existingPosts, taken] = await Promise.all([
+  const [collections, current, oldMemberships, existingPosts, taken] = await Promise.all([
+    db
+      .select({ id: schema.collections.id })
+      .from(schema.collections)
+      .where(eq(schema.collections.id, input.id)),
     db
       .select()
       .from(schema.collectionLocalizations)
@@ -164,6 +184,16 @@ export async function saveCollection(
         )
       ),
   ]);
+  const [collection] = collections;
+  if (!collection) throw Error('collection-not-found');
+  if (
+    current.some(({ locale, id }) =>
+      input.localizations.some(
+        (localization) => localization.locale === locale && localization.id !== id
+      )
+    )
+  )
+    throw Error('collection-localization-stale');
   if (existingPosts.length !== input.postIds.length) throw Error('collection-post-not-found');
   if (changesLockedSlug(current, input.localizations)) throw Error('collection-slug-locked');
   // A slug is unique per locale across every collection, so a collision is a
@@ -249,6 +279,14 @@ SELECT ?, value, CAST(key AS INTEGER) FROM json_each(?)`
       .from(schema.collectionLocalizations)
       .where(eq(schema.collectionLocalizations.collectionId, input.id));
     if (changesLockedSlug(now, input.localizations)) throw Error('collection-slug-locked');
+    if (
+      now.some(({ locale, id }) =>
+        input.localizations.some(
+          (localization) => localization.locale === locale && localization.id !== id
+        )
+      )
+    )
+      throw Error('collection-localization-stale');
     throw error;
   }
   return (await drainPendingPurges(db, purge))
@@ -319,7 +357,7 @@ AND EXISTS (SELECT 1 FROM post_localizations chosen WHERE chosen.id = ? AND chos
   const status = input.featured ? ('featured' as const) : ('unfeatured' as const);
   return (await drainPendingPurges(db, purge))
     ? { status }
-    : { status: 'featured-with-cache-warning' as const };
+    : { status: `${status}-with-cache-warning` as const };
 }
 
 const livePublication = (db: Db, postId: string) =>
