@@ -46,6 +46,7 @@ This directory records durable architecture decisions for Cesco Blog.
 | [0035](0035-coordinate-draft-autosave-with-compare-and-swap.md) | Coordinate draft autosave with compare-and-swap | Accepted | 2026-08-13 |
 | [0036](0036-bound-media-normalization-and-storage.md) | Bound media normalization and storage | Accepted | 2026-08-13 |
 | [0039](0039-verify-cloudflare-access-identity-in-the-worker.md) | Verify Cloudflare Access identity in the Worker | Accepted | 2026-09-10 |
+| [0040](0040-build-admin-forms-from-shadcn-field-primitives.md) | Build admin forms from shadcn field primitives | Accepted | 2026-10-11 |
 
 ## Status values
 
