@@ -16,3 +16,4 @@ package-lock.json
 # already excluded from ESLint and React Doctor; ignore the whole tree so Prettier
 # never churns third-party skill content or drifts on per-skill folder names.
 .agents
+.claude/settings.local.json
