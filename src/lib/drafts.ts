@@ -8,6 +8,22 @@ const draftContentSchema = contentDocSchema.refine((doc) =>
       (node.type !== 'heading' || node.attrs.level === 2 || node.attrs.level === 3)
   )
 );
+
+/**
+ * The editor offers only h2 and h3. Published content may retain any heading
+ * level, so normalize it only when that content is loaded for editing.
+ */
+export function normalizeContentForDraft(content: ContentDoc): ContentDoc {
+  return {
+    ...content,
+    content: content.content.map((node) => {
+      if (node.type !== 'heading') return node;
+      const level = node.attrs.level === 1 ? 2 : node.attrs.level >= 4 ? 3 : node.attrs.level;
+      return { ...node, attrs: { ...node.attrs, level } };
+    }),
+  };
+}
+
 export const saveDraftSchema = z.strictObject({
   postId: z.string().min(1),
   localizationId: z.string().min(1),

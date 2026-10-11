@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseDraftContent } from '@/lib/drafts';
+import { normalizeContentForDraft, parseDraftContent } from '@/lib/drafts';
 
 const paragraph = (content: unknown[]) => ({
   type: 'doc',
@@ -8,6 +8,23 @@ const paragraph = (content: unknown[]) => ({
 });
 
 describe('draft content', () => {
+  it('normalizes published heading levels to the editor heading levels', () => {
+    const content = {
+      type: 'doc' as const,
+      content: [1, 2, 3, 4, 5, 6].map((level) => ({
+        type: 'heading' as const,
+        attrs: { blockId: `h${level}`, level },
+        content: [],
+      })),
+    };
+
+    expect(
+      normalizeContentForDraft(content).content.map((node) =>
+        node.type === 'heading' ? node.attrs.level : null
+      )
+    ).toEqual([2, 2, 3, 3, 3, 3]);
+  });
+
   it('accepts a document the draft contract allows', () => {
     expect(parseDraftContent(paragraph([{ type: 'text', text: 'Hola' }]))).toEqual({
       success: true,
