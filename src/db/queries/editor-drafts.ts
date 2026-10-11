@@ -2,8 +2,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { schema, type Db } from '@/db/client';
 import { parseContentDoc, type ContentDoc } from '@/lib/content/schema';
-
-import type { EditorLocalizations } from '@/lib/drafts';
+import { normalizeContentForDraft, type EditorLocalizations } from '@/lib/drafts';
 
 const empty: ContentDoc = { type: 'doc', content: [] };
 export async function loadEditorLocalizations(db: Db, postId: string) {
@@ -36,7 +35,7 @@ export async function loadEditorDraft(db: Db, postId: string, localizationId: st
   return {
     title: source?.title ?? '',
     excerpt: source?.excerpt ?? null,
-    contentJson: parseContentDoc(source?.contentJson ?? empty),
+    contentJson: normalizeContentForDraft(parseContentDoc(source?.contentJson ?? empty)),
     seoTitle: source?.seoTitle ?? null,
     seoDescription: source?.seoDescription ?? null,
     canonicalUrl: source?.canonicalUrl ?? null,
