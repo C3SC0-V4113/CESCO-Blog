@@ -117,6 +117,7 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
             variant="outline"
             size="icon"
             className="md:hidden"
+            disabled={!isHydrated}
             aria-label={navigationLabel}
             aria-controls="admin-navigation"
             aria-expanded={isNavigationOpen}

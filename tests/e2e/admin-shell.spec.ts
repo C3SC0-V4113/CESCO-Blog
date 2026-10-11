@@ -65,6 +65,48 @@ test('renders and hydrates the private editorial shell', async ({ page }, testIn
   await page.screenshot({ path: testInfo.outputPath('admin-shell.png'), fullPage: true });
 });
 
+test('gates the navigation trigger until the admin island hydrates', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+
+  let releaseScripts!: () => void;
+  const scriptsReleased = new Promise<void>((resolve) => {
+    releaseScripts = resolve;
+  });
+  const heldScripts: string[] = [];
+
+  await page.route('**/*', async (route) => {
+    if (route.request().resourceType() === 'script') {
+      heldScripts.push(route.request().url());
+      await scriptsReleased;
+    }
+    await route.continue();
+  });
+
+  try {
+    await page.goto('/admin', { waitUntil: 'commit' });
+    const trigger = page.getByRole('button', { name: 'Abrir navegación' });
+    await expect(trigger).toBeVisible();
+    await expect.poll(() => heldScripts.length).toBeGreaterThan(0);
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+    // Attempt activation against the server-rendered button while its island
+    // scripts are held. A disabled native button must ignore this click.
+    await trigger.evaluate((button: HTMLButtonElement) => button.click());
+    await expect(trigger).toBeDisabled();
+  } finally {
+    releaseScripts();
+  }
+
+  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+  const trigger = page.getByRole('button', { name: 'Abrir navegación' });
+  await expect(trigger).toBeEnabled();
+  await trigger.click();
+  await expect(page.getByRole('button', { name: 'Cerrar navegación' })).toHaveAttribute(
+    'aria-expanded',
+    'true'
+  );
+});
+
 test('keeps the admin application out of public route bundles', async ({ page, request }) => {
   await page.goto('/es/');
 

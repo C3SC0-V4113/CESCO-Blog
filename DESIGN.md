@@ -617,9 +617,10 @@ follows:
 - **Pending actions.** `PendingButton` disables the running action, adds a
   spinner hidden from assistive technology and held still under reduced motion,
   and keeps its label.
-- **Hydration gate.** `useHydrated` reports when React has committed, and the
-  shell keeps its content `inert` until then, so nothing typed into
-  server-rendered markup is lost (ADR-0023).
+- **Hydration gate.** `useHydrated` reports when React has committed. The shell
+  keeps its content `inert` and disables interactive controls outside that
+  region until then, so actions on server-rendered markup are not lost
+  (ADR-0023).
 
 The admin shell opens with a skip link to a `main` landmark that takes focus
 without joining the tab order.
