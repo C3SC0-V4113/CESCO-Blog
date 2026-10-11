@@ -1,13 +1,9 @@
-// Vitest globals are disabled, so Testing Library cannot register automatic cleanup.
-// eslint-disable-next-line testing-library/no-manual-cleanup
-import { cleanup, isInaccessible, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { isInaccessible, render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 
 import { Breadcrumb, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Pagination, PaginationEllipsis } from '@/components/ui/pagination';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
-
-afterEach(cleanup);
 
 describe('registry primitives', () => {
   it('announces the pagination gap instead of hiding it with its glyph', () => {

@@ -1,6 +1,4 @@
-// Vitest globals are disabled, so Testing Library cannot register automatic cleanup.
-// eslint-disable-next-line testing-library/no-manual-cleanup
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import LocaleSwitcher from '@/components/nav/locale-switcher';
@@ -8,10 +6,8 @@ import ThemeToggle from '@/components/nav/theme-toggle';
 import TocScrollSpy from '@/components/post/toc-scroll-spy';
 
 afterEach(() => {
-  cleanup();
   vi.unstubAllGlobals();
   document.documentElement.classList.remove('dark');
-  document.body.innerHTML = '';
 });
 
 /** The injected rule that holds every transition still for the swap, if present. */
@@ -86,15 +82,18 @@ describe('table of contents scroll spy', () => {
       }
     );
 
-    document.body.innerHTML = `
-      <details open>
-        <summary>Contenido</summary>
-        <a href="#intro" data-toc-link="intro">Intro</a>
-      </details>
-      <h2 id="intro">Intro</h2>
-    `;
-
-    render(<TocScrollSpy ids={['intro']} />);
+    render(
+      <>
+        <details open>
+          <summary>Contenido</summary>
+          <a href="#intro" data-toc-link="intro">
+            Intro
+          </a>
+        </details>
+        <h2 id="intro">Intro</h2>
+        <TocScrollSpy ids={['intro']} />
+      </>
+    );
 
     // Open is the state a reader is in just before choosing a heading; left
     // that way, the sticky outline sits on top of the heading they jumped to.

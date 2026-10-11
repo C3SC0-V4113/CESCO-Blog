@@ -1,6 +1,4 @@
-// Vitest globals are disabled, so Testing Library cannot register automatic cleanup.
-// eslint-disable-next-line testing-library/no-manual-cleanup
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/admin-actions', () => ({
@@ -91,7 +89,6 @@ beforeAll(() => {
 
 describe('admin editor', () => {
   afterEach(() => {
-    cleanup();
     vi.unstubAllGlobals();
   });
 
