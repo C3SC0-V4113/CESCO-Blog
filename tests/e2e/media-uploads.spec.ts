@@ -64,22 +64,53 @@ async function loadPickerPage(page: Page, target: { page: number; alt: string })
 
 async function uploadFromPicker(page: Page, alt: string) {
   const altInput = page.getByLabel('Texto alternativo').first();
-  const decorative = page.getByLabel('Imagen decorativa').first();
-  await expect(async () => {
-    await decorative.setChecked(false);
-    await decorative.setChecked(true);
-    await expect(altInput).toBeDisabled();
-  }).toPass();
+  const decorative = page.getByRole('checkbox', { name: 'Imagen decorativa' }).first();
+  await expect(altInput).toBeEnabled();
+  await expect(decorative).toBeEnabled();
+  await decorative.setChecked(true);
+  await expect(altInput).toBeDisabled();
   await decorative.setChecked(false);
   await expect(altInput).toBeEnabled();
   await altInput.fill(alt);
+  const fileInput = page.getByLabel('Elegir imagen');
+  await expect(fileInput).toBeEnabled();
   const uploaded = page.waitForResponse((response) => {
     const url = new URL(response.url());
     return url.pathname === '/admin/media/upload' && response.request().method() === 'POST';
   });
-  await page.getByLabel('Elegir imagen').setInputFiles('.wrangler/seed-media.png');
+  await fileInput.setInputFiles('.wrangler/seed-media.png');
   expect((await uploaded).status()).toBe(201);
 }
+
+test('associates visible checkbox labels in upload and metadata forms', async ({ page }) => {
+  await page.goto('/admin/media');
+  const uploadRegion = page.getByRole('region', { name: 'Carga de imagen' });
+  const uploadDecorative = uploadRegion.getByRole('checkbox', { name: 'Imagen decorativa' });
+  const uploadAlt = uploadRegion.getByLabel('Texto alternativo');
+  await expect(uploadDecorative).toBeEnabled();
+  await expect(uploadAlt).toBeEnabled();
+  await uploadRegion.getByText('Imagen decorativa', { exact: true }).click();
+  await expect(uploadDecorative).toBeChecked();
+  await expect(uploadAlt).toBeDisabled();
+  await uploadRegion.getByText('Imagen decorativa', { exact: true }).click();
+  await expect(uploadDecorative).not.toBeChecked();
+  await expect(uploadAlt).toBeEnabled();
+
+  const metadata = page.locator('details').first();
+  await metadata.locator('summary').click();
+  const metadataForm = metadata.locator('form');
+  const metadataDecorative = metadataForm.getByRole('checkbox', { name: 'Imagen decorativa' });
+  await expect(metadataDecorative).toBeEnabled();
+  await metadataForm.getByText('Imagen decorativa', { exact: true }).click();
+  await expect(metadataDecorative).toBeChecked();
+
+  const ownWork = metadataForm.getByRole('checkbox', { name: 'Trabajo propio' });
+  await expect(ownWork).toBeEnabled();
+  const ownWorkLabel = metadataForm.locator('label').filter({ hasText: 'Trabajo propio' });
+  await ownWork.uncheck();
+  await ownWorkLabel.click();
+  await expect(ownWork).toBeChecked();
+});
 
 test('normalizes, delivers, paginates reuse, and keeps the image block stable', async ({
   page,
@@ -149,7 +180,9 @@ test('drains rejected metadata, clamps pages, and shows client rejection', async
   await expect(page).toHaveURL(/\/admin\/media\?page=\d+$/);
   await expect(page.getByText('No hay imágenes todavía.')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('media-empty-mobile.png'), fullPage: true });
-  await page.getByLabel('Elegir imagen').setInputFiles({
+  const fileInput = page.getByLabel('Elegir imagen');
+  await expect(fileInput).toBeEnabled();
+  await fileInput.setInputFiles({
     name: 'oversize.png',
     mimeType: 'image/png',
     buffer: Buffer.alloc(25 * 1024 * 1024 + 1),
