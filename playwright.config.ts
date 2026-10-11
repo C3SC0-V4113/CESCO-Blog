@@ -6,7 +6,9 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // First-attempt failures are the signal; CI retries were hiding flakes found
+  // during the admin-stack review.
+  retries: 0,
   // Both numbers are caps, and they cap different things.
   //
   // On CI, one, and the constraint is runner memory. Two would be safe on
@@ -34,10 +36,11 @@ export default defineConfig({
   // In particular it does *not* address the WebKit exit hang noted below, which
   // fires with the cap in place.
   workers: process.env.CI ? 1 : 2,
-  reporter: 'html',
+  reporter: [['html', { open: 'never' }]],
   use: {
     baseURL: baseUrl,
-    trace: 'on-first-retry',
+    // Keep a trace for every failed test, including its first attempt.
+    trace: 'retain-on-failure',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

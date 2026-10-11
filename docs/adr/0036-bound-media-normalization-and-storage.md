@@ -26,13 +26,19 @@ most 5 MiB, and structurally validates one static RIFF/WEBP image payload plus V
 VP8L, or VP8X dimensions. Animated, multi-image, and mismatched-canvas containers
 are rejected because canvas normalization produces one static image.
 This supersedes only ADR-0028's infeasible claim that the Worker decodes pixels.
+Before validation and storage, the Worker removes `EXIF` and `XMP ` chunks from
+direct POSTs, clears their VP8X flag bits, and updates the RIFF size; other chunks
+are preserved, and `size_bytes` records the stripped payload length.
 
-The Worker creates an immutable `media/{UTC yyyy}/{UTC mm}/{UUID}.webp` object in
-R2, then inserts its inspected type, size, and dimensions in D1. A failed D1 write
-is compensated by awaiting R2 deletion. Canonical alt text is required unless the
-author explicitly marks the image decorative; an empty stored alt represents that
-choice. Editor JSON stores only `{blockId, mediaAssetId, alt}`. Revision placement
-rows remain publish-time work.
+The Worker checks for a key collision, inserts its inspected type, size, and
+dimensions in D1, then creates the immutable
+`media/{UTC yyyy}/{UTC mm}/{UUID}.webp` object in R2. If the R2 put fails, it
+deletes the D1 row; a row without an object is visible but the media endpoint
+answers the miss with a short TTL, while an object without a row is invisible,
+billable, and can survive a Worker crash. Canonical alt text is required unless
+the author explicitly marks the image decorative; an empty stored alt represents
+that choice. Editor JSON stores only `{blockId, mediaAssetId, alt}`. Revision
+placement rows remain publish-time work.
 
 ## Alternatives
 
