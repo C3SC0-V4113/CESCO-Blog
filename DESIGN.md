@@ -408,6 +408,9 @@ choices use the custom `Select`, wired through React Hook Form `Controller`.
 Selects keep native form names and values and are tested through their
 accessible combobox/listbox roles.
 
+The navigation trigger stays disabled until the admin island hydrates, so an
+activation against server-rendered markup is not lost (ADR-0023).
+
 ### `/admin/posts/[id]/edit`
 
 The editor. Governed by
