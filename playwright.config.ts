@@ -64,9 +64,9 @@ export default defineConfig({
     // which made `webServer` unusable and needed a whole global-setup file to
     // work around, stops mattering: `wrangler dev` stays in the foreground.
     //
-    // The database is prepared by the same command so ordering is guaranteed
-    // and nothing else holds the local SQLite file open. Both steps are
-    // idempotent, so the suite runs from a clean checkout with no manual setup.
+    // The command clears and prepares a disposable `.wrangler/e2e` D1/R2 store,
+    // applies the seed and legacy snapshot fixture, then builds and boots the
+    // Worker against it. Developer data in `.wrangler/state` stays untouched.
     command: 'pnpm run e2e:serve',
     url: baseUrl,
     // Never reuse a server someone left running: it may be an `astro dev` on

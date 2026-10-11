@@ -19,8 +19,12 @@ pnpm run check && pnpm run test:e2e
 `check` covers lint, typecheck, format, both Vitest projects and React Doctor. It
 does **not** run Playwright, so a broken end-to-end suite passes it.
 
-`test:e2e` runs against the **built Worker**, not `astro dev`: it migrates,
-seeds, builds and boots `wrangler dev` before the first test. CI runs one browser
+`test:e2e` runs against the **built Worker**, not `astro dev`: it clears and
+prepares a disposable `.wrangler/e2e` D1/R2 store, migrates and seeds it,
+applies the unsafe legacy snapshot fixture, then builds and boots `wrangler dev`
+before the first test. The regular local
+`pnpm run db:seed` and `pnpm run db:migrate:local` continue to use
+`.wrangler/state`. CI runs one browser
 per job (`--project=<browser>` in a matrix); locally all three point at a single
 server, which is why `workers` is capped rather than sized from the CPU count.
 
