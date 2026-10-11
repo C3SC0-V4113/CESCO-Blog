@@ -45,12 +45,12 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    // On Windows the WebKit process intermittently fails to exit and
-    // Playwright's worker watchdog force-kills it, failing the run with
-    // "worker-N process did not exit within 300000ms after stop". It is an
-    // upstream race (microsoft/playwright#40637, new in 1.60), not a suite
-    // problem: identical runs pass and fail, and the tests themselves have
-    // already reported green when it fires. CI runs on Linux and is unaffected.
+    // On Windows we have observed WebKit intermittently fail to exit, after
+    // which Playwright's worker watchdog force-kills it with "worker-N process
+    // did not exit within 300000ms after stop". Playwright's #40637 added the
+    // watchdog for a separate Chromium headless-shell hang tracked in #39753;
+    // it does not identify this WebKit symptom or fix its cause. CI runs on
+    // Linux and has not shown this local Windows behavior.
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
