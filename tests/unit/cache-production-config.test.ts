@@ -20,6 +20,8 @@ const validEnvironment = {
 const astroConfig = {
   name: 'cesco-blog',
   main: 'entry.mjs',
+  workers_dev: true,
+  preview_urls: true,
   no_bundle: true,
   assets: { binding: 'ASSETS', directory: '../client' },
   vars: {
@@ -69,6 +71,8 @@ describe('production cache purge configuration', () => {
       r2_buckets: [{ bucket_name: validEnvironment.CLOUDFLARE_R2_BUCKET_NAME }],
       kv_namespaces: [{ id: validEnvironment.CLOUDFLARE_KV_NAMESPACE_ID }],
       main: 'entry.mjs',
+      workers_dev: false,
+      preview_urls: false,
       no_bundle: true,
       assets: { directory: '../client' },
     });
