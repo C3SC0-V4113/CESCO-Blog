@@ -69,11 +69,66 @@ test('creates only the first localization and returns to the aggregate list', as
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/admin/posts/new');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nueva publicación');
-  await page.getByLabel('Sección').selectOption('opinion');
-  await page.getByLabel('Idioma inicial').selectOption('en');
+  const section = page.getByRole('combobox', { name: 'Sección' });
+  await section.click();
+  await page.getByRole('option', { name: 'Opiniones' }).click();
+  const locale = page.getByRole('combobox', { name: 'Idioma inicial' });
+  await locale.click();
+  await page.getByRole('option', { name: 'English' }).click();
   await page.getByLabel('Slug').fill(slug);
   await page.getByRole('button', { name: 'Crear publicación' }).click();
   await expect(page).toHaveURL(/\/admin\/posts$/);
   const row = page.getByRole('row').filter({ has: page.getByRole('cell', { name: slug }) });
   await expect(row).toContainText(/Opiniones.*Sin crear.*Borrador/);
+});
+
+test('uses the full form card width for fields on desktop', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/admin/posts/new');
+
+  const card = page.locator('form fieldset');
+  const cardBounds = await card.boundingBox();
+  const sectionBounds = await page.getByRole('combobox', { name: 'Sección' }).boundingBox();
+  const localeBounds = await page.getByRole('combobox', { name: 'Idioma inicial' }).boundingBox();
+  const slugBounds = await page.getByLabel('Slug').boundingBox();
+  expect(cardBounds).not.toBeNull();
+  expect(sectionBounds).not.toBeNull();
+  expect(localeBounds).not.toBeNull();
+  expect(slugBounds).not.toBeNull();
+  expect(sectionBounds!.width).toBeGreaterThanOrEqual(cardBounds!.width * 0.4);
+  expect(localeBounds!.width).toBeGreaterThanOrEqual(cardBounds!.width * 0.4);
+  expect(slugBounds!.width).toBeGreaterThanOrEqual(cardBounds!.width * 0.9);
+});
+
+test('opens the section select by keyboard and keeps its popup in a mobile viewport', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin/posts/new');
+
+  const section = page.getByRole('combobox', { name: 'Sección' });
+  await expect(section).toBeEnabled();
+  const listbox = page.getByRole('listbox');
+  for (const key of ['Enter', 'Space', 'ArrowDown']) {
+    await section.focus();
+    await section.press(key);
+    await expect(listbox).toBeVisible();
+    const bounds = await listbox.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+    await section.press('Escape');
+    await expect(listbox).toBeHidden();
+    await expect(section).toBeFocused();
+  }
+
+  await section.focus();
+  await section.press('ArrowDown');
+  const opinion = page.getByRole('option', { name: 'Opiniones' });
+  await opinion.focus();
+  await page.keyboard.press('Enter');
+  await expect(section).toContainText('Opiniones');
+  await section.press('Escape');
+  await expect(listbox).toBeHidden();
+  await expect(section).toBeFocused();
 });

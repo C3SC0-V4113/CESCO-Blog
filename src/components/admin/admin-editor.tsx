@@ -13,6 +13,9 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { getTranslations } from '@/i18n/utils';
 import { callSaveDraft } from '@/lib/admin-actions';
 import { createDraftSave, DraftAutosave } from '@/lib/draft-autosave';
@@ -228,32 +231,34 @@ export function AdminEditor({
           })}
         </div>
       </div>
-      <label>
-        {t('admin.editor.postTitle')}
-        <input
+      <Field className="gap-2">
+        <FieldLabel htmlFor="editor-title">{t('admin.editor.postTitle')}</FieldLabel>
+        <Input
+          id="editor-title"
           aria-describedby="editor-title-constraint"
-          className="mt-1 h-10 w-full rounded-lg border bg-background px-3"
+          className="h-10 w-full rounded-lg px-3 md:text-base"
           defaultValue={draft.title}
           maxLength={300}
           onChange={(event) => editField('title', event.target.value)}
         />
-        <span id="editor-title-constraint" className="mt-1 block text-sm text-muted-foreground">
+        <FieldDescription id="editor-title-constraint">
           {t('admin.editor.titleConstraint')}
-        </span>
-      </label>
-      <label>
-        {t('admin.editor.excerpt')}
-        <textarea
+        </FieldDescription>
+      </Field>
+      <Field className="gap-2">
+        <FieldLabel htmlFor="editor-excerpt">{t('admin.editor.excerpt')}</FieldLabel>
+        <Textarea
+          id="editor-excerpt"
           aria-describedby="editor-excerpt-constraint"
-          className="mt-1 min-h-20 w-full rounded-lg border bg-background p-3"
+          className="min-h-20 w-full rounded-lg p-3 md:text-base"
           defaultValue={draft.excerpt ?? ''}
           maxLength={1000}
           onChange={(event) => editField('excerpt', event.target.value)}
         />
-        <span id="editor-excerpt-constraint" className="mt-1 block text-sm text-muted-foreground">
+        <FieldDescription id="editor-excerpt-constraint">
           {t('admin.editor.excerptConstraint')}
-        </span>
-      </label>
+        </FieldDescription>
+      </Field>
       <div className="flex flex-wrap gap-2" role="toolbar" aria-label={t('admin.editor.toolbar')}>
         {tools.map(([label, Icon, run]) => (
           <Button

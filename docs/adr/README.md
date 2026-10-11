@@ -48,6 +48,7 @@ This directory records durable architecture decisions for Cesco Blog.
 | [0037](0037-store-structured-highlight-tokens-and-recover-cache-purges.md) | Store structured highlight tokens and recover cache purges | Accepted | 2026-08-13 |
 | [0038](0038-keep-retired-post-slugs-append-only.md) | Keep retired post slugs append-only | Accepted | 2026-08-13 |
 | [0039](0039-verify-cloudflare-access-identity-in-the-worker.md) | Verify Cloudflare Access identity in the Worker | Accepted | 2026-09-10 |
+| [0040](0040-build-admin-forms-from-shadcn-field-primitives.md) | Build admin forms from shadcn field primitives | Accepted | 2026-10-11 |
 
 ## Status values
 

@@ -26,16 +26,18 @@ test('uploads an image pasted or dropped on the canvas and inserts an image bloc
   // Read here rather than at import: the seed writes it after the spec is collected.
   const png = await readFile('.wrangler/seed-media.png', { encoding: 'base64' });
   await openNewDraft(page);
+  await expect(page.getByRole('textbox', { name: 'Título' })).toBeEnabled();
   const canvas = page.getByRole('textbox', { name: 'Contenido' });
   const alt = `Lienzo ${crypto.randomUUID()}`;
   const blocks = canvas.locator(`img[alt="${alt}"]`);
 
   // Canvas uploads obey the picker's alt-text rule, so the text goes there first.
   await page.getByText('Insertar imagen').click();
-  await page
+  const altInput = page
     .getByRole('region', { name: 'Carga de imagen' })
-    .getByLabel('Texto alternativo')
-    .fill(alt);
+    .getByLabel('Texto alternativo');
+  await expect(altInput).toBeEnabled();
+  await altInput.fill(alt);
 
   await canvas.click();
   const pasted = nextUpload(page);
