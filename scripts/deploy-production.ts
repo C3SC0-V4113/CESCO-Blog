@@ -49,6 +49,10 @@ export function buildProductionConfig(settings: Settings, astroConfig: Record<st
   delete config.userConfigPath;
   Object.assign(config, {
     account_id: settings.accountId,
+    // Access protects the custom domain; disable alternate public URLs that
+    // would duplicate the site or expose old versions outside it.
+    workers_dev: false,
+    preview_urls: false,
     // Replaces the local block wholesale, so every var wrangler.jsonc declares
     // needs its production value here; a missing Access var answers 503 on
     // every admin request (ADR-0039).
