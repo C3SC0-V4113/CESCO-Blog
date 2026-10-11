@@ -205,14 +205,16 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
         </section>
         <section
           aria-label={t('admin.review.detail')}
-          className="order-first rounded-xl border bg-background p-4 lg:order-last"
+          className="order-first min-w-0 rounded-xl border bg-background p-4 lg:order-last"
         >
           {!detail ? (
             <p>{t('admin.review.select')}</p>
           ) : (
             <form className="grid gap-4">
               <div>
-                <h2 className="text-xl font-semibold">{detail.title || detail.slug}</h2>
+                <h2 className="text-xl font-semibold [overflow-wrap:anywhere]">
+                  {detail.title || detail.slug}
+                </h2>
                 <p className="text-sm text-muted-foreground">
                   {detail.locale.toUpperCase()} · {t(`admin.posts.locale.${detail.status}`)}
                 </p>

@@ -213,18 +213,23 @@ test('keeps long unbroken review titles inside the queue at desktop and mobile w
   await expect(reviewList.getByText(title, { exact: true }).first()).toBeVisible();
   await expect(page).toHaveURL(/\/admin\/review\?/);
 
-  await page.setViewportSize({ width: 1440, height: 900 });
   const desktop = await reviewList.evaluate((list) => ({
     scrollWidth: list.scrollWidth,
     clientWidth: list.clientWidth,
+    pageScrollWidth: document.documentElement.scrollWidth,
+    pageClientWidth: document.documentElement.clientWidth,
   }));
   await page.setViewportSize({ width: 390, height: 844 });
   const mobile = await reviewList.evaluate((list) => ({
     scrollWidth: list.scrollWidth,
     clientWidth: list.clientWidth,
+    pageScrollWidth: document.documentElement.scrollWidth,
+    pageClientWidth: document.documentElement.clientWidth,
   }));
   expect(desktop.scrollWidth).toBeLessThanOrEqual(desktop.clientWidth);
   expect(mobile.scrollWidth).toBeLessThanOrEqual(mobile.clientWidth);
+  expect(desktop.pageScrollWidth).toBeLessThanOrEqual(desktop.pageClientWidth);
+  expect(mobile.pageScrollWidth).toBeLessThanOrEqual(mobile.pageClientWidth);
 });
 
 test('does not cache unknown public article or taxonomy slugs', async ({ request }) => {
