@@ -4,6 +4,7 @@ import { persistMediaUpload } from '@/actions/media';
 import { MEDIA_UPLOAD_LIMIT, readBoundedBody } from '@/lib/media';
 import { drainBody } from '@/lib/request-body';
 import { getBucket, getDb } from '@/lib/runtime';
+import { stripWebpMetadata } from '@/lib/webp';
 
 import type { APIRoute } from 'astro';
 
@@ -36,7 +37,7 @@ export const POST: APIRoute = async ({ request, url }) => {
     return response(400, 'INVALID_MEDIA');
   }
   try {
-    const bytes = await readBoundedBody(request, MEDIA_UPLOAD_LIMIT);
+    const bytes = stripWebpMetadata(await readBoundedBody(request, MEDIA_UPLOAD_LIMIT));
     const asset = await persistMediaUpload(getDb(), getBucket(), bytes, {
       altText: metadata.decorative ? '' : metadata.altText.trim(),
     });

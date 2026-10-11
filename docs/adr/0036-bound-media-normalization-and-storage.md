@@ -26,6 +26,9 @@ most 5 MiB, and structurally validates one static RIFF/WEBP image payload plus V
 VP8L, or VP8X dimensions. Animated, multi-image, and mismatched-canvas containers
 are rejected because canvas normalization produces one static image.
 This supersedes only ADR-0028's infeasible claim that the Worker decodes pixels.
+Before validation and storage, the Worker removes `EXIF` and `XMP ` chunks from
+direct POSTs, clears their VP8X flag bits, and updates the RIFF size; other chunks
+are preserved, and `size_bytes` records the stripped payload length.
 
 The Worker checks for a key collision, inserts its inspected type, size, and
 dimensions in D1, then creates the immutable
