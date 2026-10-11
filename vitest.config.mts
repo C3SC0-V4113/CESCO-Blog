@@ -26,6 +26,7 @@ export default defineConfig(async () => {
             name: 'unit',
             environment: 'jsdom',
             include: ['tests/unit/**/*.test.{ts,tsx}'],
+            setupFiles: ['./tests/unit/setup.ts'],
             restoreMocks: true,
             // jsdom startup dominates a cold run and is charged to the first
             // test, which intermittently blew the 5s default. Raised enough to

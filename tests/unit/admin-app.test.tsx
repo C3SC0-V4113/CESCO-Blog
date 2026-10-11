@@ -1,7 +1,5 @@
-// Vitest globals are disabled, so Testing Library cannot register automatic cleanup.
-// eslint-disable-next-line testing-library/no-manual-cleanup
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/admin-actions', () => ({
   callCreatePost: vi.fn(),
@@ -13,8 +11,6 @@ vi.mock('@/lib/admin-actions', () => ({
 
 import { AdminApp } from '@/components/admin/admin-app';
 import { callPublish, callRenameLocalization, callRetryPendingPurges } from '@/lib/admin-actions';
-
-afterEach(cleanup);
 
 describe('AdminApp', () => {
   it('renders an honest dashboard and keeps future destinations non-interactive', () => {
