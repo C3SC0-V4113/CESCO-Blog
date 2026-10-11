@@ -402,6 +402,12 @@ including its route-model extension.
 | `/admin/collections`     | Series list and ordering                                            | `collections`, `collection_localizations`, `collection_posts`                |
 | `/admin/authors`         | Author profiles for bylines and structured data                     | `authors`                                                                    |
 
+Admin forms use shadcn field primitives on Base UI: `Field` and `FieldGroup`
+compose labels, validation, and controls; text controls use `Input`; predefined
+choices use the custom `Select`, wired through React Hook Form `Controller`.
+Selects keep native form names and values and are tested through their
+accessible combobox/listbox roles.
+
 ### `/admin/posts/[id]/edit`
 
 The editor. Governed by

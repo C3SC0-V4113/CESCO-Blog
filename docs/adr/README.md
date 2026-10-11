@@ -44,6 +44,7 @@ This directory records durable architecture decisions for Cesco Blog.
 | [0033](0033-serve-media-from-r2-through-the-worker.md) | Serve media from R2 through the Worker | Accepted | 2026-08-07 |
 | [0034](0034-protect-admin-actions-with-cloudflare-access.md) | Protect admin actions with Cloudflare Access | Accepted (partial) | 2026-08-12 |
 | [0039](0039-verify-cloudflare-access-identity-in-the-worker.md) | Verify Cloudflare Access identity in the Worker | Accepted | 2026-09-10 |
+| [0040](0040-build-admin-forms-from-shadcn-field-primitives.md) | Build admin forms from shadcn field primitives | Accepted | 2026-10-11 |
 
 ## Status values
 
