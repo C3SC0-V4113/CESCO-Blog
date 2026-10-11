@@ -159,7 +159,18 @@ test('reviews, publishes, withdraws, republishes, and renames one localization',
   await expect(page.getByText(/Esta localización ya se publicó/)).toBeVisible();
   const renameButton = page.getByRole('button', { name: 'Cambiar slug' });
   await expect(renameButton).toBeDisabled();
-  await page.getByRole('checkbox', { name: /Confirmo/ }).check();
+  const renameConfirmation = page.getByRole('checkbox', { name: /Confirmo/ });
+  await expect(renameConfirmation).toHaveCount(1);
+  await expect(renameConfirmation).toBeEnabled();
+  await page
+    .getByText('Confirmo que deseo crear la redirección permanente.', { exact: true })
+    .click();
+  await expect(renameConfirmation).toBeChecked();
+  await page
+    .getByText('Confirmo que deseo crear la redirección permanente.', { exact: true })
+    .click();
+  await expect(renameConfirmation).not.toBeChecked();
+  await renameConfirmation.check();
   const renamed = actionResponse(page, 'renameLocalization');
   await renameButton.click();
   expect((await renamed).status()).toBe(200);

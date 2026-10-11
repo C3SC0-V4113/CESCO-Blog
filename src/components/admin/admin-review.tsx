@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { getTranslations } from '@/i18n/utils';
 import {
   callPublish,
@@ -238,31 +241,35 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                 </div>
               </dl>
               <ReviewPreview detail={detail} />
-              <label>
-                {t('admin.posts.slug')}
-                <input
-                  name="slug"
-                  defaultValue={detail.slug}
-                  onChange={(event) => {
-                    if (event.target.value === detail.slug) setRenameConfirmed(false);
-                  }}
-                  className="mt-1 h-10 w-full rounded-lg border px-3"
-                />
-              </label>
-              {everPublished && (
-                <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
-                  <p>{t('admin.review.renameWarning')}</p>
-                  <label className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      autoComplete="off"
-                      checked={renameConfirmed}
-                      onChange={(event) => setRenameConfirmed(event.target.checked)}
-                    />
-                    {t('admin.review.renameConfirm')}
-                  </label>
-                </div>
-              )}
+              <FieldGroup className="gap-4">
+                <Field className="gap-1">
+                  <FieldLabel htmlFor="review-slug">{t('admin.posts.slug')}</FieldLabel>
+                  <Input
+                    id="review-slug"
+                    name="slug"
+                    defaultValue={detail.slug}
+                    onChange={(event) => {
+                      if (event.target.value === detail.slug) setRenameConfirmed(false);
+                    }}
+                    className="h-10"
+                  />
+                </Field>
+                {everPublished && (
+                  <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
+                    <p>{t('admin.review.renameWarning')}</p>
+                    <Field orientation="horizontal" className="items-start">
+                      <Checkbox
+                        id="review-rename-confirmation"
+                        checked={renameConfirmed}
+                        onCheckedChange={(checked) => setRenameConfirmed(checked === true)}
+                      />
+                      <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
+                        {t('admin.review.renameConfirm')}
+                      </FieldLabel>
+                    </Field>
+                  </div>
+                )}
+              </FieldGroup>
               {blocked && <p role="alert">{t('admin.review.blocked')}</p>}
               <div className="flex flex-wrap gap-2">
                 <Button
