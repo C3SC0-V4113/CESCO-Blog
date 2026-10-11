@@ -100,7 +100,7 @@
     "jsdom": "29.1.1",
     "lint-staged": "16.4.0",
     "prettier": "3.9.10",
-    "prettier-plugin-astro": "0.14.1",
+    "prettier-plugin-astro": "1.1.1",
     "prettier-plugin-tailwindcss": "0.8.1",
     "react-doctor": "0.9.17",
     "schema-dts": "^2.1.0",

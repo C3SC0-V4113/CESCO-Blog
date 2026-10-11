@@ -35,27 +35,23 @@ if (unsupported) {
 }
 ---
 
-{
-  doc.content.map((block) => {
-    if (block.type === 'heading') {
-      const Heading = `h${block.attrs.level}` as 'h1';
-      return <Heading id={block.attrs.blockId}>{block.content.map((node) => node.text)}</Heading>;
-    }
+{doc.content.map((block) => {
+  if (block.type === 'heading') {
+    const Heading = `h${block.attrs.level}` as 'h1';
+    return <Heading id={block.attrs.blockId}>{block.content.map((node) => node.text)}</Heading>;
+  }
 
-    if (block.type === 'codeBlock') {
-      return (
-        <pre id={block.attrs.blockId}>
+  if (block.type === 'codeBlock') {
+    return <pre id={block.attrs.blockId}>
           <code class={block.attrs.language ? `language-${block.attrs.language}` : undefined}>
             {block.content.map((node) => node.text)}
           </code>
-        </pre>
-      );
-    }
+        </pre>;
+  }
 
-    if (block.type === 'paragraph') {
-      return <p id={block.attrs.blockId}>{block.content.map((node) => node.text)}</p>;
-    }
+  if (block.type === 'paragraph') {
+    return <p id={block.attrs.blockId}>{block.content.map((node) => node.text)}</p>;
+  }
 
-    return null;
-  })
-}
+  return null;
+})}

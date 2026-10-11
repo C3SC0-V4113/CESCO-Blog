@@ -38,29 +38,23 @@ const t = getTranslations(locale);
 >
   <Library aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
 
-  <span class="text-muted-foreground">
-    {t('post.partOfSeries')}
-  </span>
+  <span class="text-muted-foreground">{t('post.partOfSeries')}</span>
 
-  <span class="font-medium text-foreground group-hover/series:text-primary">
-    {series.title}
-  </span>
+  <span class="font-medium text-foreground group-hover/series:text-primary">{series.title}</span>
 
-  {
-    /*
+  {/*
     Separated by a middot rather than a slash: the numbers are a position in a
     reading order, not a fraction, and a slash invites reading it as one.
-  */
-  }
-  <span aria-hidden="true" class="text-muted-foreground">·</span>
+  */}
+  <span aria-hidden="true" class="text-muted-foreground">
+    ·
+  </span>
 
-  {
-    /*
+  {/*
     One expression, not three. Written as adjacent expressions the whitespace
     between them collapses at build time and the badge reads "1de4" — visible
     only once rendered, which is where this was caught.
-  */
-  }
+  */}
   <span class="text-muted-foreground">
     {`${series.position} ${t('post.ofSeries')} ${series.total}`}
   </span>

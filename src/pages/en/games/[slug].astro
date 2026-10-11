@@ -40,61 +40,57 @@ if (game) {
 ---
 
 <Layout>
-  {
-    game && (
-      <Fragment slot="head">
-        <SeoHead locale={locale} title={game.name} path={`/en/games/${slug}`} />
-      </Fragment>
-    )
-  }
+  {game && (
+    <Fragment slot="head">
+      <SeoHead locale={locale} title={game.name} path={`/en/games/${slug}`} />
+    </Fragment>
+  )}
 
-  {
-    game ? (
-      <main class="mx-auto max-w-3xl px-6 pt-12 pb-20">
-        <header class="mb-8">
-          <p class="text-xs tracking-wide text-muted-foreground uppercase">{t('game.platforms')}</p>
-          <h1 class="mt-2 text-3xl leading-tight text-balance">{game.name}</h1>
+  {game ? (
+    <main class="mx-auto max-w-3xl px-6 pt-12 pb-20">
+      <header class="mb-8">
+        <p class="text-xs tracking-wide text-muted-foreground uppercase">{t('game.platforms')}</p>
+        <h1 class="mt-2 text-3xl leading-tight text-balance">{game.name}</h1>
 
-          <dl class="mt-6 grid gap-x-6 gap-y-3 border-t border-border pt-6 sm:grid-cols-3">
-            {game.developer && (
-              <div>
-                <dt class="text-xs tracking-wide text-muted-foreground uppercase">
-                  {t('game.developer')}
-                </dt>
-                <dd class="mt-1 text-sm">{game.developer}</dd>
-              </div>
-            )}
-            {game.publisher && (
-              <div>
-                <dt class="text-xs tracking-wide text-muted-foreground uppercase">
-                  {t('game.publisher')}
-                </dt>
-                <dd class="mt-1 text-sm">{game.publisher}</dd>
-              </div>
-            )}
-            {game.releaseDate && (
-              <div>
-                <dt class="text-xs tracking-wide text-muted-foreground uppercase">
-                  {t('game.releaseDate')}
-                </dt>
-                <dd class="mt-1 text-sm">{game.releaseDate}</dd>
-              </div>
-            )}
-          </dl>
-        </header>
+        <dl class="mt-6 grid gap-x-6 gap-y-3 border-t border-border pt-6 sm:grid-cols-3">
+          {game.developer && (
+            <div>
+              <dt class="text-xs tracking-wide text-muted-foreground uppercase">
+                {t('game.developer')}
+              </dt>
+              <dd class="mt-1 text-sm">{game.developer}</dd>
+            </div>
+          )}
+          {game.publisher && (
+            <div>
+              <dt class="text-xs tracking-wide text-muted-foreground uppercase">
+                {t('game.publisher')}
+              </dt>
+              <dd class="mt-1 text-sm">{game.publisher}</dd>
+            </div>
+          )}
+          {game.releaseDate && (
+            <div>
+              <dt class="text-xs tracking-wide text-muted-foreground uppercase">
+                {t('game.releaseDate')}
+              </dt>
+              <dd class="mt-1 text-sm">{game.releaseDate}</dd>
+            </div>
+          )}
+        </dl>
+      </header>
 
-        {posts.length === 0 ? (
-          <p class="text-muted-foreground">{t('listing.empty')}</p>
-        ) : (
-          <div>
-            {posts.map((post) => (
-              <PostCard locale={locale} post={post} />
-            ))}
-          </div>
-        )}
-      </main>
-    ) : (
-      <ErrorState locale={locale} status={404} />
-    )
-  }
+      {posts.length === 0 ? (
+        <p class="text-muted-foreground">{t('listing.empty')}</p>
+      ) : (
+        <div>
+          {posts.map((post) => (
+            <PostCard locale={locale} post={post} />
+          ))}
+        </div>
+      )}
+    </main>
+  ) : (
+    <ErrorState locale={locale} status={404} />
+  )}
 </Layout>
