@@ -5,6 +5,7 @@ import { Resvg } from '@resvg/resvg-js';
 import { drizzle } from 'drizzle-orm/sqlite-proxy';
 
 import { publishE2eFixtures } from './publish-e2e-fixtures.ts';
+import { r2SeedArgs, shellQuote } from './seed-commands.ts';
 import { sqlLiteral } from './sql.ts';
 import * as schema from '../src/db/schema.ts';
 import { deriveReadingTime, deriveToc } from '../src/lib/content/derive.ts';
@@ -980,6 +981,7 @@ writeFileSync(
  * added. The seed knows what it wrote, so it writes the commands too.
  */
 const uploadPath = path.join(process.cwd(), '.wrangler', 'seed-media.sh');
+const persistTo = process.env.SEED_PERSIST_TO ?? '';
 
 writeFileSync(
   uploadPath,
@@ -989,9 +991,13 @@ writeFileSync(
     'set -e',
     ...uploads.map(
       ({ key, file }) =>
-        `wrangler r2 object put "cesco-blog-media/${key}" --file="${path
-          .relative(process.cwd(), file)
-          .replace(/\\/g, '/')}" --content-type=image/png --local`
+        `wrangler ${r2SeedArgs(
+          key,
+          path.relative(process.cwd(), file).replace(/\\/g, '/'),
+          persistTo
+        )
+          .map(shellQuote)
+          .join(' ')}`
     ),
     '',
   ].join('\n'),
