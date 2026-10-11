@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { schema } from '@/db/client';
-import { getBucket, getDb, runAfterResponse } from '@/lib/runtime';
+import { getAccessConfig, getBucket, getDb, runAfterResponse } from '@/lib/runtime';
 
 import type { Runtime } from '@astrojs/cloudflare';
 
@@ -27,6 +27,12 @@ describe('runtime accessors', () => {
 
   it('resolves the R2 binding', () => {
     expect(getBucket()).toBeDefined();
+  });
+
+  it('reads the Cloudflare Access settings from the Worker vars', () => {
+    // A misspelt var name reads as undefined, which the admin boundary treats
+    // as misconfigured and refuses every admin request.
+    expect(getAccessConfig()).toEqual({ mode: 'local', teamDomain: '', audience: '' });
   });
 
   it('defers work past the response through the execution context', () => {

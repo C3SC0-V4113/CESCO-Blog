@@ -33,6 +33,16 @@ export function pageCount(total: number): number {
   return Math.max(1, Math.ceil(total / POSTS_PER_PAGE));
 }
 
+/**
+ * Where to send a reader whose page lies past the end, or `null` when it
+ * exists. Such links go stale as posts are removed, and rendering them shows an
+ * empty list under a pager that counts beyond its last page.
+ */
+export function lastPageWhenBeyond(page: number, total: number): number | null {
+  const last = pageCount(total);
+  return page > last ? last : null;
+}
+
 /** A page number to link, or the gap between two runs of them. */
 export type PaginationItem = number | 'ellipsis';
 
