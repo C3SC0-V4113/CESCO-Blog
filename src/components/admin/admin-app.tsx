@@ -8,7 +8,7 @@ import {
   UsersIcon,
   XIcon,
 } from 'lucide-react';
-import { useState, useSyncExternalStore } from 'react';
+import { useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
@@ -18,6 +18,7 @@ import { AdminAuthors } from './admin-authors';
 import { AdminCollectionEditor, AdminCollections } from './admin-collections';
 import { AdminDashboard } from './admin-dashboard';
 import { AdminEditor } from './admin-editor';
+import { useHydrated } from './admin-hydration';
 import { AdminMedia } from './admin-media';
 import { AdminPostForm } from './admin-post-form';
 import { AdminPostList } from './admin-post-list';
@@ -86,23 +87,6 @@ const screenCopy = {
   seo: ['admin.seo.pageTitle', 'admin.seo.pageSubtitle'],
 } as const;
 
-const subscribeToNothing = () => () => {};
-
-/**
- * False for the server render and the hydration pass, true once React owns the
- * DOM. Every admin form is controlled, so text typed into a server-rendered
- * input before hydration is reset to the server value when React commits — the
- * edit vanishes with no error. WebKit reaches that commit late enough for an
- * editor, and the e2e suite, to lose the first field typed.
- */
-function useHydrated() {
-  return useSyncExternalStore(
-    subscribeToNothing,
-    () => true,
-    () => false
-  );
-}
-
 export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }) {
   const isHydrated = useHydrated();
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
@@ -126,6 +110,7 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
             variant="outline"
             size="icon"
             className="md:hidden"
+            disabled={!isHydrated}
             aria-label={navigationLabel}
             aria-controls="admin-navigation"
             aria-expanded={isNavigationOpen}

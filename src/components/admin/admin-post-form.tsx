@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState, useSyncExternalStore } from 'react';
+import { useState } from 'react';
 import { Controller, useForm, type Control } from 'react-hook-form';
 
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -21,6 +21,8 @@ import {
   type ValidCreatePostInput,
 } from '@/lib/admin-posts';
 import { cn } from '@/lib/utils';
+
+import { useHydrated } from './admin-hydration';
 const t = getTranslations('es');
 const fieldsClass = 'rounded-xl border bg-card p-5 shadow-sm';
 const sections = [
@@ -89,11 +91,7 @@ export function AdminPostForm({
   navigate?: (href: string) => void;
 }) {
   const [serverError, setServerError] = useState<string>();
-  const ready = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+  const ready = useHydrated();
   const {
     control,
     register,
