@@ -11,6 +11,7 @@ async function openNewDraft(page: Page) {
   const row = page.getByRole('row').filter({ has: page.getByRole('cell', { name: slug }) });
   await row.getByRole('link', { name: 'Borrador' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Editor');
+  await expect(page.locator('[inert]')).toHaveCount(0);
 }
 
 const nextUpload = (page: Page) =>
@@ -32,10 +33,14 @@ test('uploads an image pasted or dropped on the canvas and inserts an image bloc
   const blocks = canvas.locator(`img[alt="${alt}"]`);
 
   // Canvas uploads obey the picker's alt-text rule, so the text goes there first.
-  await page.getByText('Insertar imagen').click();
-  const altInput = page
-    .getByRole('region', { name: 'Carga de imagen' })
-    .getByLabel('Texto alternativo');
+  const picker = page.locator('details').filter({
+    has: page.getByText('Insertar imagen', { exact: true }),
+  });
+  await picker.getByText('Insertar imagen', { exact: true }).click();
+  await expect(picker).toHaveAttribute('open', '');
+  const uploadRegion = page.getByRole('region', { name: 'Carga de imagen' });
+  await expect(uploadRegion).toBeVisible();
+  const altInput = uploadRegion.getByLabel('Texto alternativo');
   await expect(altInput).toBeEnabled();
   await altInput.fill(alt);
 
