@@ -4,15 +4,14 @@ import { flushSync } from 'react-dom';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { getTranslations } from '@/i18n/utils';
 import { callUpdateMediaAsset } from '@/lib/admin-actions';
 import { normalizeImage } from '@/lib/image-normalize';
 import { mediaPath } from '@/lib/media';
-import { cn } from '@/lib/utils';
 
-import { FieldError, FormStatus, inputClass, invalidField, PendingButton } from './admin-form';
+import { FormStatus, PendingButton } from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 
@@ -145,14 +144,15 @@ export function AdminMedia({
               id={altId}
               ref={altInput}
               name="altText"
-              className={cn('mt-1 h-10', inputClass)}
+              className="mt-1"
               disabled={decorative}
               value={altText}
               onChange={(event) => {
                 setAltText(event.target.value);
                 setAltMissing(false);
               }}
-              {...invalidField('altText', altMissing)}
+              aria-invalid={altMissing ? true : undefined}
+              aria-describedby={altMissing ? 'altText-error' : undefined}
             />
           </Field>
           <Field orientation="horizontal" className="h-10 w-auto items-center gap-2">
@@ -189,7 +189,7 @@ export function AdminMedia({
             />
           </Field>
         </div>
-        {altMissing && <FieldError name="altText">{t('admin.media.altRequired')}</FieldError>}
+        {altMissing && <FieldError id="altText-error">{t('admin.media.altRequired')}</FieldError>}
         <p className="mt-2 text-sm text-muted-foreground">{t('admin.media.help')}</p>
         {status === 'error' && <p role="alert">{t('admin.media.error')}</p>}
       </section>
@@ -310,12 +310,7 @@ function MetadataForm({
     >
       <Field className="gap-1">
         <FieldLabel htmlFor={`${formId}-alt`}>{t('admin.media.alt')}</FieldLabel>
-        <Input
-          id={`${formId}-alt`}
-          name="altText"
-          defaultValue={asset.altText ?? ''}
-          className={cn('h-10', inputClass)}
-        />
+        <Input id={`${formId}-alt`} name="altText" defaultValue={asset.altText ?? ''} />
       </Field>
       <Field orientation="horizontal" className="items-center">
         <Checkbox
@@ -332,7 +327,6 @@ function MetadataForm({
             id={`${formId}-${field}`}
             name={field}
             defaultValue={asset[field] ?? ''}
-            className={cn('h-10', inputClass)}
             {...(urlFields.has(field) && { type: 'url', inputMode: 'url' as const })}
           />
         </Field>

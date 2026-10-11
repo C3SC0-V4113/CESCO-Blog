@@ -23,7 +23,7 @@ import {
 import { pickCollectionLocalizations } from '@/lib/admin-taxonomy';
 import { cn } from '@/lib/utils';
 
-import { FormStatus, inputClass, PendingButton, selectClass, textareaClass } from './admin-form';
+import { FormStatus, PendingButton } from './admin-form';
 
 import type {
   AdminCollectionDetail,
@@ -218,7 +218,7 @@ export function AdminCollectionEditor({
             { value: 'archived', label: t('admin.posts.state.archived') },
           ]}
         >
-          <SelectTrigger id="collection-editorial-state" className={cn('h-10 w-full', selectClass)}>
+          <SelectTrigger id="collection-editorial-state" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -290,11 +290,7 @@ export function AdminCollectionEditor({
               if (value) setPostIds((items) => [...items, value]);
             }}
           >
-            <SelectTrigger
-              ref={addSelect}
-              id="collection-add-post"
-              className={cn('h-10 w-full', selectClass)}
-            >
+            <SelectTrigger ref={addSelect} id="collection-add-post" className="w-full">
               <SelectValue placeholder={t('admin.collections.choose')} />
             </SelectTrigger>
             <SelectContent>
@@ -361,7 +357,6 @@ function Field({
       <Input
         id={name}
         name={name}
-        className={cn('h-10', inputClass)}
         aria-invalid={Boolean(message)}
         aria-describedby={message ? `${name}-error` : undefined}
         {...props}
@@ -412,7 +407,7 @@ function CollectionLocalizations({
                 id={`collection-${locale}-description`}
                 name={`${locale}-description`}
                 defaultValue={current?.description ?? ''}
-                className={cn('min-h-20', textareaClass)}
+                className="min-h-20"
               />
             </UiField>
             <UiField className="gap-1">
@@ -428,10 +423,7 @@ function CollectionLocalizations({
                   { value: 'archived', label: t('admin.posts.locale.archived') },
                 ]}
               >
-                <SelectTrigger
-                  id={`collection-${locale}-status`}
-                  className={cn('h-10 w-full', selectClass)}
-                >
+                <SelectTrigger id={`collection-${locale}-status`} className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Controller, useForm, type Control } from 'react-hook-form';
 
 import { buttonVariants } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -22,12 +22,7 @@ import {
 } from '@/lib/admin-posts';
 import { cn } from '@/lib/utils';
 
-import {
-  FieldError as AdminFieldError,
-  PendingButton,
-  invalidField,
-  useHydrated,
-} from './admin-form';
+import { PendingButton, useHydrated } from './admin-form';
 const t = getTranslations('es');
 const fieldsClass = 'rounded-xl border bg-card p-5 shadow-sm';
 const sections = [
@@ -153,15 +148,16 @@ export function AdminPostForm({
             <Input
               {...register('slug')}
               id="slug"
-              {...invalidField('slug', Boolean(errors.slug))}
+              aria-invalid={errors.slug ? true : undefined}
+              aria-describedby={errors.slug ? 'slug-error' : undefined}
               className="h-9 font-normal"
               autoComplete="off"
               spellCheck={false}
             />
             {errors.slug && (
-              <AdminFieldError name="slug">
+              <FieldError id="slug-error">
                 {errors.slug.type === 'server' ? errors.slug.message : t('admin.posts.slugInvalid')}
-              </AdminFieldError>
+              </FieldError>
             )}
           </Field>
         </FieldGroup>

@@ -14,9 +14,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { getTranslations } from '@/i18n/utils';
 import { callCreateAuthor, callRetryPendingPurges, callUpdateAuthor } from '@/lib/admin-actions';
-import { cn } from '@/lib/utils';
 
-import { FormStatus, inputClass, PendingButton, selectClass, textareaClass } from './admin-form';
+import { FormStatus, PendingButton } from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { AdminAuthor } from '@/db/queries/admin-taxonomy';
@@ -131,7 +130,7 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
             ]}
             onValueChange={(value) => setAvatarMediaId(value === NO_AVATAR ? '' : (value ?? ''))}
           >
-            <SelectTrigger id={avatarId} className={cn('h-10', selectClass)}>
+            <SelectTrigger id={avatarId}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -213,7 +212,7 @@ function TextField({
   return (
     <Field className="gap-1">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Input id={id} name={name} className={cn('h-10', inputClass)} {...props} />
+      <Input id={id} name={name} {...props} />
     </Field>
   );
 }
@@ -232,7 +231,7 @@ function TextAreaField({
   return (
     <Field className={className}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Textarea id={id} name={name} className={cn('p-3', textareaClass)} {...props} />
+      <Textarea id={id} name={name} {...props} />
     </Field>
   );
 }

@@ -15,7 +15,6 @@ import { parseDraftContent } from '@/lib/drafts';
 import { imageFilesToUpload, imageNode, mediaPath } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
-import { inputClass, textareaClass } from './admin-form';
 import { AdminMedia, type MediaUploader } from './admin-media';
 import { EditorToolbar } from './editor-toolbar';
 import { MediaImage } from './media-image-extension';
@@ -231,7 +230,6 @@ export function AdminEditor({
           id="editor-title"
           name="title"
           aria-describedby="editor-title-constraint"
-          className={cn('h-10', inputClass)}
           defaultValue={draft.title}
           maxLength={300}
           onChange={(event) => editField('title', event.target.value)}
@@ -246,7 +244,7 @@ export function AdminEditor({
           id="editor-excerpt"
           name="excerpt"
           aria-describedby="editor-excerpt-constraint"
-          className={cn('min-h-20', textareaClass)}
+          className="min-h-20"
           defaultValue={draft.excerpt ?? ''}
           maxLength={1000}
           onChange={(event) => editField('excerpt', event.target.value)}

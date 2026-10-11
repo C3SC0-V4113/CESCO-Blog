@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
   Select as BaseSelect,
@@ -19,17 +19,8 @@ import { createDraftSave } from '@/lib/draft-autosave';
 import { mediaPath } from '@/lib/media';
 import { effectiveSeo } from '@/lib/seo';
 import { SITE_NAME } from '@/lib/site';
-import { cn } from '@/lib/utils';
 
-import {
-  FieldError,
-  FormStatus,
-  inputClass,
-  invalidField,
-  PendingButton,
-  selectClass,
-  textareaClass,
-} from './admin-form';
+import { FormStatus, PendingButton } from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { AdminAuthor, AdminSeoState } from '@/db/queries/admin-taxonomy';
@@ -160,7 +151,7 @@ export function AdminSeo({
             name="canonical"
             readOnly
             value={canonical}
-            className={cn('h-10 bg-muted', inputClass)}
+            className="bg-muted"
           />
         </Field>
         <Text
@@ -295,7 +286,6 @@ function Text({ name, label, value, onChange }: FieldProps) {
         name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={cn('h-10', inputClass)}
       />
     </Field>
   );
@@ -309,7 +299,6 @@ function Area({ name, label, value, onChange }: FieldProps) {
         name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={cn('min-h-24', textareaClass)}
       />
     </Field>
   );
@@ -334,8 +323,9 @@ function ChoiceField({
       >
         <SelectTrigger
           id={`seo-${name}`}
-          className={cn('h-10 w-full', selectClass)}
-          {...invalidField(name, Boolean(message))}
+          className="w-full"
+          aria-invalid={message ? true : undefined}
+          aria-describedby={message ? `${name}-error` : undefined}
         >
           <SelectValue />
         </SelectTrigger>
@@ -350,7 +340,7 @@ function ChoiceField({
           </SelectGroup>
         </SelectContent>
       </BaseSelect>
-      {message && <FieldError name={name}>{t(message)}</FieldError>}
+      {message && <FieldError id={`${name}-error`}>{t(message)}</FieldError>}
     </Field>
   );
 }

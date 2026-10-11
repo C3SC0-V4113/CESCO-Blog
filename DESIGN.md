@@ -607,28 +607,29 @@ than by changing the layout around it.
 
 ### Admin forms
 
-`src/components/admin/admin-form.tsx` holds the conventions every admin form
-follows:
+Admin forms use the shadcn field primitives backed by Base UI in
+`src/components/ui/field.tsx`, `input.tsx`, `textarea.tsx` and `select.tsx`.
+Compose controls with `Field`, `FieldGroup` and `FieldLabel`; use the primitive's
+`data-invalid` state for invalid-field styling. Set `aria-invalid` on the
+control and point `aria-describedby` at the matching shadcn `FieldError` id so
+the error is announced with its field and focus can move to the first invalid
+control. Keep labels explicitly associated with a unique control id, including
+controls rendered in repeated rows. The primitives own shared focus, contrast,
+disabled and reduced-motion styles.
 
 - **Native submit.** Each form has an `onSubmit` that prevents navigation and
   runs its save; the primary action is its one `type="submit"` button and every
   other action is `type="button"`. Enter and `required` therefore work.
-- **Field classes.** `inputClass`, `selectClass` and `textareaClass` carry the
-  focus ring, the `aria-invalid` border, disabled styles and a transition with
-  its reduced-motion opt-out. They are a product helper beside the forms, not a
-  `ui/` primitive.
-- **Errors belong to their field.** `invalidField(name, invalid)` sets
-  `aria-invalid` and points `aria-describedby` at `FieldError`, rendered outside
-  the field's label under `fieldErrorId(name)`, and focus moves to the field.
 - **Stable status regions.** `FormStatus` keeps an always-rendered polite region
   for progress and success and inserts an alert only when something fails.
-  Neither region changes role. Field errors stay out of it.
+  Neither region changes role. Field errors stay beside their controls.
 - **Pending actions.** `PendingButton` disables the running action, adds a
   spinner hidden from assistive technology and held still under reduced motion,
   and keeps its label.
-- **Hydration gate.** `useHydrated` reports when React has committed. The shell
-  keeps its content `inert` and disables interactive controls outside that
-  region until then, so actions on server-rendered markup are not lost
+- **Hydration gate.** The shared `useHydrated` hook in
+  `src/components/admin/admin-hydration.ts` reports when React has committed.
+  The shell keeps its content `inert` and disables interactive controls outside
+  that region until then, so actions on server-rendered markup are not lost
   (ADR-0023).
 
 The admin shell opens with a skip link to a `main` landmark that takes focus

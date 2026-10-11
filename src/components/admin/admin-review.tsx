@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { getTranslations } from '@/i18n/utils';
 import {
@@ -13,9 +13,8 @@ import {
 } from '@/lib/admin-actions';
 import { mediaPath } from '@/lib/media';
 import { isRenameLocalizationRejection } from '@/lib/publishing';
-import { cn } from '@/lib/utils';
 
-import { FieldError, FormStatus, inputClass, invalidField, PendingButton } from './admin-form';
+import { FormStatus, PendingButton } from './admin-form';
 
 import type { ReviewDetail, ReviewQueueItem } from '@/db/queries/admin-review';
 
@@ -304,7 +303,6 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                   onChange={(event) => {
                     if (event.target.value === detail.slug) setRenameConfirmed(false);
                   }}
-                  className={cn('h-10', inputClass)}
                 />
               </Field>
               {needsAcknowledgement && (
@@ -317,14 +315,17 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                       name="acknowledgePermanentRedirect"
                       checked={renameConfirmed}
                       onCheckedChange={(checked) => setRenameConfirmed(checked === true)}
-                      {...invalidField('acknowledgePermanentRedirect', acknowledgementMissing)}
+                      aria-invalid={acknowledgementMissing ? true : undefined}
+                      aria-describedby={
+                        acknowledgementMissing ? 'acknowledgePermanentRedirect-error' : undefined
+                      }
                     />
                     <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
                       {t('admin.review.renameConfirm')}
                     </FieldLabel>
                   </Field>
                   {acknowledgementMissing && (
-                    <FieldError name="acknowledgePermanentRedirect">
+                    <FieldError id="acknowledgePermanentRedirect-error">
                       {t('admin.review.renameAcknowledgementError')}
                     </FieldError>
                   )}
