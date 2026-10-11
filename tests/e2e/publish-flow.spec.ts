@@ -189,6 +189,44 @@ test('paginates the complete review queue', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Siguiente' })).toHaveCount(0);
 });
 
+test('keeps long unbroken review titles inside the queue at desktop and mobile widths', async ({
+  page,
+}) => {
+  const slug = `review-overflow-${crypto.randomUUID()}`;
+  const title = 'UnbrokenTitle'.repeat(23);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/admin/posts/new');
+  await page.getByLabel('Slug').fill(slug);
+  await page.getByRole('button', { name: 'Crear publicación' }).click();
+  await expect(page).toHaveURL(/\/admin\/posts$/);
+
+  const editorUrl = await findEditorUrl(page, slug);
+  expect(editorUrl).toBeTruthy();
+  await page.goto(editorUrl!);
+  await page.getByLabel(/Título/).fill(title);
+  const saved = actionResponse(page, 'saveDraft');
+  await page.getByRole('link', { name: /Ir a revisión/ }).click();
+  await saved;
+
+  const reviewList = page.getByRole('region', { name: 'Cola de revisión' }).locator('ul');
+  await expect(reviewList.getByText(title, { exact: true }).first()).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/review\?/);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const desktop = await reviewList.evaluate((list) => ({
+    scrollWidth: list.scrollWidth,
+    clientWidth: list.clientWidth,
+  }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobile = await reviewList.evaluate((list) => ({
+    scrollWidth: list.scrollWidth,
+    clientWidth: list.clientWidth,
+  }));
+  expect(desktop.scrollWidth).toBeLessThanOrEqual(desktop.clientWidth);
+  expect(mobile.scrollWidth).toBeLessThanOrEqual(mobile.clientWidth);
+});
+
 test('never renders unsafe attribution URL schemes from legacy snapshots', async ({ page }) => {
   await page.goto('/es/analisis/el-peso-del-silencio');
   await expect(page.getByRole('img', { name: 'Un pixel de ejemplo' })).toBeVisible();

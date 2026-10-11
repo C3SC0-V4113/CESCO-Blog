@@ -166,7 +166,7 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
           className="order-last max-h-[70vh] overflow-auto rounded-xl border bg-background p-4 lg:order-first"
         >
           {items.length ? (
-            <ul className="grid gap-2">
+            <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
               {items.map((item) => (
                 <li key={item.localizationId}>
                   <a
