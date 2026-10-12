@@ -25,7 +25,7 @@ const actionResponse = (page: Page, name: string) =>
 // fill before then lands on nothing, which WebKit reaches late enough to hit.
 const hydrated = async (page: Page) => {
   await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
-  await expect(page.locator('.contents[inert]')).toHaveCount(0);
+  await expect(page.locator('[inert]')).toHaveCount(0);
 };
 
 /**

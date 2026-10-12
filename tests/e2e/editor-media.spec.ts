@@ -11,7 +11,7 @@ async function openNewDraft(page: Page) {
   const row = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: slug }) });
   await row.getByRole('link', { name: 'Borrador' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Editor');
-  await expect(page.locator('.contents[inert]')).toHaveCount(0);
+  await expect(page.locator('[inert]')).toHaveCount(0);
 }
 
 const nextUpload = (page: Page) =>
