@@ -2,8 +2,19 @@ import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { schema, type Db } from '@/db/client';
+import { listAdminMedia as queryAdminMedia } from '@/db/queries/admin-media';
 import { newMediaAssetId } from '@/lib/ids';
 import { mediaKey, parseWebp } from '@/lib/media';
+import { readPageWindow } from '@/lib/pagination';
+
+export const listAdminMediaPageSchema = z.object({
+  page: z.number().int().min(1),
+});
+
+export async function listAdminMediaPage(db: Db, raw: z.input<typeof listAdminMediaPageSchema>) {
+  const { page } = listAdminMediaPageSchema.parse(raw);
+  return queryAdminMedia(db, readPageWindow(String(page), 20));
+}
 
 export const mediaMetadataSchema = z
   .strictObject({

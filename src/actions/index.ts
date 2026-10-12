@@ -1,13 +1,31 @@
 import { ActionError, defineAction } from 'astro:actions';
 
 import { saveDraft } from '@/actions/drafts';
-import { mediaMetadataSchema, updateMediaAsset } from '@/actions/media';
+import {
+  listAdminMediaPage,
+  listAdminMediaPageSchema,
+  mediaMetadataSchema,
+  updateMediaAsset,
+} from '@/actions/media';
 import { adminPostError, createAdminPost } from '@/actions/posts';
 import { createPostSchema } from '@/lib/admin-posts';
 import { saveDraftSchema } from '@/lib/drafts';
 import { getDb } from '@/lib/runtime';
 export const server = {
   admin: {
+    listMedia: defineAction({
+      input: listAdminMediaPageSchema,
+      async handler(input, context) {
+        try {
+          return await listAdminMediaPage(getDb(), input);
+        } catch (error) {
+          context.logger.error(
+            `Media library page load failed: ${error instanceof Error ? error.stack : String(error)}`
+          );
+          throw new ActionError({ code: 'INTERNAL_SERVER_ERROR' });
+        }
+      },
+    }),
     updateMediaAsset: defineAction({
       input: mediaMetadataSchema,
       async handler(input, context) {

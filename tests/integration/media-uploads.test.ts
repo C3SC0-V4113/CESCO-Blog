@@ -1,8 +1,8 @@
 import { env } from 'cloudflare:test';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 
-import { persistMediaUpload, updateMediaAsset } from '@/actions/media';
+import { listAdminMediaPage, persistMediaUpload, updateMediaAsset } from '@/actions/media';
 import { createDb, schema } from '@/db/client';
 import { findAdminMedia, listAdminMedia } from '@/db/queries/admin-media';
 import { POST } from '@/pages/admin/media/upload';
@@ -45,6 +45,41 @@ const webpChunkKinds = (bytes: Uint8Array) => {
 };
 
 describe('media uploads', () => {
+  it('lists page two through the validated media action input', async () => {
+    const db = createDb(env.DB);
+    const assets = Array.from({ length: 41 }, (_, index) => {
+      const id = crypto.randomUUID();
+      return {
+        id,
+        r2Key: `media/list-${id}`,
+        contentType: 'image/webp',
+        createdAt: new Date(Date.UTC(2026, 0, index + 1)).toISOString(),
+      };
+    });
+    for (let index = 0; index < assets.length; index += 20)
+      await db.insert(schema.mediaAssets).values(assets.slice(index, index + 20));
+
+    try {
+      const result = await listAdminMediaPage(db, { page: 2 });
+      const expected = [...assets]
+        .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+        .slice(20, 40)
+        .map(({ id }) => id);
+
+      expect(result.total).toBe(41);
+      expect(result.assets.map(({ id }) => id)).toEqual(expected);
+      await expect(listAdminMediaPage(db, { page: 0 })).rejects.toThrow();
+      await expect(listAdminMediaPage(db, { page: 1.5 })).rejects.toThrow();
+    } finally {
+      await db.delete(schema.mediaAssets).where(
+        inArray(
+          schema.mediaAssets.id,
+          assets.map(({ id }) => id)
+        )
+      );
+    }
+  });
+
   it('stores immutable WebP first, then inspected metadata, and lists newest first', async () => {
     const db = createDb(env.DB);
     const id = crypto.randomUUID();
