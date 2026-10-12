@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { waitForAdminHydration } from './helpers/admin-hydration';
+
 /**
  * Taxonomy work checked where it lands: the public head, the home, the action
  * boundary and the series routes (ADR-0010, ADR-0012, ADR-0013, ADR-0015).
@@ -19,14 +21,6 @@ const SEEDED_MEMBERS = [
 
 const actionResponse = (page: Page, name: string) =>
   page.waitForResponse((response) => response.url().includes(`/_actions/admin.${name}`));
-
-// Astro drops `ssr` from an island once it has asked React to hydrate, but
-// React commits later, and the admin stays inert until it does. A click or a
-// fill before then lands on nothing, which WebKit reaches late enough to hit.
-const hydrated = async (page: Page) => {
-  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
-  await expect(page.locator('[inert]')).toHaveCount(0);
-};
 
 /**
  * A post of its own, published through the screens an editor uses, so nothing
@@ -48,11 +42,31 @@ test.afterEach(async ({ request }) => {
   }
 });
 
+test('does not treat an empty streaming document as a hydrated admin screen', async ({ page }) => {
+  await page.goto('about:blank');
+  await page.evaluate(() => {
+    setTimeout(() => {
+      document.body.innerHTML = '<astro-island ssr><main inert>Admin</main></astro-island>';
+      setTimeout(() => {
+        const island = document.querySelector('astro-island');
+        island?.removeAttribute('ssr');
+        island?.querySelector('[inert]')?.removeAttribute('inert');
+      }, 50);
+    }, 50);
+  });
+
+  let islandWasPresentWhenReady = false;
+  await waitForAdminHydration(page).then(async () => {
+    islandWasPresentWhenReady = (await page.locator('astro-island').count()) === 1;
+  });
+  expect(islandWasPresentWhenReady).toBe(true);
+});
+
 async function publishNewPost(page: Page) {
   const slug = `taxonomia-${crypto.randomUUID()}`;
   const title = `Publicación ${slug}`;
   await page.goto('/admin/posts/new');
-  await hydrated(page);
+  await waitForAdminHydration(page);
   await page.getByLabel('Slug').fill(slug);
   await page.getByRole('button', { name: 'Crear publicación' }).click();
   await expect(page).toHaveURL(/\/admin\/posts$/);
@@ -66,14 +80,14 @@ async function publishNewPost(page: Page) {
   const [, postId, localizationId] = match!;
 
   await page.goto(href!);
-  await hydrated(page);
+  await waitForAdminHydration(page);
   const drafted = actionResponse(page, 'saveDraft');
   await page.getByLabel('Título').fill(title);
   expect((await drafted).status()).toBe(200);
   await expect(page.getByRole('status')).toHaveText('Guardado');
 
   await page.goto(`/admin/posts/${postId}/seo?localization=${localizationId}`);
-  await hydrated(page);
+  await waitForAdminHydration(page);
   const coverSelect = page.getByRole('combobox', { name: 'Portada editorial limpia' });
   await expect(coverSelect).toBeEnabled();
   await coverSelect.click();
@@ -84,7 +98,7 @@ async function publishNewPost(page: Page) {
   await expect(page.getByRole('status')).toHaveText('Cambios guardados.');
 
   await page.goto(`/admin/review?post=${postId}&localization=${localizationId}`);
-  await hydrated(page);
+  await waitForAdminHydration(page);
   const published = actionResponse(page, 'publish');
   await page.getByRole('button', { name: 'Publicar', exact: true }).click();
   expect((await published).status()).toBe(200);
@@ -105,7 +119,7 @@ test('an SEO title reaches the public head only once review publishes it', async
   await expect(ogTitle).toHaveAttribute('content', post.title);
 
   await page.goto(`/admin/posts/${post.postId}/seo?localization=${post.localizationId}`);
-  await hydrated(page);
+  await waitForAdminHydration(page);
   await page.getByLabel('Título SEO').fill(seoTitle);
   await page.getByLabel('Título de Open Graph').fill(socialTitle);
   const saved = actionResponse(page, 'saveSeoDraft');
@@ -119,7 +133,7 @@ test('an SEO title reaches the public head only once review publishes it', async
   await expect(ogTitle).toHaveAttribute('content', post.title);
 
   await page.goto(`/admin/review?post=${post.postId}&localization=${post.localizationId}`);
-  await hydrated(page);
+  await waitForAdminHydration(page);
   const republished = actionResponse(page, 'publish');
   // A successful publish reloads the review page to show the server state;
   // leaving before that reload lands races the app's own navigation.
@@ -145,7 +159,7 @@ test('featuring a post fills the home slot without repeating it below', async ({
   // One label either way; the toggle reports its state as pressed.
   const toggle = async (pressed: boolean) => {
     await page.goto('/admin/posts');
-    await hydrated(page);
+    await waitForAdminHydration(page);
     const row = page
       .getByRole('row')
       .filter({ has: page.getByRole('rowheader', { name: post.title }) });
@@ -177,7 +191,7 @@ test('featuring a post fills the home slot without repeating it below', async ({
 
 test('a published series keeps its slug in the editor and at the action', async ({ page }) => {
   await page.goto(`/admin/collections/${SEEDED_COLLECTION}`);
-  await hydrated(page);
+  await waitForAdminHydration(page);
   const spanish = page.getByRole('group', { name: 'Español' });
   await expect(spanish.getByLabel('Slug')).toHaveValue(SEEDED_SLUG);
   await expect(spanish.getByLabel('Slug')).not.toBeEditable();
@@ -216,12 +230,15 @@ test('creates a series in Spanish alone and serves it only in Spanish', async ({
   const slug = `solo-espanol-${crypto.randomUUID()}`;
   const title = `Serie en español ${slug}`;
   await page.goto('/admin/collections');
-  await hydrated(page);
+  await waitForAdminHydration(page);
   const created = actionResponse(page, 'createCollection');
+  const navigation = page.waitForURL(/\/admin\/collections\/[0-9a-f-]{36}$/, {
+    waitUntil: 'load',
+  });
   await page.getByRole('button', { name: 'Nueva serie' }).click();
   expect((await created).status()).toBe(200);
-  await expect(page).toHaveURL(/\/admin\/collections\/[0-9a-f-]{36}$/);
-  await hydrated(page);
+  await navigation;
+  await waitForAdminHydration(page);
   const spanish = page.getByRole('group', { name: 'Español' });
   const english = page.getByRole('group', { name: 'English' });
   await spanish.getByLabel('Título').fill(title);

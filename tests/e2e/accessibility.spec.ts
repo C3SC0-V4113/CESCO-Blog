@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
+import { waitForAdminHydration } from './helpers/admin-hydration';
+
 /**
  * Automated accessibility and motion checks over the surfaces a reader and an
  * editor actually use (ADR-0022, ADR-0030, DESIGN.md).
@@ -44,19 +46,17 @@ const ADMIN_PAGES = [
   { name: 'authors', path: '/admin/authors' },
 ];
 
-// Astro drops `ssr` from an island once it has asked React to hydrate, and the
-// admin stays inert until React commits. axe skips inert content, so auditing
-// earlier would pass a screen nobody can use yet.
-const hydrated = async (page: Page) => {
-  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
-  await expect(page.locator('[inert]')).toHaveCount(0);
-};
-
 async function audit(page: Page) {
   const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
 
   // Reduced to what a failure needs to be read: which rule, and where.
   return violations.map(({ id, nodes }) => ({ id, targets: nodes.map(({ target }) => target) }));
+}
+
+async function auditPath(page: Page, path: string, isAdmin: boolean) {
+  await page.goto(path);
+  if (isAdmin) await waitForAdminHydration(page);
+  return audit(page);
 }
 
 // The class the theme script leaves on <html> for each scheme. Light is the
@@ -70,16 +70,21 @@ for (const { colorScheme, themeClass } of THEMES) {
   test.describe(`${colorScheme} theme`, () => {
     test.use({ colorScheme });
 
-    for (const { name, path } of [...PUBLIC_PAGES, ...ADMIN_PAGES]) {
+    for (const { name, path } of PUBLIC_PAGES) {
       test(`the ${name} has no WCAG 2.2 AA violations`, async ({ page }) => {
-        await page.goto(path);
-        await hydrated(page);
-
-        // The theme script reads the preference before paint. Asserting it took
-        // keeps the dark half of this suite from silently auditing light twice.
+        const violations = await auditPath(page, path, false);
+        // The theme script reads the preference before paint, so the dark half
+        // cannot silently audit light a second time.
         await expect(page.locator('html')).toHaveClass(themeClass);
+        expect(violations).toEqual([]);
+      });
+    }
 
-        expect(await audit(page)).toEqual([]);
+    for (const { name, path } of ADMIN_PAGES) {
+      test(`the ${name} has no WCAG 2.2 AA violations`, async ({ page }) => {
+        const violations = await auditPath(page, path, true);
+        await expect(page.locator('html')).toHaveClass(themeClass);
+        expect(violations).toEqual([]);
       });
     }
   });

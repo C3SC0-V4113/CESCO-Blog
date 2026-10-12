@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { parse } from 'devalue';
 
+import { waitForAdminHydration } from './helpers/admin-hydration';
 import { publishE2eFixture } from '../../scripts/publish-e2e-fixtures';
 
 import type { Page } from '@playwright/test';
@@ -159,10 +160,7 @@ test('reviews, publishes, withdraws, republishes, and renames one localization',
   expect(JSON.stringify(safeResultData)).not.toContain('redirect-acknowledgement-required');
   await page.reload();
   await expect(page.getByLabel('Slug')).toHaveValue(originalSlug);
-  // The screen is inert until React commits, and a field typed into before
-  // that would not take the text. The island losing `ssr` comes earlier than
-  // the commit, so the inert attribute itself is what to wait on.
-  await expect(page.locator('[inert]')).toHaveCount(0);
+  await waitForAdminHydration(page);
 
   const slug = `publicado-${crypto.randomUUID()}`;
   await page.getByLabel('Slug').fill(slug);

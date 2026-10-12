@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { waitForAdminHydration } from './helpers/admin-hydration';
+
 import type { APIRequestContext } from '@playwright/test';
 
 async function collectJavaScriptGraph(request: APIRequestContext, entryPoints: string[]) {
@@ -97,7 +99,7 @@ test('gates the navigation trigger until the admin island hydrates', async ({ pa
     releaseScripts();
   }
 
-  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+  await waitForAdminHydration(page);
   const trigger = page.getByRole('button', { name: 'Abrir navegación' });
   await expect(trigger).toBeEnabled();
   await trigger.click();
