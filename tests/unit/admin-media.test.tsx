@@ -176,12 +176,11 @@ describe('AdminMedia', () => {
     expect(save.innerHTML).toContain('aria-hidden="true"');
   });
 
-  it('preserves failed metadata and publishes successful metadata to selection', async () => {
+  it('preserves failed metadata and updates the standalone media card after success', async () => {
     vi.mocked(callUpdateMediaAsset)
       .mockResolvedValueOnce({ error: { code: 'INTERNAL_SERVER_ERROR' } } as never)
       .mockResolvedValueOnce({ data: { ...asset, altText: 'Mapa actualizado' } } as never);
-    const select = vi.fn();
-    render(<AdminMedia assets={[asset]} onSelect={select} />);
+    render(<AdminMedia assets={[asset]} />);
     fireEvent.click(screen.getByText('Editar metadatos'));
     const alt = screen.getAllByLabelText('Texto alternativo')[1]!;
     fireEvent.change(alt, { target: { value: 'Mapa actualizado' } });
@@ -196,8 +195,7 @@ describe('AdminMedia', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar metadatos' }));
     await screen.findByText('Metadatos guardados.');
-    fireEvent.click(screen.getByRole('button', { name: /Mapa actualizado/ }));
-    expect(select).toHaveBeenCalledWith(expect.objectContaining({ altText: 'Mapa actualizado' }));
+    expect(screen.getByText('Mapa actualizado')).toBeTruthy();
   });
 
   it('loads later picker pages without navigating the editor', async () => {
@@ -215,6 +213,18 @@ describe('AdminMedia', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
     expect(await screen.findAllByRole('button', { name: /Página dos/ })).toHaveLength(1);
     expect(fetch).toHaveBeenCalledWith('/admin/media/page.json?page=2');
+  });
+
+  it('uses compact selectable rows and links to the library in picker mode', () => {
+    render(<AdminMedia assets={[asset]} onSelect={vi.fn()} />);
+
+    const list = screen.getByRole('list');
+    expect(list.className).toContain('grid-cols-1');
+    expect(screen.getByRole('button', { name: 'Mapa' })).toBeTruthy();
+    expect(screen.queryByText('Editar metadatos')).toBeNull();
+    expect(
+      screen.getByRole('link', { name: 'Ir a la biblioteca multimedia' }).getAttribute('href')
+    ).toBe('/admin/media');
   });
 
   it('shows a card that selects nothing as content, not as a button', () => {
