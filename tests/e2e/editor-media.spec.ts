@@ -2,16 +2,19 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { waitForAdminHydration } from './helpers/admin-hydration';
+
 // A post of its own, so inserting images never races a test on the seeded draft.
 async function openNewDraft(page: Page) {
   const slug = `editor-media-${crypto.randomUUID()}`;
   await page.goto('/admin/posts/new');
+  await waitForAdminHydration(page);
   await page.getByLabel('Slug').fill(slug);
   await page.getByRole('button', { name: 'Crear publicación' }).click();
   const row = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: slug }) });
   await row.getByRole('link', { name: 'Borrador' }).click();
+  await waitForAdminHydration(page);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Editor');
-  await expect(page.locator('[inert]')).toHaveCount(0);
 }
 
 const nextUpload = (page: Page) =>

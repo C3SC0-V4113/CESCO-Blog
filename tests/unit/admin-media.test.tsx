@@ -8,11 +8,14 @@ vi.mock('@/lib/image-normalize', () => ({
     height: 10,
   }),
 }));
-vi.mock('@/lib/admin-actions', () => ({ callUpdateMediaAsset: vi.fn() }));
+vi.mock('@/lib/admin-actions', () => ({
+  callListMedia: vi.fn(),
+  callUpdateMediaAsset: vi.fn(),
+}));
 
 import { mediaMetadataSchema } from '@/actions/media';
 import { AdminMedia } from '@/components/admin/admin-media';
-import { callUpdateMediaAsset } from '@/lib/admin-actions';
+import { callListMedia, callUpdateMediaAsset } from '@/lib/admin-actions';
 
 const asset = {
   id: crypto.randomUUID(),
@@ -200,19 +203,21 @@ describe('AdminMedia', () => {
 
   it('loads later picker pages without navigating the editor', async () => {
     const pageTwoId = crypto.randomUUID();
-    vi.mocked(fetch).mockResolvedValue(
-      Response.json({
+    vi.mocked(callListMedia).mockResolvedValueOnce({
+      data: {
         assets: [
           { ...asset, id: pageTwoId, altText: 'Página dos' },
           { ...asset, id: pageTwoId, altText: 'Página dos' },
         ],
         total: 21,
-      })
-    );
+      },
+      error: undefined,
+    } as never);
     render(<AdminMedia assets={[asset]} total={21} onSelect={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
     expect(await screen.findAllByRole('button', { name: /Página dos/ })).toHaveLength(1);
-    expect(fetch).toHaveBeenCalledWith('/admin/media/page.json?page=2');
+    expect(callListMedia).toHaveBeenCalledWith({ page: 2 });
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('uses compact selectable rows and links to the library in picker mode', () => {
@@ -235,7 +240,7 @@ describe('AdminMedia', () => {
 
   it('reports a page that failed to load apart from the upload', async () => {
     let fail = (_: Error) => {};
-    vi.mocked(fetch).mockReturnValue(new Promise((_, reject) => (fail = reject)));
+    vi.mocked(callListMedia).mockReturnValue(new Promise((_, reject) => (fail = reject)));
     render(<AdminMedia assets={[asset]} total={21} onSelect={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
