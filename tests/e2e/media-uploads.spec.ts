@@ -174,7 +174,6 @@ test('normalizes, delivers, paginates reuse, and keeps the image block stable', 
 
   const target = await findReusableCandidate(page.request);
 
-  await page.setViewportSize({ width: 1440, height: 900 });
   await openNewDraft(page);
   const pickerTrigger = page.getByRole('button', { name: 'Insertar imagen' });
   await expect(pickerTrigger).toBeEnabled();

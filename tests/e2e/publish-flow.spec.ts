@@ -162,7 +162,7 @@ test('reviews, publishes, withdraws, republishes, and renames one localization',
   // The screen is inert until React commits, and a field typed into before
   // that would not take the text. The island losing `ssr` comes earlier than
   // the commit, so the inert attribute itself is what to wait on.
-  await expect(page.locator('[inert]')).toHaveCount(0);
+  await expect(page.locator('.contents[inert]')).toHaveCount(0);
 
   const slug = `publicado-${crypto.randomUUID()}`;
   await page.getByLabel('Slug').fill(slug);

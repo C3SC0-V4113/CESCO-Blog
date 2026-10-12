@@ -26,7 +26,8 @@ import type { EditorDraft, EditorLocalizations, SaveDraftInput } from '@/lib/dra
 import type { RefObject } from 'react';
 
 const t = getTranslations('es');
-const wideEditorQuery = '(min-width: 1440px)';
+// At 80rem the shell leaves 608px beside the panel: 544px of reading measure plus canvas chrome.
+const wideEditorQuery = '(min-width: 80rem)';
 const subscribeWideEditor = (callback: () => void) => {
   if (typeof window.matchMedia !== 'function') return () => undefined;
   const media = window.matchMedia(wideEditorQuery);

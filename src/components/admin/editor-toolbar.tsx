@@ -85,7 +85,6 @@ export function EditorToolbar({
     {
       label: 'admin.editor.insertImage',
       Icon: ImagePlusIcon,
-      keys: '',
       picker: true,
       run: onToggleImagePicker,
     },
@@ -134,7 +133,7 @@ export function EditorToolbar({
           variant="outline"
           className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-pressed:bg-muted aria-pressed:text-foreground aria-pressed:inset-ring aria-pressed:inset-ring-foreground/20"
           aria-label={t(tool.label)}
-          aria-keyshortcuts={tool.keys || undefined}
+          aria-keyshortcuts={'keys' in tool ? tool.keys || undefined : undefined}
           aria-pressed={'pressed' in tool ? tool.pressed : undefined}
           aria-expanded={'picker' in tool ? imagePickerOpen : undefined}
           aria-controls={'picker' in tool && imagePickerDesktop ? 'editor-image-picker' : undefined}
@@ -144,7 +143,7 @@ export function EditorToolbar({
           disabled={'unavailable' in tool && tool.unavailable}
           focusableWhenDisabled
           tabIndex={index === activeTool ? 0 : -1}
-          ref={tool.label === 'admin.editor.insertImage' ? imagePickerButtonRef : undefined}
+          ref={'picker' in tool ? imagePickerButtonRef : undefined}
           onFocus={() => setActiveTool(index)}
           onClick={tool.run}
           key={tool.label}

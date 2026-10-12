@@ -26,7 +26,6 @@ test('uploads an image pasted or dropped on the canvas and inserts an image bloc
 }) => {
   // Read here rather than at import: the seed writes it after the spec is collected.
   const png = await readFile('.wrangler/seed-media.png', { encoding: 'base64' });
-  await page.setViewportSize({ width: 1440, height: 900 });
   await openNewDraft(page);
   await expect(page.getByRole('textbox', { name: 'Título' })).toBeEnabled();
   const canvas = page.getByRole('textbox', { name: 'Contenido' });
@@ -87,8 +86,8 @@ test('uploads an image pasted or dropped on the canvas and inserts an image bloc
 test('opens the desktop image picker beside the editor and returns focus on Escape', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
   await openNewDraft(page);
+  expect(await page.evaluate(() => window.innerWidth)).toBe(1280);
   await expect(page.getByRole('textbox', { name: 'Título' })).toBeEnabled();
   const trigger = page.getByRole('button', { name: 'Insertar imagen' });
 
@@ -128,6 +127,16 @@ test('opens the desktop image picker beside the editor and returns focus on Esca
   await expect(panel).toBeVisible();
   await panel.getByRole('button', { name: 'Cerrar selector de imágenes' }).click();
   await expect(panel).toBeHidden();
+  await expect(trigger).toBeFocused();
+
+  await page.setViewportSize({ width: 1279, height: 720 });
+  await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+  await trigger.click();
+  const dialog = page.getByRole('dialog', { name: 'Insertar imagen' });
+  await expect(dialog).toBeVisible();
+  await expect(panel).toBeHidden();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();
 });
 

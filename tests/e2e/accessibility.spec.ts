@@ -49,7 +49,7 @@ const ADMIN_PAGES = [
 // earlier would pass a screen nobody can use yet.
 const hydrated = async (page: Page) => {
   await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
-  await expect(page.locator('[inert]')).toHaveCount(0);
+  await expect(page.locator('.contents[inert]')).toHaveCount(0);
 };
 
 async function audit(page: Page) {
