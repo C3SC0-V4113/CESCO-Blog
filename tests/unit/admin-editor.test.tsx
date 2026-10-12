@@ -97,6 +97,38 @@ describe('admin editor', () => {
     view.unmount();
   });
 
+  it('does not save a draft on load when a block needs an ID', async () => {
+    const draftWithoutBlockId = {
+      ...emptyDraft,
+      contentJson: {
+        type: 'doc' as const,
+        content: [
+          {
+            type: 'paragraph' as const,
+            attrs: {},
+            content: [{ type: 'text' as const, text: 'Existing content' }],
+          },
+        ],
+      },
+    } as unknown as EditorDraft;
+    const view = render(
+      <AdminEditor
+        postId="p1"
+        localizationId="l1"
+        localizations={{ es: 'l1' }}
+        draft={draftWithoutBlockId}
+        mediaAssets={[]}
+        referencedAssets={[]}
+        mediaTotal={0}
+      />
+    );
+
+    await screen.findByRole('textbox', { name: 'Contenido' });
+    await Promise.resolve();
+    expect(callSaveDraft).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
   it('reports an edit the draft contract rejects and recovers on the next valid one', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const view = render(
