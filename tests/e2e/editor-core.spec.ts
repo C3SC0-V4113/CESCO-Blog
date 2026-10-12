@@ -43,6 +43,7 @@ test('edits one localization with durable autosave and preserves conflicts', asy
   await title.focus();
   await page.keyboard.insertText('x'.repeat(301));
   await expect(title).toHaveValue('x'.repeat(300));
+  await expect(page.getByRole('status')).toHaveText('Guardado');
   await page.reload();
 
   await page.route(saveRoute, (route) => route.abort());
