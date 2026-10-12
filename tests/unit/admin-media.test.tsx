@@ -230,7 +230,7 @@ describe('AdminMedia', () => {
 
   it('reports a page that failed to load apart from the upload', async () => {
     let fail = (_: Error) => {};
-    vi.mocked(fetch).mockReturnValue(new Promise((_, reject) => (fail = reject)));
+    vi.mocked(callListMedia).mockReturnValue(new Promise((_, reject) => (fail = reject)));
     render(<AdminMedia assets={[asset]} total={21} onSelect={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
