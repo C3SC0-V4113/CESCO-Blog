@@ -59,38 +59,34 @@ const alternates =
 ---
 
 <Layout alternates={alternates}>
-  {
-    resolution.kind === 'render' && (
-      <Fragment slot="head">
-        <SeoHead
-          locale={locale}
-          title={resolution.post.title}
-          description={resolution.post.excerpt}
-          path={articlePath(locale, section, slug ?? '')}
-          alternates={alternates}
-          ogType="article"
-        />
-        <ArticleJsonLd
-          locale={locale}
-          headline={resolution.post.title}
-          description={resolution.post.excerpt}
-          canonical={absolute(
-            Astro.site?.toString() ?? Astro.url.origin,
-            articlePath(locale, section, slug ?? '')
-          )}
-          authorName={resolution.post.authorName}
-          publishedAt={resolution.post.publishedAt}
-          updatedAt={resolution.post.updatedAt}
-        />
-      </Fragment>
-    )
-  }
+  {resolution.kind === 'render' && (
+    <Fragment slot="head">
+      <SeoHead
+        locale={locale}
+        title={resolution.post.title}
+        description={resolution.post.excerpt}
+        path={articlePath(locale, section, slug ?? '')}
+        alternates={alternates}
+        ogType="article"
+      />
+      <ArticleJsonLd
+        locale={locale}
+        headline={resolution.post.title}
+        description={resolution.post.excerpt}
+        canonical={absolute(
+          Astro.site?.toString() ?? Astro.url.origin,
+          articlePath(locale, section, slug ?? '')
+        )}
+        authorName={resolution.post.authorName}
+        publishedAt={resolution.post.publishedAt}
+        updatedAt={resolution.post.updatedAt}
+      />
+    </Fragment>
+  )}
 
-  {
-    resolution.kind === 'render' ? (
-      <ArticleDetail locale={locale} post={resolution.post} series={series} />
-    ) : (
-      <ErrorState locale={locale} status={resolution.kind === 'gone' ? 410 : 404} />
-    )
-  }
+  {resolution.kind === 'render' ? (
+    <ArticleDetail locale={locale} post={resolution.post} series={series} />
+  ) : (
+    <ErrorState locale={locale} status={resolution.kind === 'gone' ? 410 : 404} />
+  )}
 </Layout>

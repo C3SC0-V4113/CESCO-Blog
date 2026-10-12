@@ -32,7 +32,9 @@ Two failure modes on Windows look like broken code and are not:
 - **A run that passes every test and still exits 1.** WebKit intermittently fails
   to exit and Playwright force-kills it after 300000 ms — the run takes five
   extra minutes and reports `worker-N process did not exit within 300000ms`. It
-  is upstream (microsoft/playwright#40637). The test results above it are real.
+  has been observed locally on Windows. Playwright #40637 added a watchdog for
+  the separate Chromium headless-shell hang tracked in #39753; it does not
+  establish the cause of this WebKit behavior. The test results above it are real.
 - **A run where whole spec files fail on `page.goto` timeouts, or that produces
   no output at all.** That is almost always a leftover server: the force-kill
   above orphans `workerd` and `WebKitNetworkProcess`, and stopping a shell does

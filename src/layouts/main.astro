@@ -33,16 +33,14 @@ const locale = resolveLocale(Astro.currentLocale);
 
     <ThemeScript />
 
-    {
-      import.meta.env.DEV && (
-        <script
-          is:inline
-          defer
-          crossorigin="anonymous"
-          src="//unpkg.com/react-scan/dist/auto.global.js"
-        />
-      )
-    }
+    {import.meta.env.DEV && (
+      <script
+        is:inline
+        defer
+        crossorigin="anonymous"
+        src="//unpkg.com/react-scan/dist/auto.global.js"
+      />
+    )}
     <slot name="head" />
   </head>
   <body class="flex min-h-dvh flex-col">

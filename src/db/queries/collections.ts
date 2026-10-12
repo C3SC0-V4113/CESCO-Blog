@@ -33,9 +33,7 @@ export type PublishedCollection = {
 };
 
 export type CollectionUrlResolution =
-  | { kind: 'render'; collection: PublishedCollection }
-  | { kind: 'gone' }
-  | { kind: 'not-found' };
+  { kind: 'render'; collection: PublishedCollection } | { kind: 'gone' } | { kind: 'not-found' };
 
 /**
  * Resolves a series URL.

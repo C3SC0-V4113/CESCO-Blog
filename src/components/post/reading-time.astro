@@ -20,10 +20,8 @@ const { locale, minutes } = Astro.props;
 const t = getTranslations(locale);
 ---
 
-{
-  minutes !== null && (
-    <span class="text-sm text-muted-foreground">
-      {minutes} {t('post.readingTime')}
-    </span>
-  )
-}
+{minutes !== null && (
+  <span class="text-sm text-muted-foreground">
+    {minutes} {t('post.readingTime')}
+  </span>
+)}

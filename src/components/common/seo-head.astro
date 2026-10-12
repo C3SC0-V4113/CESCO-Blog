@@ -43,14 +43,14 @@ const alternateOgLocales = ogAlternateLocales(alternates, locale);
 <link rel="canonical" href={canonical} />
 
 {/* Reciprocal alternates, published localizations only. */}
-{alternateLinks.map((link) => <link rel="alternate" hreflang={link.hreflang} href={link.href} />)}
+{alternateLinks.map((link) => (
+  <link rel="alternate" hreflang={link.hreflang} href={link.href} />
+))}
 
-{
-  /*
+{/*
   Lets search engines show a large thumbnail instead of cropping to a
   postage stamp, which for an editorial site is most of the click-through.
-*/
-}
+*/}
 <meta name="robots" content="max-image-preview:large" />
 
 <meta property="og:type" content={ogType} />
@@ -58,6 +58,8 @@ const alternateOgLocales = ogAlternateLocales(alternates, locale);
 {description && <meta property="og:description" content={description} />}
 <meta property="og:url" content={canonical} />
 <meta property="og:locale" content={ogLocale(locale)} />
-{alternateOgLocales.map((alternate) => <meta property="og:locale:alternate" content={alternate} />)}
+{alternateOgLocales.map((alternate) => (
+  <meta property="og:locale:alternate" content={alternate} />
+))}
 
 <meta name="twitter:card" content="summary_large_image" />

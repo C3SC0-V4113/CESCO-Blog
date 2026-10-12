@@ -52,53 +52,51 @@ const hrefFor = (target: number) => (target === 1 ? basePath : `${basePath}?page
 const items = paginationItems(page, totalPages);
 ---
 
-{
-  totalPages > 1 && (
-    <Pagination
-      aria-label={t('listing.pagination')}
-      className="mt-8 justify-center border-t border-border pt-6"
-    >
-      <PaginationContent>
-        {page > 1 && (
-          <PaginationItem>
-            <PaginationPrevious
-              href={hrefFor(page - 1)}
-              rel="prev"
-              text={t('listing.previous')}
-              aria-label={t('listing.previous')}
-            />
-          </PaginationItem>
-        )}
+{totalPages > 1 && (
+  <Pagination
+    aria-label={t('listing.pagination')}
+    className="mt-8 justify-center border-t border-border pt-6"
+  >
+    <PaginationContent>
+      {page > 1 && (
+        <PaginationItem>
+          <PaginationPrevious
+            href={hrefFor(page - 1)}
+            rel="prev"
+            text={t('listing.previous')}
+            aria-label={t('listing.previous')}
+          />
+        </PaginationItem>
+      )}
 
-        {items.map((item) =>
-          item === 'ellipsis' ? (
-            <PaginationItem>
-              <PaginationEllipsis srLabel={t('listing.morePages')} />
-            </PaginationItem>
-          ) : (
-            <PaginationItem>
-              <PaginationLink
-                href={hrefFor(item)}
-                isActive={item === page}
-                aria-label={`${t('listing.goToPage')} ${item}`}
-              >
-                {item}
-              </PaginationLink>
-            </PaginationItem>
-          )
-        )}
-
-        {page < totalPages && (
+      {items.map((item) =>
+        item === 'ellipsis' ? (
           <PaginationItem>
-            <PaginationNext
-              href={hrefFor(page + 1)}
-              rel="next"
-              text={t('listing.next')}
-              aria-label={t('listing.next')}
-            />
+            <PaginationEllipsis srLabel={t('listing.morePages')} />
           </PaginationItem>
-        )}
-      </PaginationContent>
-    </Pagination>
-  )
-}
+        ) : (
+          <PaginationItem>
+            <PaginationLink
+              href={hrefFor(item)}
+              isActive={item === page}
+              aria-label={`${t('listing.goToPage')} ${item}`}
+            >
+              {item}
+            </PaginationLink>
+          </PaginationItem>
+        )
+      )}
+
+      {page < totalPages && (
+        <PaginationItem>
+          <PaginationNext
+            href={hrefFor(page + 1)}
+            rel="next"
+            text={t('listing.next')}
+            aria-label={t('listing.next')}
+          />
+        </PaginationItem>
+      )}
+    </PaginationContent>
+  </Pagination>
+)}
