@@ -79,11 +79,14 @@ async function loadPickerPage(page: Page, target: { alt: string }) {
       currentPage = next;
       const candidate = result.assets.find((asset) => asset.altText === target.alt);
       if (candidate) {
-        await expect(page.locator(`details img[src="/${candidate.r2Key}"]`)).toBeVisible();
+        await expect(
+          page.locator(`#editor-image-picker img[src="/${candidate.r2Key}"]`)
+        ).toBeVisible();
         return;
       }
       const first = result.assets[0];
-      if (first) await expect(page.locator(`details img[src="/${first.r2Key}"]`)).toBeVisible();
+      if (first)
+        await expect(page.locator(`#editor-image-picker img[src="/${first.r2Key}"]`)).toBeVisible();
     }
     while (currentPage > 1) {
       const previous = currentPage - 1;
@@ -171,9 +174,13 @@ test('normalizes, delivers, paginates reuse, and keeps the image block stable', 
 
   const target = await findReusableCandidate(page.request);
 
+  await page.setViewportSize({ width: 1440, height: 900 });
   await openNewDraft(page);
-  await page.getByText('Insertar imagen').click();
-  await expect(page.locator('details ul > li')).toHaveCount(20);
+  const pickerTrigger = page.getByRole('button', { name: 'Insertar imagen' });
+  await expect(pickerTrigger).toBeEnabled();
+  await pickerTrigger.click();
+  const picker = page.getByRole('complementary', { name: 'Insertar imagen' });
+  await expect(picker.locator('ul > li')).toHaveCount(20);
   await loadPickerPage(page, target);
   const reusable = page.getByRole('button', { name: target.alt, exact: true });
   await expect(reusable).toBeVisible();
@@ -193,8 +200,9 @@ test('normalizes, delivers, paginates reuse, and keeps the image block stable', 
   const blockId = await block.getAttribute('data-blockid');
   await page.reload();
   await expect(page.locator(`[data-blockid="${blockId}"]`)).toHaveAttribute('alt', target.alt);
-  await page.getByText('Insertar imagen').click();
-  await expect(page.locator('details ul > li')).toHaveCount(20);
+  await expect(pickerTrigger).toBeEnabled();
+  await pickerTrigger.click();
+  await expect(picker.locator('ul > li')).toHaveCount(20);
   await page.screenshot({ path: testInfo.outputPath('editor-image.png'), fullPage: true });
 });
 

@@ -114,6 +114,56 @@ describe('admin editor', () => {
     view.unmount();
   });
 
+  it('opens the image picker from the toolbar and reports its expanded state', async () => {
+    render(
+      <AdminEditor
+        postId="p1"
+        localizationId="l1"
+        localizations={{ es: 'l1' }}
+        draft={emptyDraft}
+        mediaAssets={[]}
+        referencedAssets={[]}
+        mediaTotal={0}
+      />
+    );
+
+    const trigger = await screen.findByRole('button', { name: 'Insertar imagen' });
+    expect(trigger.getAttribute('aria-pressed')).toBeNull();
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    const dialog = await screen.findByRole('dialog', { name: 'Insertar imagen' });
+    expect(await within(dialog).findByRole('region', { name: 'Carga de imagen' })).toBeTruthy();
+  });
+
+  it('mounts the picker only when opened and hands a canvas paste to its uploader', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+    render(
+      <AdminEditor
+        postId="p1"
+        localizationId="l1"
+        localizations={{ es: 'l1' }}
+        draft={emptyDraft}
+        mediaAssets={[]}
+        referencedAssets={[]}
+        mediaTotal={0}
+      />
+    );
+
+    const canvas = await screen.findByRole('textbox', { name: 'Contenido' });
+    expect(screen.queryByRole('region', { name: 'Carga de imagen' })).toBeNull();
+    const png = new File(['png'], 'captura.png', { type: 'image/png' });
+    fireEvent.paste(canvas, { clipboardData: { files: [png], getData: () => '' } });
+
+    const dialog = await screen.findByRole('dialog', { name: 'Insertar imagen' });
+    expect(await within(dialog).findByRole('region', { name: 'Carga de imagen' })).toBeTruthy();
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Escribe el texto alternativo o marca la imagen como decorativa.'
+    );
+    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Texto alternativo').matches(':focus')).toBe(true);
+  });
+
   it('reports an edit the draft contract rejects and recovers on the next valid one', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const view = render(
@@ -178,7 +228,8 @@ describe('admin editor', () => {
       />
     );
     const canvas = await screen.findByRole('textbox', { name: 'Contenido' });
-    fireEvent.click(screen.getByRole('button', { name: /Mapa/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Insertar imagen' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Mapa' }));
     expect(within(canvas).getByRole('img', { name: 'Mapa' }).getAttribute('src')).toBe(
       '/media/2026/09/mapa.webp'
     );
@@ -208,11 +259,8 @@ describe('admin editor', () => {
 
     // Without alt text the picker's rule holds: it opens, reports, and uploads nothing.
     fireEvent.paste(canvas, { clipboardData });
+    expect(await screen.findByRole('dialog', { name: 'Insertar imagen' })).toBeTruthy();
     expect(await screen.findByRole('alert')).toBeTruthy();
-    const picker = screen
-      .getAllByRole('group')
-      .find((group): group is HTMLDetailsElement => group instanceof HTMLDetailsElement);
-    expect(picker?.open).toBe(true);
     expect(fetch).not.toHaveBeenCalled();
 
     fireEvent.change(screen.getByLabelText('Texto alternativo'), {
@@ -254,12 +302,17 @@ describe('admin editor', () => {
       files: [new File(['png'], 'captura.png', { type: 'image/png' })],
       getData: () => '',
     };
-    fireEvent.change(screen.getByLabelText('Texto alternativo'), {
+    fireEvent.click(screen.getByRole('button', { name: 'Insertar imagen' }));
+    fireEvent.change(await screen.findByLabelText('Texto alternativo'), {
       target: { value: 'Captura' },
     });
 
     fireEvent.paste(canvas, { clipboardData });
     await within(canvas).findByRole('img', { name: 'Primera' });
+    fireEvent.click(screen.getByRole('button', { name: 'Insertar imagen' }));
+    fireEvent.change(await screen.findByLabelText('Texto alternativo'), {
+      target: { value: 'Captura' },
+    });
     fireEvent.paste(canvas, { clipboardData });
     await within(canvas).findByRole('img', { name: 'Segunda' });
     expect(
@@ -290,21 +343,21 @@ describe('admin editor', () => {
       const view = renderEditor();
       const toolbar = await screen.findByRole('toolbar', { name: 'Formato del documento' });
       const tools = within(toolbar).getAllByRole('button');
-      expect(tools.map((button) => button.tabIndex)).toEqual([0, -1, -1, -1, -1, -1]);
+      expect(tools.map((button) => button.tabIndex)).toEqual([0, -1, -1, -1, -1, -1, -1]);
 
       tools[0]!.focus();
       fireEvent.keyDown(tools[0]!, { key: 'ArrowRight' });
       expect(tools[1]!.matches(':focus')).toBe(true);
-      expect(tools.map((button) => button.tabIndex)).toEqual([-1, 0, -1, -1, -1, -1]);
+      expect(tools.map((button) => button.tabIndex)).toEqual([-1, 0, -1, -1, -1, -1, -1]);
 
       // Undo and redo start unavailable, yet the arrows still reach them.
       fireEvent.keyDown(tools[1]!, { key: 'End' });
-      expect(tools[5]!.matches(':focus')).toBe(true);
-      fireEvent.keyDown(tools[5]!, { key: 'ArrowRight' });
+      expect(tools[6]!.matches(':focus')).toBe(true);
+      fireEvent.keyDown(tools[6]!, { key: 'ArrowRight' });
       expect(tools[0]!.matches(':focus')).toBe(true);
       fireEvent.keyDown(tools[0]!, { key: 'ArrowLeft' });
-      expect(tools[5]!.matches(':focus')).toBe(true);
-      fireEvent.keyDown(tools[5]!, { key: 'Home' });
+      expect(tools[6]!.matches(':focus')).toBe(true);
+      fireEvent.keyDown(tools[6]!, { key: 'Home' });
       expect(tools[0]!.matches(':focus')).toBe(true);
       expect(tools[0]!.tabIndex).toBe(0);
       view.unmount();

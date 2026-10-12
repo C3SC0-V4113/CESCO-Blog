@@ -11,7 +11,7 @@ async function openNewDraft(page: Page) {
   const row = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: slug }) });
   await row.getByRole('link', { name: 'Borrador' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Editor');
-  await expect(page.locator('[inert]')).toHaveCount(0);
+  await expect(page.locator('.contents[inert]')).toHaveCount(0);
 }
 
 const nextUpload = (page: Page) =>
@@ -26,6 +26,7 @@ test('uploads an image pasted or dropped on the canvas and inserts an image bloc
 }) => {
   // Read here rather than at import: the seed writes it after the spec is collected.
   const png = await readFile('.wrangler/seed-media.png', { encoding: 'base64' });
+  await page.setViewportSize({ width: 1440, height: 900 });
   await openNewDraft(page);
   await expect(page.getByRole('textbox', { name: 'Título' })).toBeEnabled();
   const canvas = page.getByRole('textbox', { name: 'Contenido' });
@@ -33,12 +34,10 @@ test('uploads an image pasted or dropped on the canvas and inserts an image bloc
   const blocks = canvas.locator(`img[alt="${alt}"]`);
 
   // Canvas uploads obey the picker's alt-text rule, so the text goes there first.
-  const picker = page.locator('details').filter({
-    has: page.getByText('Insertar imagen', { exact: true }),
-  });
-  await picker.getByText('Insertar imagen', { exact: true }).click();
-  await expect(picker).toHaveAttribute('open', '');
-  const uploadRegion = page.getByRole('region', { name: 'Carga de imagen' });
+  await page.getByRole('button', { name: 'Insertar imagen' }).click();
+  const picker = page.getByRole('complementary', { name: 'Insertar imagen' });
+  await expect(picker).toBeVisible();
+  const uploadRegion = picker.getByRole('region', { name: 'Carga de imagen' });
   await expect(uploadRegion).toBeVisible();
   const altInput = uploadRegion.getByLabel('Texto alternativo');
   await expect(altInput).toBeEnabled();
@@ -83,4 +82,101 @@ test('uploads an image pasted or dropped on the canvas and inserts an image bloc
   expect((await dropped).status()).toBe(201);
   // Dropped below the first image, so it lands after it rather than replacing it.
   await expect(blocks).toHaveCount(2);
+});
+
+test('opens the desktop image picker beside the editor and returns focus on Escape', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openNewDraft(page);
+  await expect(page.getByRole('textbox', { name: 'Título' })).toBeEnabled();
+  const trigger = page.getByRole('button', { name: 'Insertar imagen' });
+
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(trigger).not.toHaveAttribute('aria-pressed');
+  await trigger.click();
+  const panel = page.getByRole('complementary', { name: 'Insertar imagen' });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'Insertar imagen' })).toBeFocused();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(trigger).toHaveAttribute('aria-controls', (await panel.getAttribute('id')) ?? '');
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+    )
+  ).toBe(true);
+
+  const canvas = page.getByRole('textbox', { name: 'Contenido' });
+  await canvas.click();
+  await page.keyboard.type('Texto junto al panel');
+  await expect(canvas).toContainText('Texto junto al panel');
+  const firstAsset = panel.getByRole('list').getByRole('button').first();
+  const assetAlt = (await firstAsset.innerText()).trim();
+  const inserted = canvas.locator('img').first();
+  await firstAsset.click();
+  await expect(inserted).toHaveCount(1);
+  await expect(inserted).toHaveAttribute('alt', assetAlt);
+  await expect(panel).toBeVisible();
+  await expect(canvas).toBeFocused();
+
+  await panel.getByRole('link', { name: 'Ir a la biblioteca multimedia' }).focus();
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await expect(trigger).toBeFocused();
+
+  await trigger.click();
+  await expect(panel).toBeVisible();
+  await panel.getByRole('button', { name: 'Cerrar selector de imágenes' }).click();
+  await expect(panel).toBeHidden();
+  await expect(trigger).toBeFocused();
+});
+
+test('uses a bottom sheet on mobile and queues a paste until its upload form mounts', async ({
+  page,
+}) => {
+  const png = await readFile('.wrangler/seed-media.png', { encoding: 'base64' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openNewDraft(page);
+  await expect(page.getByRole('textbox', { name: 'Título' })).toBeEnabled();
+  const trigger = page.getByRole('button', { name: 'Insertar imagen' });
+  const canvas = page.getByRole('textbox', { name: 'Contenido' });
+
+  await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+  await trigger.click();
+  const dialog = page.getByRole('dialog', { name: 'Insertar imagen' });
+  await expect(dialog).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+    )
+  ).toBe(true);
+  const firstAsset = dialog.getByRole('list').getByRole('button').first();
+  const assetAlt = (await firstAsset.innerText()).trim();
+  const inserted = canvas.locator('img').first();
+  await firstAsset.click();
+  await expect(inserted).toHaveCount(1);
+  await expect(inserted).toHaveAttribute('alt', assetAlt);
+  await expect(dialog).toBeHidden();
+
+  await canvas.evaluate((element, base64) => {
+    const data = new DataTransfer();
+    const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+    data.items.add(new File([bytes], 'pegada.png', { type: 'image/png' }));
+    const event = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'clipboardData', { value: data });
+    element.dispatchEvent(event);
+  }, png);
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('alert')).toHaveText(
+    'Escribe el texto alternativo o marca la imagen como decorativa.'
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+    )
+  ).toBe(true);
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
 });

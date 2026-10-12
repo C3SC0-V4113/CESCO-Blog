@@ -33,6 +33,7 @@ type Props = {
   page?: number;
   total?: number;
   onSelect?(asset: AdminMediaAsset): void;
+  showLibraryLink?: boolean;
   ref?: Ref<MediaUploader>;
 };
 
@@ -41,6 +42,7 @@ export function AdminMedia({
   page = 1,
   total = initial.length,
   onSelect,
+  showLibraryLink = true,
   ref,
 }: Props) {
   const [assets, setAssets] = useState(initial);
@@ -237,7 +239,7 @@ export function AdminMedia({
           ))}
         </ul>
       )}
-      {onSelect && (
+      {onSelect && showLibraryLink && (
         <a className={textLink} href="/admin/media">
           {t('admin.media.openLibrary')}
         </a>
