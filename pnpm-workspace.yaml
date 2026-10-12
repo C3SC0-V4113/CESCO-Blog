@@ -15,9 +15,7 @@ minimumReleaseAge: 1440
 # shadcn, @astrojs/check, ESLint, Vitest/jsdom, drizzle-kit, and Miniflare's
 # local bindings.
 # They are not bundled into the deployed Worker. Keep each floor at the patched
-# version until its parent dependency supplies that version itself. The remaining
-# no-fix advisories are http-cache-semantics via Astro and braces via
-# eslint-plugin-astro's parser; neither is overridden.
+# version until its parent dependency supplies that version itself.
 overrides:
   esbuild@<=0.24.2: '>=0.25.0'
   fast-uri@<3.1.8: '>=3.1.8'
@@ -32,6 +30,15 @@ overrides:
   sharp@<0.35.5: '>=0.35.5'
   source-map-js@<1.2.2: '>=1.2.2'
   undici@>=7.0.0 <7.29.1: '7.29.1'
+
+# braces has no patched release (GHSA-vfj7-8cjw-p6xm: stack exhaustion on deeply
+# nested patterns). It arrives through fast-glob in eslint-plugin-astro's parser
+# and shadcn, which only expand globs written in this repository, never
+# untrusted input, and it is not bundled into the Worker. Drop this entry when a
+# patched braces exists, and override it to that version instead.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-vfj7-8cjw-p6xm
 
 trustPolicy: no-downgrade
 
