@@ -10,7 +10,12 @@ import {
 } from '@/actions/admin-taxonomy';
 import { createCachePurger } from '@/actions/cache-purge';
 import { saveDraft } from '@/actions/drafts';
-import { mediaMetadataSchema, updateMediaAsset } from '@/actions/media';
+import {
+  listAdminMediaPage,
+  listAdminMediaPageSchema,
+  mediaMetadataSchema,
+  updateMediaAsset,
+} from '@/actions/media';
 import { retryPendingPurges } from '@/actions/pending-purges';
 import { adminPostError, createAdminPost } from '@/actions/posts';
 import {
@@ -46,6 +51,19 @@ function publicationError(error: unknown, logger: { error(message: string): void
 }
 export const server = {
   admin: {
+    listMedia: defineAction({
+      input: listAdminMediaPageSchema,
+      async handler(input, context) {
+        try {
+          return await listAdminMediaPage(getDb(), input);
+        } catch (error) {
+          context.logger.error(
+            `Media library page load failed: ${error instanceof Error ? error.stack : String(error)}`
+          );
+          throw new ActionError({ code: 'INTERNAL_SERVER_ERROR' });
+        }
+      },
+    }),
     createAuthor: defineAction({
       input: authorInputSchema,
       async handler(input, context) {

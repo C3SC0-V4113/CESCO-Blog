@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { getTranslations } from '@/i18n/utils';
-import { callUpdateMediaAsset } from '@/lib/admin-actions';
+import { callListMedia, callUpdateMediaAsset } from '@/lib/admin-actions';
 import { normalizeImage } from '@/lib/image-normalize';
 import { mediaPath } from '@/lib/media';
 
@@ -62,11 +62,10 @@ export function AdminMedia({
   async function loadPage(next: number) {
     setPageStatus('loading');
     try {
-      const response = await fetch(`/admin/media/page.json?page=${next}`);
-      if (!response.ok) throw Error('page-failed');
-      const result = (await response.json()) as { assets: AdminMediaAsset[]; total: number };
-      setAssets([...new Map(result.assets.map((asset) => [asset.id, asset])).values()]);
-      setCurrentTotal(result.total);
+      const result = await callListMedia({ page: next });
+      if (result.error || !result.data) throw Error('page-failed');
+      setAssets([...new Map(result.data.assets.map((asset) => [asset.id, asset])).values()]);
+      setCurrentTotal(result.data.total);
       setCurrentPage(next);
       setPageStatus('idle');
     } catch {
