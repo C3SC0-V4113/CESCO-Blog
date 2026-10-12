@@ -97,6 +97,12 @@ test('opens the desktop image picker beside the editor and returns focus on Esca
   const panel = page.getByRole('complementary', { name: 'Insertar imagen' });
   await expect(panel).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'Insertar imagen' })).toBeFocused();
+  const panelItems = panel.getByRole('list').getByRole('listitem');
+  const panelFirstRow = await panelItems.nth(0).boundingBox();
+  const panelSecondRow = await panelItems.nth(1).boundingBox();
+  expect(panelFirstRow).not.toBeNull();
+  expect(panelSecondRow).not.toBeNull();
+  expect(panelSecondRow!.y).toBeGreaterThan(panelFirstRow!.y);
   await expect(trigger).toHaveAttribute('aria-expanded', 'true');
   await expect(trigger).toHaveAttribute('aria-controls', (await panel.getAttribute('id')) ?? '');
   expect(
@@ -138,6 +144,20 @@ test('opens the desktop image picker beside the editor and returns focus on Esca
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveCSS('translate', 'none');
+  const tabletItems = dialog.getByRole('list').getByRole('listitem');
+  const tabletFirstRow = await tabletItems.nth(0).boundingBox();
+  const tabletSecondRow = await tabletItems.nth(1).boundingBox();
+  expect(tabletFirstRow).not.toBeNull();
+  expect(tabletSecondRow).not.toBeNull();
+  expect(Math.abs(tabletSecondRow!.y - tabletFirstRow!.y)).toBeLessThan(1);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
 });
 
 test('uses a bottom sheet on mobile and queues a paste until its upload form mounts', async ({
@@ -154,6 +174,15 @@ test('uses a bottom sheet on mobile and queues a paste until its upload form mou
   await trigger.click();
   const dialog = page.getByRole('dialog', { name: 'Insertar imagen' });
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('heading', { name: 'Insertar imagen' })).toBeFocused();
+  const initialAltInput = dialog.getByLabel('Texto alternativo');
+  await expect(initialAltInput).not.toBeFocused();
+  const mobileItems = dialog.getByRole('list').getByRole('listitem');
+  const mobileFirstRow = await mobileItems.nth(0).boundingBox();
+  const mobileSecondRow = await mobileItems.nth(1).boundingBox();
+  expect(mobileFirstRow).not.toBeNull();
+  expect(mobileSecondRow).not.toBeNull();
+  expect(mobileSecondRow!.y).toBeGreaterThan(mobileFirstRow!.y);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth

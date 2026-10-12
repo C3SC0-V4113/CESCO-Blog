@@ -115,7 +115,7 @@ describe('AdminMedia', () => {
     expect((view.getByLabelText('Elegir imagen') as HTMLInputElement).value).toBe('');
   });
 
-  it('sends a missing alt text back to its field instead of uploading', () => {
+  it('sends a missing alt text back to its field instead of uploading', async () => {
     render(<AdminMedia assets={[]} onSelect={vi.fn()} />);
     const alt = screen.getByLabelText('Texto alternativo');
     expect(alt.hasAttribute('aria-invalid')).toBe(false);
@@ -126,7 +126,7 @@ describe('AdminMedia', () => {
 
     expect(fetch).not.toHaveBeenCalled();
     expect(alt.getAttribute('aria-invalid')).toBe('true');
-    expect(alt.matches(':focus')).toBe(true);
+    await waitFor(() => expect(alt.matches(':focus')).toBe(true));
     expect(alt.getAttribute('aria-describedby')).toBe(
       screen.getByText('Escribe el texto alternativo o marca la imagen como decorativa.').id
     );

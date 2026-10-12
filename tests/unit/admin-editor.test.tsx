@@ -161,7 +161,9 @@ describe('admin editor', () => {
       'Escribe el texto alternativo o marca la imagen como decorativa.'
     );
     expect(fetch).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('Texto alternativo').matches(':focus')).toBe(true);
+    await waitFor(() =>
+      expect(screen.getByLabelText('Texto alternativo').matches(':focus')).toBe(true)
+    );
   });
 
   it('reports an edit the draft contract rejects and recovers on the next valid one', async () => {

@@ -1,6 +1,5 @@
 import { ImagePlusIcon, LoaderCircleIcon } from 'lucide-react';
 import { useId, useImperativeHandle, useRef, useState, type Ref } from 'react';
-import { flushSync } from 'react-dom';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -78,12 +77,10 @@ export function AdminMedia({
 
   async function upload(files: FileList | File[]) {
     if (files.length === 1 && !decorative && !altText.trim()) {
-      // Rendered before the move, so focus lands on a field already described.
-      flushSync(() => {
-        setAltMissing(true);
-        setStatus('idle');
-      });
-      altInput.current?.focus();
+      setAltMissing(true);
+      setStatus('idle');
+      // Let the sheet's initial focus settle before moving to the required field.
+      requestAnimationFrame(() => altInput.current?.focus());
       if (fileInput.current) fileInput.current.value = '';
       return;
     }
@@ -122,7 +119,7 @@ export function AdminMedia({
   useImperativeHandle(ref, () => ({ upload: (files) => void upload(files) }));
 
   return (
-    <div className="grid gap-6">
+    <div className={onSelect ? '@container grid gap-6' : 'grid gap-6'}>
       <section
         aria-label={t('admin.media.upload')}
         className="rounded-lg border border-dashed bg-background p-4"
@@ -141,7 +138,9 @@ export function AdminMedia({
       >
         <div
           className={
-            onSelect ? 'flex flex-col gap-3' : 'flex flex-col gap-3 sm:flex-row sm:items-end'
+            onSelect
+              ? 'flex flex-col gap-3 @min-[40rem]:flex-row @min-[40rem]:items-end'
+              : 'flex flex-col gap-3 sm:flex-row sm:items-end'
           }
         >
           <Field className="min-w-0 flex-1">
@@ -204,7 +203,9 @@ export function AdminMedia({
       ) : (
         <ul
           className={
-            onSelect ? 'grid grid-cols-1 gap-3' : 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
+            onSelect
+              ? 'grid grid-cols-1 gap-3 @min-[40rem]:grid-cols-2 @min-[64rem]:grid-cols-3'
+              : 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
           }
           aria-busy={pageStatus === 'loading'}
         >

@@ -492,12 +492,15 @@ function EditorImagePicker({
           {open && (
             <SheetContent
               side="bottom"
+              initialFocus={() => headingRef.current}
               finalFocus={() => (restoreFocusRef.current ? buttonRef.current : false)}
               closeLabel={t('admin.editor.closeImagePicker')}
               className="max-h-[85dvh] px-0 pb-[env(safe-area-inset-bottom)]"
             >
               <SheetHeader className="pr-12">
-                <SheetTitle>{t('admin.editor.insertImage')}</SheetTitle>
+                <SheetTitle ref={headingRef} tabIndex={-1}>
+                  {t('admin.editor.insertImage')}
+                </SheetTitle>
               </SheetHeader>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
                 <AdminMedia
