@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { parse as parseDevalue } from 'devalue';
 
 import type { APIRequestContext, Page } from '@playwright/test';
 
@@ -17,7 +18,25 @@ const rawUpload = (request: APIRequestContext, altText: string) =>
     },
   });
 
+test('does not expose the legacy media page route', async ({ request }) => {
+  const response = await request.get('/admin/media/page.json?page=1');
+  expect(response.status()).toBe(404);
+});
+
 type MediaPage = { assets: { altText: string | null; r2Key: string }[]; total: number };
+
+async function mediaPageFromResponse(response: { status(): number; text(): Promise<string> }) {
+  expect(response.status()).toBe(200);
+  return parseDevalue(await response.text()) as MediaPage;
+}
+
+async function listMediaPage(request: APIRequestContext, page: number) {
+  const response = await request.post('/_actions/admin.listMedia', {
+    data: { page },
+    headers: { Accept: 'application/json' },
+  });
+  return mediaPageFromResponse(response);
+}
 
 async function openNewDraft(page: Page) {
   const slug = `media-uploads-${crypto.randomUUID()}`;
@@ -52,9 +71,7 @@ async function findCandidatePage(request: APIRequestContext, prefix: string) {
   let page = 1;
   let pages = 1;
   while (page <= pages) {
-    const response = await request.get(`/admin/media/page.json?page=${page}`);
-    expect(response.status()).toBe(200);
-    const result = (await response.json()) as MediaPage;
+    const result = await listMediaPage(request, page);
     pages = Math.max(pages, Math.ceil(result.total / 20));
     const target = page > 1 && result.assets.find((asset) => asset.altText?.startsWith(prefix));
     if (target) return { alt: target.altText! };
@@ -71,11 +88,13 @@ async function loadPickerPage(page: Page, target: { alt: string }) {
       const loaded = page.waitForResponse((response) => {
         const url = new URL(response.url());
         return (
-          url.pathname === '/admin/media/page.json' && url.searchParams.get('page') === `${next}`
+          url.pathname.replace(/\/$/, '') === '/_actions/admin.listMedia' &&
+          response.request().method() === 'POST' &&
+          response.request().postDataJSON().page === next
         );
       });
       await page.getByRole('button', { name: 'Siguiente' }).click();
-      const result = (await (await loaded).json()) as MediaPage;
+      const result = await mediaPageFromResponse(await loaded);
       currentPage = next;
       const candidate = result.assets.find((asset) => asset.altText === target.alt);
       if (candidate) {
@@ -90,12 +109,13 @@ async function loadPickerPage(page: Page, target: { alt: string }) {
       const loaded = page.waitForResponse((response) => {
         const url = new URL(response.url());
         return (
-          url.pathname === '/admin/media/page.json' &&
-          url.searchParams.get('page') === `${previous}`
+          url.pathname.replace(/\/$/, '') === '/_actions/admin.listMedia' &&
+          response.request().method() === 'POST' &&
+          response.request().postDataJSON().page === previous
         );
       });
       await page.getByRole('button', { name: 'Anterior' }).click();
-      await loaded;
+      await mediaPageFromResponse(await loaded);
       currentPage = previous;
     }
   }
