@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  applyPageCachePolicy,
   cacheTagHeader,
   chunkPurgeTags,
+  collectionTags,
   fullListingTags,
+  gameTags,
   homeTags,
   PURGE_TAGS_PER_REQUEST,
   postDetailTags,
   sectionListingTags,
+  tagTags,
 } from '@/lib/cache-tags';
 
 /**
@@ -36,6 +40,51 @@ describe('postDetailTags', () => {
       'locale-es',
       'section-opinion',
     ]);
+  });
+});
+
+describe('public page tags', () => {
+  it('builds game, tag, and collection dependencies with locale last', () => {
+    expect(gameTags('elden-ring', 'en')).toEqual(['game-elden-ring', 'locale-en']);
+    expect(tagTags('rpg', 'es')).toEqual(['tag-rpg', 'locale-es']);
+    expect(collectionTags('collection-1', 'en')).toEqual(['collection-collection-1', 'locale-en']);
+  });
+});
+
+describe('applyPageCachePolicy', () => {
+  const response = () => ({ status: 200, headers: new Headers() });
+
+  it('tags rendered pages without changing their status or cache control', () => {
+    const result = response();
+    applyPageCachePolicy(result, { kind: 'render', tags: ['game-a', 'locale-en'] });
+
+    expect(result.status).toBe(200);
+    expect(result.headers.get('Cache-Tag')).toBe('game-a,locale-en');
+    expect(result.headers.has('Cache-Control')).toBe(false);
+  });
+
+  it('sets gone status, short cache lifetime, and optional tags', () => {
+    const result = response();
+    applyPageCachePolicy(result, { kind: 'gone', tags: ['collection-a', 'locale-es'] });
+
+    expect(result.status).toBe(410);
+    expect(result.headers.get('Cache-Control')).toBe('public, max-age=300');
+    expect(result.headers.get('Cache-Tag')).toBe('collection-a,locale-es');
+
+    const untagged = response();
+    applyPageCachePolicy(untagged, { kind: 'gone' });
+    expect(untagged.status).toBe(410);
+    expect(untagged.headers.get('Cache-Control')).toBe('public, max-age=300');
+    expect(untagged.headers.has('Cache-Tag')).toBe(false);
+  });
+
+  it('marks unknown pages as uncached 404s', () => {
+    const result = response();
+    applyPageCachePolicy(result, { kind: 'not-found' });
+
+    expect(result.status).toBe(404);
+    expect(result.headers.get('Cache-Control')).toBe('no-store');
+    expect(result.headers.has('Cache-Tag')).toBe(false);
   });
 });
 

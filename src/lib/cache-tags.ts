@@ -28,9 +28,31 @@ import type { Locale } from '@/i18n/locales';
  */
 export const ERROR_RESPONSE_MAX_AGE = 300;
 
-/** Unknown slugs may become live after publishing, so keep their 404s uncached. */
-export function setNotFoundCachePolicy(headers: Headers): void {
-  headers.set('Cache-Control', 'no-store');
+type PageResponse = { status?: number; headers: Headers };
+
+type PageCacheOutcome =
+  | { kind: 'render'; tags: string[] }
+  | { kind: 'gone'; tags?: string[] }
+  | { kind: 'not-found' };
+
+/**
+ * Apply the public response cache policy (ADR-0011).
+ *
+ * Unknown slugs may become live after publishing, so their 404s stay uncached.
+ * A long-lived cached `410` outlives the republication that should end it, so
+ * gone responses use the short max-age defined above.
+ */
+export function applyPageCachePolicy(response: PageResponse, outcome: PageCacheOutcome): void {
+  if (outcome.kind === 'render') {
+    response.headers.set('Cache-Tag', cacheTagHeader(outcome.tags));
+  } else if (outcome.kind === 'gone') {
+    response.status = 410;
+    response.headers.set('Cache-Control', `public, max-age=${ERROR_RESPONSE_MAX_AGE}`);
+    if (outcome.tags) response.headers.set('Cache-Tag', cacheTagHeader(outcome.tags));
+  } else {
+    response.status = 404;
+    response.headers.set('Cache-Control', 'no-store');
+  }
 }
 
 /**
@@ -54,6 +76,18 @@ export function chunkPurgeTags(tags: string[], size = PURGE_TAGS_PER_REQUEST): s
 
 export function postDetailTags(postId: string, locale: Locale, section: PostSection): string[] {
   return [`post-${postId}`, `locale-${locale}`, `section-${section}`];
+}
+
+export function gameTags(slug: string, locale: Locale): string[] {
+  return [`game-${slug}`, `locale-${locale}`];
+}
+
+export function tagTags(slug: string, locale: Locale): string[] {
+  return [`tag-${slug}`, `locale-${locale}`];
+}
+
+export function collectionTags(collectionId: string, locale: Locale): string[] {
+  return [`collection-${collectionId}`, `locale-${locale}`];
 }
 
 export function sectionListingTags(locale: Locale, section: PostSection): string[] {
