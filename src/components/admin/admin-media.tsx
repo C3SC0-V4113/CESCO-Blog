@@ -1,6 +1,5 @@
 import { ImagePlusIcon, LoaderCircleIcon } from 'lucide-react';
 import { useId, useImperativeHandle, useRef, useState, type Ref } from 'react';
-import { flushSync } from 'react-dom';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -33,6 +32,7 @@ type Props = {
   page?: number;
   total?: number;
   onSelect?(asset: AdminMediaAsset): void;
+  showLibraryLink?: boolean;
   ref?: Ref<MediaUploader>;
 };
 
@@ -41,6 +41,7 @@ export function AdminMedia({
   page = 1,
   total = initial.length,
   onSelect,
+  showLibraryLink = true,
   ref,
 }: Props) {
   const [assets, setAssets] = useState(initial);
@@ -75,12 +76,10 @@ export function AdminMedia({
 
   async function upload(files: FileList | File[]) {
     if (files.length === 1 && !decorative && !altText.trim()) {
-      // Rendered before the move, so focus lands on a field already described.
-      flushSync(() => {
-        setAltMissing(true);
-        setStatus('idle');
-      });
-      altInput.current?.focus();
+      setAltMissing(true);
+      setStatus('idle');
+      // Let the sheet's initial focus settle before moving to the required field.
+      requestAnimationFrame(() => altInput.current?.focus());
       if (fileInput.current) fileInput.current.value = '';
       return;
     }
@@ -119,7 +118,7 @@ export function AdminMedia({
   useImperativeHandle(ref, () => ({ upload: (files) => void upload(files) }));
 
   return (
-    <div className="grid gap-6">
+    <div className={onSelect ? '@container grid gap-6' : 'grid gap-6'}>
       <section
         aria-label={t('admin.media.upload')}
         className="rounded-lg border border-dashed bg-background p-4"
@@ -136,7 +135,13 @@ export function AdminMedia({
           }
         }}
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div
+          className={
+            onSelect
+              ? 'flex flex-col gap-3 @min-[40rem]:flex-row @min-[40rem]:items-end'
+              : 'flex flex-col gap-3 sm:flex-row sm:items-end'
+          }
+        >
           <Field className="min-w-0 flex-1">
             <FieldLabel htmlFor={altId}>{t('admin.media.alt')}</FieldLabel>
             <Input
@@ -196,37 +201,48 @@ export function AdminMedia({
         <p>{t('admin.media.empty')}</p>
       ) : (
         <ul
-          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          className={
+            onSelect
+              ? 'grid grid-cols-1 gap-3 @min-[40rem]:grid-cols-2 @min-[64rem]:grid-cols-3'
+              : 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
+          }
           aria-busy={pageStatus === 'loading'}
         >
           {assets.map((asset) => (
-            <li key={asset.id} className="overflow-hidden rounded-lg border bg-background">
+            <li key={asset.id} className="min-w-0 overflow-hidden rounded-lg border bg-background">
               {onSelect ? (
                 <Button
                   type="button"
                   variant="ghost"
-                  className="h-auto w-full flex-col items-stretch justify-start rounded-none p-0 text-left font-normal whitespace-normal hover:bg-transparent focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
+                  className="h-auto w-full flex-row items-center justify-start gap-3 rounded-none p-2 text-left font-normal whitespace-normal hover:bg-transparent focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
                   onClick={() => onSelect(asset)}
                 >
-                  <MediaCard asset={asset} />
+                  <MediaCard asset={asset} compact />
                 </Button>
               ) : (
                 <MediaCard asset={asset} />
               )}
-              <details className="border-t p-3">
-                <summary>{t('admin.media.metadata')}</summary>
-                <MetadataForm
-                  asset={asset}
-                  onSaved={(updated) =>
-                    setAssets((current) =>
-                      current.map((item) => (item.id === updated.id ? updated : item))
-                    )
-                  }
-                />
-              </details>
+              {!onSelect && (
+                <details className="border-t p-3">
+                  <summary>{t('admin.media.metadata')}</summary>
+                  <MetadataForm
+                    asset={asset}
+                    onSaved={(updated) =>
+                      setAssets((current) =>
+                        current.map((item) => (item.id === updated.id ? updated : item))
+                      )
+                    }
+                  />
+                </details>
+              )}
             </li>
           ))}
         </ul>
+      )}
+      {onSelect && showLibraryLink && (
+        <a className={textLink} href="/admin/media">
+          {t('admin.media.openLibrary')}
+        </a>
       )}
       {currentTotal > 20 && (
         <nav aria-label={t('listing.pagination')} className="flex gap-2">
@@ -261,11 +277,19 @@ export function AdminMedia({
  * The caption already says what the alt text says, so the image is left
  * unnamed rather than read twice.
  */
-function MediaCard({ asset }: { asset: AdminMediaAsset }) {
+function MediaCard({ asset, compact = false }: { asset: AdminMediaAsset; compact?: boolean }) {
   return (
     <>
-      <img src={mediaPath(asset.r2Key)} alt="" className="aspect-video w-full object-cover" />
-      <span className="block truncate p-3">{asset.altText || t('admin.media.decorative')}</span>
+      <img
+        src={mediaPath(asset.r2Key)}
+        alt=""
+        className={
+          compact ? 'size-16 shrink-0 rounded-md object-cover' : 'aspect-video w-full object-cover'
+        }
+      />
+      <span className={compact ? 'min-w-0 flex-1 p-2 break-words' : 'block truncate p-3'}>
+        {asset.altText || t('admin.media.decorative')}
+      </span>
     </>
   );
 }
