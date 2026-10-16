@@ -26,6 +26,11 @@ import type { Locale } from '@/i18n/locales';
  * and two controls do not fit in one row. `MobileNav` carries them there, so
  * they stay reachable on a phone rather than merely absent.
  *
+ * Every control is at least 40px square and every section link 40px tall —
+ * the row is 64px, so the hit areas grow into space it already had without
+ * reaching each other. Text links keep their colour transition, with the
+ * reduced-motion opt-out beside it (ADR-0022).
+ *
  * Controls are grouped to the right and separated from the section links,
  * because a language picker is something you *change*, not somewhere you *go* —
  * styled like a nav link it reads as a destination.
@@ -75,7 +80,7 @@ const localeOptions = locales.map((option) => ({
   <div class="mx-auto flex h-16 max-w-5xl items-center gap-6 px-6">
     <a
       href={`/${locale}/`}
-      class="font-heading text-lg text-foreground transition-colors duration-150 hover:text-primary"
+      class="font-heading text-lg text-foreground transition-colors duration-150 hover:text-primary-text motion-reduce:transition-none"
     >
       {SITE_NAME}
     </a>
@@ -87,7 +92,7 @@ const localeOptions = locales.map((option) => ({
             <a
               href={item.href}
               aria-current={isNavItemActive(item.href, pathname) ? 'page' : undefined}
-              class="text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground aria-[current]:font-medium aria-[current]:text-foreground"
+              class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground aria-[current]:font-medium aria-[current]:text-foreground motion-reduce:transition-none"
             >
               {t(item.key)}
             </a>
@@ -104,6 +109,8 @@ const localeOptions = locales.map((option) => ({
         <MobileNav
           client:idle
           openLabel={t('nav.menu')}
+          closeLabel={t('nav.close')}
+          navLabel={t('nav.sections')}
           items={navItems.map((item) => ({
             label: t(item.key),
             href: item.href,

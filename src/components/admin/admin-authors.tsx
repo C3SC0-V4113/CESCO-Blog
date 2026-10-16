@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -14,6 +14,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { getTranslations } from '@/i18n/utils';
 import { callCreateAuthor, callRetryPendingPurges, callUpdateAuthor } from '@/lib/admin-actions';
+
+import { FormStatus, PendingButton } from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { AdminAuthor } from '@/db/queries/admin-taxonomy';
@@ -41,6 +43,7 @@ export function AdminAuthors({
 function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMediaAsset[] }) {
   const id = useId();
   const avatarId = `${id}-avatar`;
+  const sameAsHelpId = `${id}-same-as-help`;
   const [avatarMediaId, setAvatarMediaId] = useState(author?.avatarMediaId ?? '');
   const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'warning' | 'error'>(
     'idle'
@@ -80,7 +83,13 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
     ? author.sameAs.filter((value): value is string => typeof value === 'string')
     : [];
   return (
-    <form className="grid gap-4 rounded-xl border bg-background p-5">
+    <form
+      className="grid gap-4 rounded-xl border bg-background p-5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void save(event.currentTarget);
+      }}
+    >
       <h2 className="text-lg font-semibold">{author ? author.name : t('admin.authors.new')}</h2>
       <FieldGroup className="grid gap-4 md:grid-cols-2">
         <TextField
@@ -88,6 +97,7 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
           label={t('admin.authors.name')}
           name="name"
           defaultValue={author?.name}
+          autoComplete="off"
           required
         />
         <TextField
@@ -95,6 +105,8 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
           label={t('admin.authors.slug')}
           name="slug"
           defaultValue={author?.slug}
+          autoComplete="off"
+          spellCheck={false}
           required
         />
         <TextField
@@ -102,6 +114,7 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
           label={t('admin.authors.website')}
           name="websiteUrl"
           type="url"
+          inputMode="url"
           defaultValue={author?.websiteUrl ?? ''}
         />
         <Field className="gap-1">
@@ -117,7 +130,7 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
             ]}
             onValueChange={(value) => setAvatarMediaId(value === NO_AVATAR ? '' : (value ?? ''))}
           >
-            <SelectTrigger id={avatarId} className="h-10 w-full">
+            <SelectTrigger id={avatarId}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -147,26 +160,28 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
           label={t('admin.authors.sameAs')}
           name="sameAs"
           defaultValue={sameAs.join('\n')}
+          aria-describedby={sameAsHelpId}
+          spellCheck={false}
           rows={3}
         />
+        <FieldDescription id={sameAsHelpId} className="md:col-span-2">
+          {t('admin.authors.sameAsHelp')}
+        </FieldDescription>
       </FieldGroup>
       <div className="flex items-center gap-3">
-        <Button
-          type="button"
-          disabled={status === 'pending'}
-          onClick={(event) => void save(event.currentTarget.form!)}
-        >
+        <PendingButton type="submit" pending={status === 'pending'}>
           {t('admin.common.save')}
-        </Button>
-        <p role={status === 'error' ? 'alert' : 'status'}>
-          {status === 'error'
-            ? t('admin.common.error')
-            : status === 'success'
+        </PendingButton>
+        <FormStatus
+          message={
+            status === 'success'
               ? t('admin.common.saved')
               : status === 'warning'
                 ? t('admin.common.cacheWarning')
-                : ''}
-        </p>
+                : undefined
+          }
+          error={status === 'error' ? t('admin.common.error') : undefined}
+        />
         {status === 'warning' && author && (
           <Button
             type="button"
@@ -197,7 +212,7 @@ function TextField({
   return (
     <Field className="gap-1">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Input id={id} name={name} className="h-10" {...props} />
+      <Input id={id} name={name} {...props} />
     </Field>
   );
 }
@@ -216,7 +231,7 @@ function TextAreaField({
   return (
     <Field className={className}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Textarea id={id} name={name} className="p-3" {...props} />
+      <Textarea id={id} name={name} {...props} />
     </Field>
   );
 }

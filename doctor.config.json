@@ -10,6 +10,11 @@
         "//": "schema.ts declares every table the migrations create; the tables for surfaces not built yet have no importer. client.ts no longer needs an exemption and lost it.",
         "files": ["src/db/schema.ts"],
         "rules": ["knip/exports", "exports"]
+      },
+      {
+        "//": "The admin is a client-rendered application (ADR-0023) whose controls stay disabled until hydration, so no admin form can submit without JavaScript. Its forms submit natively for Enter and required, and preventDefault hands the submission to the action.",
+        "files": ["src/components/admin/**"],
+        "rules": ["react-doctor/no-prevent-default"]
       }
     ]
   }

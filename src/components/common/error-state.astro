@@ -1,7 +1,9 @@
 ---
 import { getTranslations } from '@/i18n/utils';
+import { errorCopy } from '@/lib/error-copy';
 
 import type { Locale } from '@/i18n/locales';
+import type { ErrorStatus } from '@/lib/error-copy';
 
 /**
  * The visible half of ADR-0010.
@@ -13,25 +15,21 @@ import type { Locale } from '@/i18n/locales';
  *
  * The strings live in the typed dictionary (ADR-0027) rather than here, so a
  * missing translation is a compile error rather than a silent fallback.
+ *
+ * The document `<title>` is not set here: this renders inside `<body>`, where
+ * a title does not belong. The main layout titles any page that brought no
+ * SEO head of its own, from the same keys (`@/lib/error-copy`).
  */
 
 interface Props {
   locale: Locale;
-  status: 404 | 410;
+  status: ErrorStatus;
 }
 
 const { locale, status } = Astro.props;
 const t = getTranslations(locale);
 
-// Spelled out rather than built by interpolation: written as
-// `error.${status}.title` the key is a template literal that TypeScript cannot
-// check against the dictionary, which is the one guarantee ADR-0027 buys.
-const keys = {
-  404: { title: 'error.404.title', body: 'error.404.body', action: 'error.404.action' },
-  410: { title: 'error.410.title', body: 'error.410.body', action: 'error.410.action' },
-} as const;
-
-const key = keys[status];
+const key = errorCopy[status];
 
 // Both actions point at the locale home for now. The 410 copy invites the reader
 // to recent posts, which is a better destination — it gets one once the blog
@@ -42,5 +40,5 @@ const actionHref = `/${locale}/`;
 <main class="mx-auto max-w-[34rem] px-6 py-24">
   <h1 class="font-heading text-2xl leading-tight text-balance text-foreground">{t(key.title)}</h1>
   <p class="mt-4 mb-8 leading-relaxed text-pretty text-muted-foreground">{t(key.body)}</p>
-  <a href={actionHref} class="text-primary underline underline-offset-4">{t(key.action)}</a>
+  <a href={actionHref} class="text-primary-text underline underline-offset-4">{t(key.action)}</a>
 </main>

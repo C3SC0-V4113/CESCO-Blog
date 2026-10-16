@@ -28,15 +28,26 @@ import type { Locale } from '@/i18n/locales';
  * state on the `article` while the anchor stays the only focusable thing in it,
  * so pointer and keyboard land on the same target and nothing is clickable that
  * does not announce itself.
+ *
+ * The title's level is the caller's to set, because only the caller knows what
+ * heading the card sits under. In a listing it is directly under the page's
+ * `h1`; in the home page's featured slot it is under that slot's own `h2`, and
+ * an `h2` there would make the post a sibling of the section announcing it.
+ *
+ * The featured card is marked out by a border alone. It had a shadow as well,
+ * which drew the same edge twice; every other surface on the public site is
+ * separated by rules, not elevation, so the border is the one that matches.
  */
 
 interface Props {
   locale: Locale;
   post: PostSummary;
   featured?: boolean;
+  headingLevel?: 2 | 3;
 }
 
-const { locale, post, featured = false } = Astro.props;
+const { locale, post, featured = false, headingLevel = 2 } = Astro.props;
+const Heading = `h${headingLevel}` as const;
 const t = getTranslations(locale);
 
 const href = articlePath(locale, post.section, post.slug);
@@ -47,25 +58,23 @@ const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.op
   class:list={[
     'group grid gap-x-5 gap-y-4 border-b border-border py-8 last:border-b-0',
     featured
-      ? 'rounded-xl border bg-card p-6 shadow-sm sm:grid-cols-[1fr_minmax(16rem,45%)]'
+      ? 'rounded-xl border bg-card p-6 sm:grid-cols-[1fr_minmax(16rem,45%)]'
       : 'sm:grid-cols-[1fr_10rem]',
   ]}
 >
   <div class="sm:order-1">
-    <p
-      class="text-[0.6875rem] font-medium tracking-[0.14em] text-primary uppercase transition-colors duration-150"
-    >
+    <p class="text-[0.6875rem] font-medium tracking-[0.14em] text-primary-text uppercase">
       {sectionLabel}
     </p>
 
-    <h2 class="mt-3 text-2xl leading-[1.25] text-balance">
+    <Heading class="mt-3 text-2xl leading-[1.25] text-balance">
       <a
         href={href}
-        class="decoration-primary/40 underline-offset-[6px] transition-colors duration-150 group-hover:underline hover:text-primary"
+        class="decoration-primary-text/40 underline-offset-[6px] transition-colors duration-150 group-hover:underline hover:text-primary-text motion-reduce:transition-none"
       >
         {post.title}
       </a>
-    </h2>
+    </Heading>
 
     {
       post.excerpt && (
@@ -88,7 +97,7 @@ const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.op
       {post.authorName && post.publishedAt && <span aria-hidden="true">·</span>}
       {
         post.publishedAt && (
-          <time datetime={post.publishedAt.replace(' ', 'T') + 'Z'}>
+          <time datetime={post.publishedAt.replace(' ', 'T') + 'Z'} class="tabular-nums">
             {formatDate(post.publishedAt, locale)}
           </time>
         )
@@ -96,7 +105,7 @@ const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.op
       {post.readingTimeMinutes !== null && <span aria-hidden="true">·</span>}
       {
         post.readingTimeMinutes !== null && (
-          <span>
+          <span class="tabular-nums">
             {post.readingTimeMinutes} {t('post.readingTime')}
           </span>
         )
@@ -116,6 +125,14 @@ const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.op
       Empty `alt`, deliberately. These are generated shapes carrying no
       information a reader would miss, so announcing them would add noise to a
       screen reader without adding meaning. The title beside it is the label.
+
+      The edge is an inset hairline, not a border: the border existed only to
+      give the cover depth, and it took a pixel of layout to do it. It is drawn
+      by a pseudo-element over the image rather than on the image itself,
+      because the hover zoom would scale an outline on the image out past the
+      clip and it would vanish exactly while the card is being pointed at.
+      The zoom stays small and quick — 2% over 200 ms — so it reads as the
+      card answering, not the picture moving.
     */
   }
   {
@@ -124,7 +141,7 @@ const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.op
         href={href}
         tabindex="-1"
         aria-hidden="true"
-        class="block self-start overflow-hidden rounded-md border border-border sm:order-2"
+        class="relative block self-start overflow-hidden rounded-md after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:outline after:-outline-offset-1 after:outline-image-outline sm:order-2"
       >
         <img
           src={mediaPath(post.coverKey)}
@@ -134,7 +151,7 @@ const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.op
           loading={featured ? 'eager' : 'lazy'}
           fetchpriority={featured ? 'high' : 'auto'}
           decoding="async"
-          class="aspect-[1200/628] w-full object-cover transition-transform duration-300 ease-[var(--ease-out-quad)] group-hover:scale-[1.03] motion-reduce:transition-none"
+          class="aspect-[1200/628] w-full object-cover transition-transform duration-200 ease-[var(--ease-out-quad)] group-hover:scale-[1.02] motion-reduce:transition-none"
         />
       </a>
     )

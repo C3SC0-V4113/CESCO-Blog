@@ -23,6 +23,16 @@ export function getTranslations(locale: Locale) {
 }
 
 /**
+ * Fills `{name}` placeholders in a translated string. The values are named
+ * rather than positional, so each locale keeps its own word order.
+ */
+export function interpolate(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (placeholder, name: string) =>
+    name in values ? String(values[name]) : placeholder
+  );
+}
+
+/**
  * Narrows an unknown locale — `Astro.currentLocale` is `string | undefined` —
  * to a supported one, falling back to the default.
  */

@@ -1,14 +1,17 @@
 import { ImagePlusIcon, LoaderCircleIcon } from 'lucide-react';
 import { useId, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { flushSync } from 'react-dom';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { getTranslations } from '@/i18n/utils';
 import { callListMedia, callUpdateMediaAsset } from '@/lib/admin-actions';
 import { normalizeImage } from '@/lib/image-normalize';
 import { mediaPath } from '@/lib/media';
+
+import { FormStatus, PendingButton } from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 
@@ -21,6 +24,8 @@ const metadataFields = [
   'licenseLabel',
   'licenseUrl',
 ] as const;
+const urlFields: ReadonlySet<string> = new Set(['sourceUrl', 'licenseUrl']);
+const textLink = 'inline-flex min-h-6 items-center underline underline-offset-4';
 /** Lets the editor hand over files pasted or dropped outside the upload box. */
 export type MediaUploader = { upload(files: File[]): void };
 type Props = {
@@ -43,26 +48,43 @@ export function AdminMedia({
   const [currentTotal, setCurrentTotal] = useState(total);
   const [altText, setAltText] = useState('');
   const [decorative, setDecorative] = useState(false);
+  const [altMissing, setAltMissing] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  // Kept apart from the upload: a page that fails to load is not an image that
+  // failed to process, and loading one does not block an upload.
+  const [pageStatus, setPageStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const fileInput = useRef<HTMLInputElement>(null);
-  const decorativeCheckboxId = useId();
+  const altInput = useRef<HTMLInputElement>(null);
+  const altId = useId();
+  const fileId = useId();
+  const decorativeId = useId();
 
   async function loadPage(next: number) {
-    setStatus('loading');
+    setPageStatus('loading');
     try {
       const result = await callListMedia({ page: next });
       if (result.error || !result.data) throw Error('page-failed');
       setAssets([...new Map(result.data.assets.map((asset) => [asset.id, asset])).values()]);
       setCurrentTotal(result.data.total);
       setCurrentPage(next);
-      setStatus('idle');
+      setPageStatus('idle');
     } catch {
-      setStatus('error');
+      setPageStatus('error');
     }
   }
 
   async function upload(files: FileList | File[]) {
-    if (files.length !== 1 || (!decorative && !altText.trim())) {
+    if (files.length === 1 && !decorative && !altText.trim()) {
+      // Rendered before the move, so focus lands on a field already described.
+      flushSync(() => {
+        setAltMissing(true);
+        setStatus('idle');
+      });
+      altInput.current?.focus();
+      if (fileInput.current) fileInput.current.value = '';
+      return;
+    }
+    if (files.length !== 1) {
       setStatus('error');
       if (fileInput.current) fileInput.current.value = '';
       return;
@@ -100,7 +122,7 @@ export function AdminMedia({
     <div className="grid gap-6">
       <section
         aria-label={t('admin.media.upload')}
-        className="rounded-xl border border-dashed bg-background p-4"
+        className="rounded-lg border border-dashed bg-background p-4"
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
@@ -116,72 +138,81 @@ export function AdminMedia({
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <Field className="min-w-0 flex-1">
-            <FieldLabel htmlFor="media-upload-alt">{t('admin.media.alt')}</FieldLabel>
+            <FieldLabel htmlFor={altId}>{t('admin.media.alt')}</FieldLabel>
             <Input
-              id="media-upload-alt"
-              className="mt-1 h-10 px-3"
+              id={altId}
+              ref={altInput}
+              name="altText"
+              className="mt-1"
               disabled={decorative}
               value={altText}
-              onChange={(event) => setAltText(event.target.value)}
+              onChange={(event) => {
+                setAltText(event.target.value);
+                setAltMissing(false);
+              }}
+              aria-invalid={altMissing ? true : undefined}
+              aria-describedby={altMissing ? 'altText-error' : undefined}
             />
           </Field>
           <Field orientation="horizontal" className="h-10 w-auto items-center gap-2">
             <Checkbox
-              id={decorativeCheckboxId}
+              id={decorativeId}
               checked={decorative}
-              onCheckedChange={(checked) => setDecorative(checked === true)}
+              onCheckedChange={(checked) => {
+                setDecorative(checked === true);
+                setAltMissing(false);
+              }}
             />
-            <FieldLabel htmlFor={decorativeCheckboxId}>{t('admin.media.decorative')}</FieldLabel>
+            <FieldLabel htmlFor={decorativeId}>{t('admin.media.decorative')}</FieldLabel>
           </Field>
           <Field className="w-auto">
             <FieldLabel
-              htmlFor="media-upload-file"
+              htmlFor={fileId}
               className={buttonVariants({ className: status === 'loading' ? 'opacity-50' : '' })}
-              aria-disabled={status === 'loading'}
             >
               {status === 'loading' ? (
-                <LoaderCircleIcon className="animate-spin" />
+                <LoaderCircleIcon aria-hidden="true" />
               ) : (
-                <ImagePlusIcon />
+                <ImagePlusIcon aria-hidden="true" />
               )}
               {t('admin.media.choose')}
             </FieldLabel>
             <Input
-              id="media-upload-file"
+              id={fileId}
               className="sr-only"
               ref={fileInput}
               type="file"
               disabled={status === 'loading'}
               accept="image/png,image/jpeg,image/webp"
-              aria-label={t('admin.media.choose')}
               onChange={(event) => event.target.files && void upload(event.target.files)}
             />
           </Field>
         </div>
+        {altMissing && <FieldError id="altText-error">{t('admin.media.altRequired')}</FieldError>}
         <p className="mt-2 text-sm text-muted-foreground">{t('admin.media.help')}</p>
         {status === 'error' && <p role="alert">{t('admin.media.error')}</p>}
       </section>
       {assets.length === 0 ? (
         <p>{t('admin.media.empty')}</p>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          aria-busy={pageStatus === 'loading'}
+        >
           {assets.map((asset) => (
-            <li key={asset.id} className="overflow-hidden rounded-xl border bg-background">
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-auto w-full flex-col items-stretch justify-start rounded-none p-0 text-left font-normal whitespace-normal hover:bg-transparent"
-                onClick={() => onSelect?.(asset)}
-              >
-                <img
-                  src={mediaPath(asset.r2Key)}
-                  alt={asset.altText ?? ''}
-                  className="aspect-video w-full object-cover"
-                />
-                <span className="block truncate p-3">
-                  {asset.altText || t('admin.media.decorative')}
-                </span>
-              </Button>
+            <li key={asset.id} className="overflow-hidden rounded-lg border bg-background">
+              {onSelect ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-auto w-full flex-col items-stretch justify-start rounded-none p-0 text-left font-normal whitespace-normal hover:bg-transparent focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
+                  onClick={() => onSelect(asset)}
+                >
+                  <MediaCard asset={asset} />
+                </Button>
+              ) : (
+                <MediaCard asset={asset} />
+              )}
               <details className="border-t p-3">
                 <summary>{t('admin.media.metadata')}</summary>
                 <MetadataForm
@@ -205,7 +236,9 @@ export function AdminMedia({
                 {t('listing.previous')}
               </Button>
             ) : (
-              <a href={`/admin/media?page=${currentPage - 1}`}>{t('listing.previous')}</a>
+              <a className={textLink} href={`/admin/media?page=${currentPage - 1}`}>
+                {t('listing.previous')}
+              </a>
             ))}
           {currentPage * 20 < currentTotal &&
             (onSelect ? (
@@ -213,11 +246,27 @@ export function AdminMedia({
                 {t('listing.next')}
               </Button>
             ) : (
-              <a href={`/admin/media?page=${currentPage + 1}`}>{t('listing.next')}</a>
+              <a className={textLink} href={`/admin/media?page=${currentPage + 1}`}>
+                {t('listing.next')}
+              </a>
             ))}
         </nav>
       )}
+      {pageStatus === 'error' && <p role="alert">{t('admin.media.pageError')}</p>}
     </div>
+  );
+}
+
+/**
+ * The caption already says what the alt text says, so the image is left
+ * unnamed rather than read twice.
+ */
+function MediaCard({ asset }: { asset: AdminMediaAsset }) {
+  return (
+    <>
+      <img src={mediaPath(asset.r2Key)} alt="" className="aspect-video w-full object-cover" />
+      <span className="block truncate p-3">{asset.altText || t('admin.media.decorative')}</span>
+    </>
   );
 }
 
@@ -229,8 +278,7 @@ function MetadataForm({
   onSaved(asset: AdminMediaAsset): void;
 }) {
   const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
-  const decorativeCheckboxId = useId();
-  const isOwnWorkCheckboxId = useId();
+  const formId = useId();
   const save = async (form: HTMLFormElement) => {
     setStatus('pending');
     const data = new FormData(form);
@@ -252,51 +300,53 @@ function MetadataForm({
     }
   };
   return (
-    <form className="mt-3 grid gap-2">
-      <Input
-        name="altText"
-        aria-label={t('admin.media.alt')}
-        defaultValue={asset.altText ?? ''}
-        className="h-10 px-3"
-      />
+    <form
+      className="mt-3 grid gap-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void save(event.currentTarget);
+      }}
+    >
+      <Field className="gap-1">
+        <FieldLabel htmlFor={`${formId}-alt`}>{t('admin.media.alt')}</FieldLabel>
+        <Input id={`${formId}-alt`} name="altText" defaultValue={asset.altText ?? ''} />
+      </Field>
       <Field orientation="horizontal" className="items-center">
         <Checkbox
-          id={decorativeCheckboxId}
+          id={`${formId}-decorative`}
           name="decorative"
           defaultChecked={asset.altText === ''}
         />
-        <FieldLabel htmlFor={decorativeCheckboxId}>{t('admin.media.decorative')}</FieldLabel>
+        <FieldLabel htmlFor={`${formId}-decorative`}>{t('admin.media.decorative')}</FieldLabel>
       </Field>
       {metadataFields.map((field) => (
-        <Input
-          key={field}
-          name={field}
-          aria-label={t(`admin.media.${field}`)}
-          defaultValue={asset[field] ?? ''}
-          className="h-10 px-3"
-        />
+        <Field key={field} className="gap-1">
+          <FieldLabel htmlFor={`${formId}-${field}`}>{t(`admin.media.${field}`)}</FieldLabel>
+          <Input
+            id={`${formId}-${field}`}
+            name={field}
+            defaultValue={asset[field] ?? ''}
+            {...(urlFields.has(field) && { type: 'url', inputMode: 'url' as const })}
+          />
+        </Field>
       ))}
       <Field orientation="horizontal" className="items-center">
-        <Checkbox id={isOwnWorkCheckboxId} name="isOwnWork" defaultChecked={asset.isOwnWork} />
-        <FieldLabel htmlFor={isOwnWorkCheckboxId}>{t('admin.media.isOwnWork')}</FieldLabel>
+        <Checkbox id={`${formId}-own-work`} name="isOwnWork" defaultChecked={asset.isOwnWork} />
+        <FieldLabel htmlFor={`${formId}-own-work`}>{t('admin.media.isOwnWork')}</FieldLabel>
       </Field>
-      <Button
-        type="button"
-        variant="outline"
-        disabled={status === 'pending'}
-        onClick={(event) => void save(event.currentTarget.form!)}
-      >
+      <PendingButton type="submit" variant="outline" pending={status === 'pending'}>
         {t('admin.media.saveMetadata')}
-      </Button>
-      <p role={status === 'error' ? 'alert' : 'status'}>
-        {status === 'pending'
-          ? t('admin.media.metadataPending')
-          : status === 'success'
-            ? t('admin.media.metadataSuccess')
-            : status === 'error'
-              ? t('admin.media.metadataError')
-              : ''}
-      </p>
+      </PendingButton>
+      <FormStatus
+        message={
+          status === 'pending'
+            ? t('admin.media.metadataPending')
+            : status === 'success'
+              ? t('admin.media.metadataSuccess')
+              : undefined
+        }
+        error={status === 'error' ? t('admin.media.metadataError') : undefined}
+      />
     </form>
   );
 }

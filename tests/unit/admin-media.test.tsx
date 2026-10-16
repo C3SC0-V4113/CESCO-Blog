@@ -37,7 +37,10 @@ const asset = {
 };
 
 describe('AdminMedia', () => {
-  beforeEach(() => vi.stubGlobal('fetch', vi.fn()));
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn());
+  });
   afterEach(() => document.body.replaceChildren());
 
   it.each(['javascript:alert(1)', 'data:text/html,x'])('rejects unsafe metadata URL %s', (url) => {
@@ -87,7 +90,8 @@ describe('AdminMedia', () => {
       target: { files: [new File(['png'], 'mapa.png', { type: 'image/png' })] },
     });
     await waitFor(() => expect(select).toHaveBeenCalledWith(asset));
-    expect(screen.getByRole('img', { name: 'Mapa' })).toBeTruthy();
+    // Named once, by its caption: the image would only repeat it.
+    expect(screen.getByRole('button', { name: 'Mapa' })).toBeTruthy();
 
     const source = new File(['png'], 'mapa.png', { type: 'image/png' });
     const surface = screen.getByRole('region', { name: 'Carga de imagen' });
@@ -112,6 +116,67 @@ describe('AdminMedia', () => {
     await view.findByRole('alert');
     expect(select).not.toHaveBeenCalled();
     expect((view.getByLabelText('Elegir imagen') as HTMLInputElement).value).toBe('');
+  });
+
+  it('sends a missing alt text back to its field instead of uploading', () => {
+    render(<AdminMedia assets={[]} onSelect={vi.fn()} />);
+    const alt = screen.getByLabelText('Texto alternativo');
+    expect(alt.hasAttribute('aria-invalid')).toBe(false);
+
+    fireEvent.change(screen.getByLabelText('Elegir imagen'), {
+      target: { files: [new File(['png'], 'mapa.png', { type: 'image/png' })] },
+    });
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(alt.getAttribute('aria-invalid')).toBe('true');
+    expect(alt.matches(':focus')).toBe(true);
+    expect(alt.getAttribute('aria-describedby')).toBe(
+      screen.getByText('Escribe el texto alternativo o marca la imagen como decorativa.').id
+    );
+    fireEvent.change(alt, { target: { value: 'Mapa' } });
+    expect(alt.hasAttribute('aria-invalid')).toBe(false);
+  });
+
+  it('leaves the disabled state to the file input the label wraps', () => {
+    vi.mocked(fetch).mockReturnValue(new Promise(() => {}));
+    render(<AdminMedia assets={[]} onSelect={vi.fn()} />);
+    const input = screen.getByLabelText('Elegir imagen') as HTMLInputElement;
+    fireEvent.change(screen.getByLabelText('Texto alternativo'), { target: { value: 'Mapa' } });
+    fireEvent.change(input, {
+      target: { files: [new File(['png'], 'mapa.png', { type: 'image/png' })] },
+    });
+
+    expect(input.disabled).toBe(true);
+    expect(
+      screen.getByText('Elegir imagen', { selector: 'label' }).hasAttribute('aria-disabled')
+    ).toBe(false);
+  });
+
+  it('labels every metadata field visibly and saves through the form', async () => {
+    vi.mocked(callUpdateMediaAsset).mockReturnValue(new Promise(() => {}));
+    render(<AdminMedia assets={[asset]} />);
+    const form = (screen.getByRole('button', { name: 'Guardar metadatos' }) as HTMLButtonElement)
+      .form!;
+    const view = within(form);
+    for (const name of ['URL de origen', 'URL de licencia']) {
+      const field = view.getByLabelText(name) as HTMLInputElement;
+      expect(field.hasAttribute('aria-label')).toBe(false);
+      expect(view.getByText(name, { selector: 'label' })).toBeTruthy();
+      expect(field.type).toBe('url');
+      expect(field.inputMode).toBe('url');
+    }
+    expect(view.getByLabelText('Pie de imagen').hasAttribute('aria-label')).toBe(false);
+    expect(view.getByText('Pie de imagen', { selector: 'label' })).toBeTruthy();
+    const save = view.getByRole('button', { name: 'Guardar metadatos' });
+    expect(save.getAttribute('type')).toBe('submit');
+
+    expect(fireEvent.submit(form)).toBe(false);
+
+    await waitFor(() => expect(save).toHaveProperty('disabled', true));
+    expect(callUpdateMediaAsset).toHaveBeenCalledTimes(1);
+    expect(save.textContent).toBe('Guardar metadatos');
+    expect(save.innerHTML).toMatch(/<svg[^>]*animate-spin motion-reduce:animate-none/);
+    expect(save.innerHTML).toContain('aria-hidden="true"');
   });
 
   it('preserves failed metadata and publishes successful metadata to selection', async () => {
@@ -155,5 +220,44 @@ describe('AdminMedia', () => {
     expect(await screen.findAllByRole('button', { name: /Página dos/ })).toHaveLength(1);
     expect(callListMedia).toHaveBeenCalledWith({ page: 2 });
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('shows a card that selects nothing as content, not as a button', () => {
+    render(<AdminMedia assets={[asset]} />);
+    expect(screen.getByText('Mapa')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Mapa/ })).toBeNull();
+  });
+
+  it('reports a page that failed to load apart from the upload', async () => {
+    let fail = (_: Error) => {};
+    vi.mocked(callListMedia).mockReturnValue(new Promise((_, reject) => (fail = reject)));
+    render(<AdminMedia assets={[asset]} total={21} onSelect={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+
+    const list = screen.getByRole('list');
+    expect(list.getAttribute('aria-busy')).toBe('true');
+    // Loading a page is not an upload, so the upload stays available.
+    expect((screen.getByLabelText('Elegir imagen') as HTMLInputElement).disabled).toBe(false);
+    fail(Error('offline'));
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'No se pudo cargar esta página de imágenes. Intenta de nuevo.'
+    );
+    expect(list.getAttribute('aria-busy')).toBe('false');
+  });
+
+  it('reports failed metadata as an alert beside a region that stays', async () => {
+    vi.mocked(callUpdateMediaAsset).mockResolvedValue({
+      error: { code: 'INTERNAL_SERVER_ERROR' },
+    } as never);
+    render(<AdminMedia assets={[asset]} />);
+    fireEvent.click(screen.getByText('Editar metadatos'));
+    const region = screen.getByRole('status');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar metadatos' }));
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'No se pudieron guardar los metadatos. Intenta de nuevo.'
+    );
+    expect(screen.getByRole('status')).toBe(region);
+    expect(region.textContent).toBe('');
   });
 });

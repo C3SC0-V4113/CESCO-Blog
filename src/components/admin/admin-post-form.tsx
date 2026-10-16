@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { Controller, useForm, type Control } from 'react-hook-form';
 
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,7 +22,7 @@ import {
 } from '@/lib/admin-posts';
 import { cn } from '@/lib/utils';
 
-import { useHydrated } from './admin-hydration';
+import { PendingButton, useHydrated } from './admin-form';
 const t = getTranslations('es');
 const fieldsClass = 'rounded-xl border bg-card p-5 shadow-sm';
 const sections = [
@@ -96,6 +96,7 @@ export function AdminPostForm({
     control,
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<CreatePostInput, unknown, ValidCreatePostInput>({
     resolver: zodResolver(createPostSchema),
@@ -107,8 +108,16 @@ export function AdminPostForm({
       navigate('/admin/posts');
       return;
     }
-    const errorKey = result?.error?.code === 'CONFLICT' ? 'slugReserved' : 'createError';
-    setServerError(t(`admin.posts.${errorKey}`));
+    if (result?.error?.code === 'CONFLICT') {
+      setServerError(undefined);
+      setError(
+        'slug',
+        { type: 'server', message: t('admin.posts.slugReserved') },
+        { shouldFocus: true }
+      );
+      return;
+    }
+    setServerError(t('admin.posts.createError'));
   });
   return (
     <form
@@ -139,12 +148,17 @@ export function AdminPostForm({
             <Input
               {...register('slug')}
               id="slug"
-              aria-invalid={Boolean(errors.slug)}
+              aria-invalid={errors.slug ? true : undefined}
               aria-describedby={errors.slug ? 'slug-error' : undefined}
               className="h-9 font-normal"
               autoComplete="off"
+              spellCheck={false}
             />
-            {errors.slug && <FieldError id="slug-error">{t('admin.posts.slugInvalid')}</FieldError>}
+            {errors.slug && (
+              <FieldError id="slug-error">
+                {errors.slug.type === 'server' ? errors.slug.message : t('admin.posts.slugInvalid')}
+              </FieldError>
+            )}
           </Field>
         </FieldGroup>
         {serverError && (
@@ -154,9 +168,9 @@ export function AdminPostForm({
         )}
       </fieldset>
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={!ready || isSubmitting}>
+        <PendingButton type="submit" pending={isSubmitting} disabled={!ready}>
           {t('admin.posts.create')}
-        </Button>
+        </PendingButton>
         <a href="/admin/posts" className={cn(buttonVariants({ variant: 'outline' }))}>
           {t('admin.posts.cancel')}
         </a>

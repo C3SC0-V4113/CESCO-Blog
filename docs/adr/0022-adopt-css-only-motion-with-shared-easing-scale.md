@@ -74,6 +74,45 @@ and contradict ADR-0019.
 
 The existing button already applies `active:not-aria-[haspopup]:translate-y-px`.
 That press feedback is adopted as the project pattern rather than replaced.
+_Superseded by the 2026-10-05 amendment below: press feedback is the
+`--scale-press` token._
+
+## Amendment — 2026-10-05: press token and interface audit
+
+**Press feedback is a token.** The one-pixel drop above is superseded. A pressed
+button now scales to `--scale-press` (`0.96`), declared in `@theme inline` beside
+the easing scale and used as `active:scale-press`; Tailwind v4 resolves `scale-*`
+from the `--scale` namespace. A one-pixel translate read as a layout nudge rather
+than a press, and a named token keeps the value in one place instead of in every
+class string that copies it. The Button primitive transitions only colour,
+background, border, box-shadow and `scale`, at 150 ms on `ease-out-quad`.
+
+**The reduced-motion convention is unchanged.** Every animation site carries
+`motion-reduce:transition-none` or `motion-reduce:animate-none`, and motion stays
+on for everyone else. No transition is removed for all users, and reduced motion
+is never served by a weaker variant of the same motion, such as an opacity-only
+fade: it gets no motion. The header and prose links keep their short colour
+transitions; the invariant that high-frequency controls stay instant is read as
+forbidding movement on them, not a colour change eased over 150 ms.
+
+**Theme swaps suppress transitions for one frame.** The theme toggle injects a
+`transition: none` rule, forces a style read so the new palette commits under
+it, and removes the rule on the next frame. Without it every colour transition on
+the page animated from the old palette to the new one. This is a rendering fix,
+not a motion preference, and it is the only place transitions are suppressed for
+all users; the toggle's own glyph crossfade is exempt.
+
+**The admin opts out of cross-document view transitions.** The
+`@view-transition` rule and its reduced-motion block live in
+`src/styles/page-transitions.css`, imported by the public layout only. A
+cross-document transition runs only when both documents opt in, so the admin,
+whose queue, pagination and post-save reloads should snap, opts out by never
+loading the rule. That does not depend on bundle order, which a competing
+`navigation: none` rule would.
+
+`tests/e2e/accessibility.spec.ts` asserts the press token, the reduced-motion
+opt-outs on the Button, sheet and dropdown, and, in Chromium, that a followed
+link cross-fades with motion on and does not with reduced motion.
 
 ## Consequences
 

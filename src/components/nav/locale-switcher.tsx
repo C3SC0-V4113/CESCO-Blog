@@ -26,6 +26,15 @@ import {
  * think to write, and all of it is felt by someone using a keyboard on every
  * page. That is the behavior ADR-0019 reserves React for.
  *
+ * The trigger's name is the purpose *and* the visible language, "Change
+ * language: English". Naming it with the purpose alone replaced the word on
+ * screen, so a speech user saying "click English" hit nothing (WCAG 2.5.3); on
+ * a phone the word is hidden and the same name still reads correctly.
+ *
+ * Each option carries `lang`, so "Español" is pronounced as Spanish on an
+ * English page, and the current one `aria-current`, which the check glyph
+ * alone never told a screen reader.
+ *
  * Labels arrive as props so the UI dictionary (ADR-0027) stays on the server.
  */
 
@@ -48,7 +57,11 @@ export default function LocaleSwitcher({ triggerLabel, options }: Props) {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" aria-label={triggerLabel}>
+          <Button
+            variant="ghost"
+            className="h-10 min-w-10"
+            aria-label={active ? `${triggerLabel}: ${active.label}` : triggerLabel}
+          >
             <Languages />
             {/* The label makes the control self-explanatory, and is the first
                 thing worth dropping when the row runs out of room. */}
@@ -62,7 +75,12 @@ export default function LocaleSwitcher({ triggerLabel, options }: Props) {
           <DropdownMenuItem
             key={option.locale}
             render={
-              <a href={option.href} hrefLang={option.locale}>
+              <a
+                href={option.href}
+                hrefLang={option.locale}
+                lang={option.locale}
+                aria-current={option.current ? 'page' : undefined}
+              >
                 {option.label}
                 {option.current && <Check className="ml-auto" />}
               </a>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { defaultLocale, isLocale, locales } from '@/i18n/locales';
 import { ui } from '@/i18n/ui';
-import { formatDate, resolveLocale, getTranslations } from '@/i18n/utils';
+import { formatDate, interpolate, resolveLocale, getTranslations } from '@/i18n/utils';
 
 describe('locales', () => {
   it('mirrors the locales configured for routing', () => {
@@ -29,6 +29,16 @@ describe('translations', () => {
     // The `satisfies` in ui.ts makes a missing key a compile error; this asserts
     // the same invariant at runtime so a cast could not hide a gap.
     expect(Object.keys(ui.en).sort()).toEqual(Object.keys(ui.es).sort());
+  });
+
+  it('fills placeholders in the order the translation puts them', () => {
+    expect(
+      interpolate('«{title}» pasó a la posición {position} de {total}.', {
+        title: 'Uno',
+        position: 2,
+        total: 3,
+      })
+    ).toBe('«Uno» pasó a la posición 2 de 3.');
   });
 
   it('distinguishes 404 copy from 410 copy', () => {

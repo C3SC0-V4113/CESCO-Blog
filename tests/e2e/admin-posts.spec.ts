@@ -24,7 +24,7 @@ test('refuses admin actions outside the protected path and writes nothing', asyn
   await page.getByLabel('Slug').fill(slug);
   await page.getByRole('button', { name: 'Crear publicación' }).click();
   await expect(page).toHaveURL(/\/admin\/posts$/);
-  await expect(page.getByRole('cell', { name: slug })).toBeVisible();
+  await expect(page.getByRole('rowheader', { name: slug })).toBeVisible();
 });
 
 test('lists post aggregates and keeps implemented destinations live', async ({ page }) => {
@@ -78,7 +78,7 @@ test('creates only the first localization and returns to the aggregate list', as
   await page.getByLabel('Slug').fill(slug);
   await page.getByRole('button', { name: 'Crear publicación' }).click();
   await expect(page).toHaveURL(/\/admin\/posts$/);
-  const row = page.getByRole('row').filter({ has: page.getByRole('cell', { name: slug }) });
+  const row = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: slug }) });
   await expect(row).toContainText(/Opiniones.*Sin crear.*Borrador/);
 });
 
