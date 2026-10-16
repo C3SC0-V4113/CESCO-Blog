@@ -43,7 +43,11 @@ test('renders and hydrates the private editorial shell', async ({ page }, testIn
     'href',
     '/admin/posts'
   );
-  for (const label of ['Multimedia', 'Revisión', 'Series', 'Autores']) {
+  await expect(page.getByRole('link', { name: 'Multimedia' })).toHaveAttribute(
+    'href',
+    '/admin/media'
+  );
+  for (const label of ['Revisión', 'Series', 'Autores']) {
     await expect(page.getByRole('button', { name: label })).toBeDisabled();
   }
 

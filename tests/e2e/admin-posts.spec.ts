@@ -27,7 +27,7 @@ test('refuses admin actions outside the protected path and writes nothing', asyn
   await expect(page.getByRole('cell', { name: slug })).toBeVisible();
 });
 
-test('lists post aggregates and keeps only the posts destination live', async ({ page }) => {
+test('lists post aggregates and keeps implemented destinations live', async ({ page }) => {
   await page.goto('/admin/posts');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Publicaciones');
   await expect(page.getByRole('link', { name: 'Publicaciones', exact: true })).toHaveAttribute(
@@ -38,7 +38,11 @@ test('lists post aggregates and keeps only the posts destination live', async ({
     'href',
     '/admin/posts/new'
   );
-  for (const label of ['Multimedia', 'Revisión', 'Series', 'Autores'])
+  await expect(page.getByRole('link', { name: 'Multimedia' })).toHaveAttribute(
+    'href',
+    '/admin/media'
+  );
+  for (const label of ['Revisión', 'Series', 'Autores'])
     await expect(page.getByRole('button', { name: label })).toBeDisabled();
 });
 
