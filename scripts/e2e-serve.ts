@@ -37,6 +37,16 @@ const uploadStatus = await new Promise<number | null>((resolve) => {
 });
 if (uploadStatus !== 0) process.exit(uploadStatus ?? 1);
 
+runNode([
+  wranglerCli,
+  'd1',
+  'execute',
+  'cesco-blog',
+  '--local',
+  '--file=tests/fixtures/unsafe-legacy-snapshot.sql',
+  ...persistToArgs(persistTo),
+]);
+
 runNode(['node_modules/astro/bin/astro.mjs', 'build']);
 
 const worker = spawn(

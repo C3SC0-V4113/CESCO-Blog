@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  clampPageWindow,
   lastPageWhenBeyond,
   pageCount,
   paginationItems,
@@ -40,6 +41,28 @@ describe('pageCount', () => {
   it('reports one page when there is nothing to show', () => {
     // An empty listing still renders "1 / 1" rather than "1 / 0".
     expect(pageCount(0)).toBe(1);
+  });
+});
+
+describe('clampPageWindow', () => {
+  it('keeps offsets aligned beyond ten thousand pages without aliasing', () => {
+    expect(clampPageWindow('10001', 500_001, 50)).toEqual({
+      requestedPage: 10_001,
+      page: 10_001,
+      offset: 500_000,
+      limit: 50,
+      lastPage: 10_001,
+    });
+  });
+
+  it('clamps to the authoritative last page and rejects unsafe page numbers', () => {
+    expect(clampPageWindow('999999', 51, 50)).toMatchObject({
+      requestedPage: 999_999,
+      page: 2,
+      offset: 50,
+      lastPage: 2,
+    });
+    expect(clampPageWindow('9007199254740992', 51, 50).page).toBe(1);
   });
 });
 

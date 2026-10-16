@@ -1,5 +1,6 @@
 import { ActionError, defineAction } from 'astro:actions';
 
+import { createCachePurger } from '@/actions/cache-purge';
 import { saveDraft } from '@/actions/drafts';
 import {
   listAdminMediaPage,
@@ -7,10 +8,32 @@ import {
   mediaMetadataSchema,
   updateMediaAsset,
 } from '@/actions/media';
+import { retryPendingPurges } from '@/actions/pending-purges';
 import { adminPostError, createAdminPost } from '@/actions/posts';
+import {
+  publicationErrorCode,
+  publishLocalization,
+  renameLocalizationSlug,
+  unpublishLocalization,
+} from '@/actions/publishing';
 import { createPostSchema } from '@/lib/admin-posts';
 import { saveDraftSchema } from '@/lib/drafts';
+import {
+  PERMANENT_REDIRECT_ACKNOWLEDGEMENT_REQUIRED,
+  publishSchema,
+  renameLocalizationSchema,
+  unpublishSchema,
+} from '@/lib/publishing';
 import { getDb } from '@/lib/runtime';
+
+function publicationError(error: unknown, logger: { error(message: string): void }) {
+  const code = publicationErrorCode(error);
+  if (code) return new ActionError({ code });
+  logger.error(
+    `Publication action failed: ${error instanceof Error ? error.stack : String(error)}`
+  );
+  return new ActionError({ code: 'INTERNAL_SERVER_ERROR' });
+}
 export const server = {
   admin: {
     listMedia: defineAction({
@@ -23,6 +46,50 @@ export const server = {
             `Media library page load failed: ${error instanceof Error ? error.stack : String(error)}`
           );
           throw new ActionError({ code: 'INTERNAL_SERVER_ERROR' });
+        }
+      },
+    }),
+    publish: defineAction({
+      input: publishSchema,
+      async handler(input, context) {
+        try {
+          return await publishLocalization(getDb(), input, createCachePurger(context.request));
+        } catch (error) {
+          throw publicationError(error, context.logger);
+        }
+      },
+    }),
+    retryPendingPurges: defineAction({
+      async handler(_input, context) {
+        try {
+          return await retryPendingPurges(getDb(), createCachePurger(context.request));
+        } catch (error) {
+          throw publicationError(error, context.logger);
+        }
+      },
+    }),
+    unpublish: defineAction({
+      input: unpublishSchema,
+      async handler(input, context) {
+        try {
+          return await unpublishLocalization(getDb(), input, createCachePurger(context.request));
+        } catch (error) {
+          throw publicationError(error, context.logger);
+        }
+      },
+    }),
+    renameLocalization: defineAction({
+      input: renameLocalizationSchema,
+      async handler(input, context) {
+        try {
+          return await renameLocalizationSlug(getDb(), input, createCachePurger(context.request));
+        } catch (error) {
+          if (error instanceof Error && error.message === 'redirect-acknowledgement-required')
+            return {
+              status: 'rejected' as const,
+              code: PERMANENT_REDIRECT_ACKNOWLEDGEMENT_REQUIRED,
+            };
+          throw publicationError(error, context.logger);
         }
       },
     }),

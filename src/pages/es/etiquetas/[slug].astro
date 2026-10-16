@@ -5,7 +5,7 @@ import PostCard from '@/components/post/post-card.astro';
 import { findTag, listPostsByTag } from '@/db/queries/taxonomy';
 import { getTranslations, resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
-import { cacheTagHeader } from '@/lib/cache-tags';
+import { applyPageCachePolicy, tagTags } from '@/lib/cache-tags';
 import { getDb } from '@/lib/runtime';
 
 /**
@@ -28,12 +28,10 @@ const db = getDb();
 const tag = slug ? await findTag(db, slug) : null;
 const posts = tag ? await listPostsByTag(db, tag.slug, locale) : [];
 
-if (tag) {
-  Astro.response.headers.set('Cache-Tag', cacheTagHeader([`tag-${tag.slug}`, `locale-${locale}`]));
-} else {
-  Astro.response.status = 404;
-  Astro.response.headers.set('Cache-Control', 'public, max-age=300');
-}
+applyPageCachePolicy(
+  Astro.response,
+  tag ? { kind: 'render', tags: tagTags(tag.slug, locale) } : { kind: 'not-found' }
+);
 ---
 
 <Layout>

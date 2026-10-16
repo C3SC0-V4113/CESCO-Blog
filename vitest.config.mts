@@ -26,6 +26,7 @@ export default defineConfig(async () => {
             name: 'unit',
             environment: 'jsdom',
             include: ['tests/unit/**/*.test.{ts,tsx}'],
+            setupFiles: ['./tests/unit/setup.ts'],
             restoreMocks: true,
             // jsdom startup dominates a cold run and is charged to the first
             // test, which intermittently blew the 5s default. Raised enough to
@@ -45,7 +46,7 @@ export default defineConfig(async () => {
               miniflare: {
                 compatibilityDate: '2026-07-18',
                 compatibilityFlags: ['nodejs_compat'],
-                d1Databases: ['DB'],
+                d1Databases: ['DB', 'MIGRATION_DB'],
                 r2Buckets: ['BUCKET'],
                 bindings: {
                   // Test-only binding so the setup file can apply migrations.

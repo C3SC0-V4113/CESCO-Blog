@@ -7,7 +7,12 @@ import { findPostSeries } from '@/db/queries/collections';
 import { resolveArticleUrl } from '@/db/queries/posts';
 import { resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
-import { ERROR_RESPONSE_MAX_AGE, cacheTagHeader, postDetailTags } from '@/lib/cache-tags';
+import {
+  ERROR_RESPONSE_MAX_AGE,
+  applyPageCachePolicy,
+  cacheTagHeader,
+  postDetailTags,
+} from '@/lib/cache-tags';
 import { articleAlternates } from '@/lib/routes';
 import { getDb } from '@/lib/runtime';
 import { absolute } from '@/lib/seo';
@@ -32,28 +37,32 @@ const series =
 const redirectTo =
   resolution.kind === 'redirect' ? articlePath(locale, section, resolution.slug) : null;
 
-if (redirectTo) {
+if (redirectTo && resolution.kind === 'redirect') {
   // 301, not 302: the old address is retired permanently, and a temporary
-  // redirect would keep crawlers coming back to it (ADR-0010).
-  return Astro.redirect(redirectTo, 301);
+  // redirect would keep crawlers coming back to it (ADR-0010). A returned
+  // Response replaces `Astro.response`, so its own headers are the only ones sent.
+  return new Response(null, {
+    status: 301,
+    headers: {
+      Location: redirectTo,
+      'Cache-Tag': cacheTagHeader(postDetailTags(resolution.postId, locale, section)),
+      'Cache-Control': `public, max-age=${ERROR_RESPONSE_MAX_AGE}`,
+    },
+  });
 }
 
 // A retired URL answers 410 rather than 404. The content was public and
 // indexed, and saying it never existed discards that.
 // Tagged by dependency rather than by URL (ADR-0011). Both localizations
 // carry the same `post-{id}`, so publishing either purges both.
-if (resolution.kind === 'render') {
-  Astro.response.headers.set(
-    'Cache-Tag',
-    cacheTagHeader(postDetailTags(resolution.post.postId, locale, section))
-  );
-} else {
-  // A long-lived cached 410 outlives the republication that should end it.
-  Astro.response.headers.set('Cache-Control', `public, max-age=${ERROR_RESPONSE_MAX_AGE}`);
-}
-
-if (resolution.kind === 'gone') Astro.response.status = 410;
-if (resolution.kind === 'not-found') Astro.response.status = 404;
+applyPageCachePolicy(
+  Astro.response,
+  resolution.kind === 'render'
+    ? { kind: 'render', tags: postDetailTags(resolution.post.postId, locale, section) }
+    : resolution.kind === 'gone'
+      ? { kind: 'gone', tags: postDetailTags(resolution.postId, locale, section) }
+      : { kind: 'not-found' }
+);
 // Where this same article lives in the other locales, published ones only
 // (ADR-0013). Computed once: the `<head>` needs it for `hreflang` and the
 // language picker needs it to keep a reader on the page they are reading.

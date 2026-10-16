@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { schema, type Db } from '@/db/client';
 import { listAdminMedia as queryAdminMedia } from '@/db/queries/admin-media';
 import { newMediaAssetId } from '@/lib/ids';
-import { mediaKey, parseWebp } from '@/lib/media';
+import { mediaKey, parseWebp, safeExternalUrl } from '@/lib/media';
 import { readPageWindow } from '@/lib/pagination';
 
 export const listAdminMediaPageSchema = z.object({
@@ -16,6 +16,8 @@ export async function listAdminMediaPage(db: Db, raw: z.input<typeof listAdminMe
   return queryAdminMedia(db, readPageWindow(String(page), 20));
 }
 
+const externalUrlSchema = z.url().refine((value) => safeExternalUrl(value) !== null);
+
 export const mediaMetadataSchema = z
   .strictObject({
     id: z.uuid(),
@@ -25,9 +27,9 @@ export const mediaMetadataSchema = z
     description: z.string().max(5000).nullish(),
     isOwnWork: z.boolean().optional(),
     creatorName: z.string().max(500).nullish(),
-    sourceUrl: z.url().nullish(),
+    sourceUrl: externalUrlSchema.nullish(),
     licenseLabel: z.string().max(500).nullish(),
-    licenseUrl: z.url().nullish(),
+    licenseUrl: externalUrlSchema.nullish(),
   })
   .refine(({ decorative, altText }) => decorative || altText.trim().length > 0, {
     path: ['altText'],

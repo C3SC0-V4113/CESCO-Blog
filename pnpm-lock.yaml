@@ -88,6 +88,9 @@ importers:
       react-hook-form:
         specifier: ^7.85.0
         version: 7.85.0(react@19.2.8)
+      shiki:
+        specifier: 4.4.1
+        version: 4.4.1
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0

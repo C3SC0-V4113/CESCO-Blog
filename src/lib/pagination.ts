@@ -23,9 +23,28 @@ export type PageWindow = {
  */
 export function readPageWindow(param: string | null, limit = POSTS_PER_PAGE): PageWindow {
   const parsed = Number(param);
-  const page = Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+  const page = Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 1;
 
   return { page, offset: (page - 1) * limit, limit };
+}
+
+export type CountedPageWindow = PageWindow & {
+  requestedPage: number;
+  lastPage: number;
+};
+
+/** Clamps a URL page to a counted result set before its SQL offset is calculated. */
+export function clampPageWindow(
+  param: string | null,
+  total: number,
+  limit = POSTS_PER_PAGE
+): CountedPageWindow {
+  if (!Number.isSafeInteger(total) || total < 0 || !Number.isSafeInteger(limit) || limit < 1)
+    throw new RangeError('Invalid pagination bounds');
+  const requestedPage = readPageWindow(param, limit).page;
+  const lastPage = Math.max(1, Math.ceil(total / limit));
+  const page = Math.min(requestedPage, lastPage);
+  return { requestedPage, page, offset: (page - 1) * limit, limit, lastPage };
 }
 
 /** Total pages for a result count. Always at least one, so an empty listing still renders page 1 of 1. */
