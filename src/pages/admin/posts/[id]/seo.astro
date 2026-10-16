@@ -1,0 +1,29 @@
+---
+import { AdminApp } from '@/components/admin/admin-app';
+import { listAdminMedia } from '@/db/queries/admin-media';
+import { listAdminAuthors, loadAdminSeo } from '@/db/queries/admin-taxonomy';
+import { getTranslations } from '@/i18n/utils';
+import AdminLayout from '@/layouts/admin.astro';
+import { getDb } from '@/lib/runtime';
+import { absolute } from '@/lib/seo';
+import { articlePath } from '@/lib/urls';
+
+const t = getTranslations('es');
+const db = getDb();
+const postId = Astro.params.id ?? '';
+const localizationId = Astro.url.searchParams.get('localization') ?? '';
+const [seo, authors, media] = await Promise.all([
+  loadAdminSeo(db, postId, localizationId),
+  listAdminAuthors(db),
+  listAdminMedia(db, { limit: 200, offset: 0 }),
+]);
+if (!seo) return Astro.redirect(`/admin/posts/${postId}/edit`);
+const canonical = absolute(
+  Astro.site?.toString() ?? Astro.url.origin,
+  articlePath(seo.locale, seo.section, seo.slug)
+);
+---
+
+<AdminLayout title={`${t('admin.seo.pageTitle')} | ${t('admin.brand')}`}>
+  <AdminApp screen={{ name: 'seo', seo, authors, media: media.assets, canonical }} client:load />
+</AdminLayout>

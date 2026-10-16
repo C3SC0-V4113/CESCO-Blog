@@ -45,7 +45,32 @@ type ListingCriteria = {
   section?: PostSection;
   limit: number;
   offset: number;
+  /** Leave out the post the featured slot shows, for a list rendered beside it. */
+  excludeFeatured?: boolean;
 };
+
+/** What the featured slot requires, shared so the slot and its exclusion agree. */
+const featuredCandidate = (locale: Locale) =>
+  and(
+    eq(schema.postLocalizations.locale, locale),
+    eq(schema.postLocalizations.status, 'published'),
+    isNotNull(schema.postLocalizations.firstPublishedAt),
+    isNotNull(schema.postLocalizations.featuredAt),
+    eq(schema.posts.editorialState, 'active')
+  );
+
+const featuredSlot = (db: Db, locale: Locale) =>
+  db
+    .select({ id: schema.postLocalizations.id })
+    .from(schema.postLocalizations)
+    .innerJoin(schema.posts, eq(schema.posts.id, schema.postLocalizations.postId))
+    .innerJoin(
+      schema.postRevisions,
+      eq(schema.postRevisions.id, schema.postLocalizations.publishedRevisionId)
+    )
+    .where(featuredCandidate(locale))
+    .orderBy(desc(schema.postLocalizations.featuredAt))
+    .limit(1);
 
 /**
  * A page of published posts.
@@ -66,7 +91,12 @@ export async function listPublishedPosts(db: Db, criteria: ListingCriteria): Pro
     eq(schema.postLocalizations.status, 'published'),
     isNotNull(schema.postLocalizations.firstPublishedAt),
     eq(schema.posts.editorialState, 'active'),
-    criteria.section ? eq(schema.posts.section, criteria.section) : undefined
+    criteria.section ? eq(schema.posts.section, criteria.section) : undefined,
+    // `IS NOT` rather than `<>`: with nothing featured the slot is NULL, and
+    // `<>` against NULL would drop every row.
+    criteria.excludeFeatured
+      ? sql`${schema.postLocalizations.id} IS NOT (${featuredSlot(db, criteria.locale)})`
+      : undefined
   );
 
   // Issued together, not one after the other: they share a filter but neither
@@ -112,4 +142,31 @@ export async function listPublishedPosts(db: Db, criteria: ListingCriteria): Pro
   ]);
 
   return { posts, total: counted?.total ?? 0 };
+}
+
+/** The one locale-scoped editorial feature, filtered through the public serving contract. */
+export async function findFeaturedPost(db: Db, locale: Locale): Promise<PostSummary | null> {
+  const [post] = await db
+    .select({
+      slug: schema.postLocalizations.slug,
+      section: schema.posts.section,
+      title: schema.postRevisions.title,
+      excerpt: schema.postRevisions.excerpt,
+      readingTimeMinutes: schema.postRevisions.readingTimeMinutes,
+      publishedAt: schema.postLocalizations.firstPublishedAt,
+      authorName: schema.authors.name,
+      coverKey: schema.mediaAssets.r2Key,
+    })
+    .from(schema.postLocalizations)
+    .innerJoin(schema.posts, eq(schema.posts.id, schema.postLocalizations.postId))
+    .innerJoin(
+      schema.postRevisions,
+      eq(schema.postRevisions.id, schema.postLocalizations.publishedRevisionId)
+    )
+    .leftJoin(schema.authors, eq(schema.authors.id, schema.posts.authorId))
+    .leftJoin(schema.mediaAssets, eq(schema.mediaAssets.id, schema.posts.coverMediaId))
+    .where(featuredCandidate(locale))
+    .orderBy(desc(schema.postLocalizations.featuredAt))
+    .limit(1);
+  return post ?? null;
 }

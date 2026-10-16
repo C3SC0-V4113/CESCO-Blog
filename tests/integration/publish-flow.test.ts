@@ -2,6 +2,7 @@ import { env } from 'cloudflare:test';
 import { and, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { setFeaturedLocalization } from '@/actions/admin-taxonomy';
 import { retryPendingPurges } from '@/actions/pending-purges';
 import {
   publicationErrorCode,
@@ -12,6 +13,7 @@ import {
 } from '@/actions/publishing';
 import { createDb, schema } from '@/db/client';
 import { countPendingPurges } from '@/db/queries/admin-review';
+import { findFeaturedPost } from '@/db/queries/listings';
 
 import type { ContentDoc } from '@/lib/content/schema';
 
@@ -83,7 +85,11 @@ async function seedDraft(overrides: { cover?: boolean; title?: string } = {}) {
     excerpt: 'Resumen',
     contentJson: doc(value.inlineId),
     seoTitle: 'SEO preservado',
+    seoDescription: 'Descripción SEO preservada',
     ogTitle: 'OG preservado',
+    ogDescription: 'Descripción OG preservada',
+    ogImageMediaId: value.coverId,
+    ogImageAlt: 'Vista social preservada',
     draftToken: 'reviewed-token',
   });
   return { db, ...value };
@@ -117,7 +123,11 @@ describe('publish flow', () => {
     expect(revision).toMatchObject({
       version: 1,
       seoTitle: 'SEO preservado',
+      seoDescription: 'Descripción SEO preservada',
       ogTitle: 'OG preservado',
+      ogDescription: 'Descripción OG preservada',
+      ogImageMediaId: seeded.coverId,
+      ogImageAlt: 'Vista social preservada',
       readingTimeMinutes: 1,
       tocJson: [{ id: 'heading', level: 2, text: 'Encabezado' }],
     });
@@ -252,6 +262,57 @@ describe('publish flow', () => {
         .from(schema.postLocalizations)
         .where(eq(schema.postLocalizations.id, seeded.localizationId))
     ).toEqual([{ first: '2026-08-14 12:30:00', current: '2026-08-16 09:00:00' }]);
+  });
+
+  it('clears the withdrawn localization feature and keeps it cleared after republishing', async () => {
+    const seeded = await seedDraft();
+    const purge = vi.fn().mockResolvedValue(undefined);
+    const first = crypto.randomUUID();
+    await publishLocalization(
+      seeded.db,
+      {
+        postId: seeded.postId,
+        localizationId: seeded.localizationId,
+        draftToken: 'reviewed-token',
+        operationId: first,
+      },
+      purge,
+      now
+    );
+    await setFeaturedLocalization(
+      seeded.db,
+      { localizationId: seeded.localizationId, featured: true },
+      purge,
+      now
+    );
+    expect(await findFeaturedPost(seeded.db, 'es')).toMatchObject({
+      slug: `slug-${seeded.postId}`,
+    });
+
+    await unpublishLocalization(
+      seeded.db,
+      { postId: seeded.postId, localizationId: seeded.localizationId },
+      purge
+    );
+    const [withdrawn] = await seeded.db
+      .select({ featuredAt: schema.postLocalizations.featuredAt })
+      .from(schema.postLocalizations)
+      .where(eq(schema.postLocalizations.id, seeded.localizationId));
+    expect(withdrawn?.featuredAt).toBeNull();
+    expect(purge.mock.calls.at(-1)?.[0]).toContain('featured');
+
+    await publishLocalization(
+      seeded.db,
+      {
+        postId: seeded.postId,
+        localizationId: seeded.localizationId,
+        draftToken: 'reviewed-token',
+        operationId: crypto.randomUUID(),
+      },
+      purge,
+      new Date('2026-08-15T09:00:00Z')
+    );
+    expect(await findFeaturedPost(seeded.db, 'es')).toBeNull();
   });
 
   it('snapshots public media metadata and accepts a 100-image document within the query budget', async () => {

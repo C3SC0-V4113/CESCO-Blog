@@ -33,9 +33,10 @@ import type { Locale } from '@/i18n/locales';
 interface Props {
   locale: Locale;
   post: PostSummary;
+  featured?: boolean;
 }
 
-const { locale, post } = Astro.props;
+const { locale, post, featured = false } = Astro.props;
 const t = getTranslations(locale);
 
 const href = articlePath(locale, post.section, post.slug);
@@ -43,7 +44,12 @@ const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.op
 ---
 
 <article
-  class="group grid gap-x-5 gap-y-4 border-b border-border py-8 last:border-b-0 sm:grid-cols-[1fr_10rem]"
+  class:list={[
+    'group grid gap-x-5 gap-y-4 border-b border-border py-8 last:border-b-0',
+    featured
+      ? 'rounded-xl border bg-card p-6 shadow-sm sm:grid-cols-[1fr_minmax(16rem,45%)]'
+      : 'sm:grid-cols-[1fr_10rem]',
+  ]}
 >
   <div class="sm:order-1">
     <p
@@ -125,7 +131,8 @@ const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.op
           alt=""
           width={COVER_WIDTH}
           height={COVER_HEIGHT}
-          loading="lazy"
+          loading={featured ? 'eager' : 'lazy'}
+          fetchpriority={featured ? 'high' : 'auto'}
           decoding="async"
           class="aspect-[1200/628] w-full object-cover transition-transform duration-300 ease-[var(--ease-out-quad)] group-hover:scale-[1.03] motion-reduce:transition-none"
         />

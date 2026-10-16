@@ -1,8 +1,14 @@
 ---
-import { absolute, buildAlternateLinks, ogAlternateLocales, ogLocale } from '@/lib/seo';
+import {
+  absolute,
+  buildAlternateLinks,
+  ogAlternateLocales,
+  ogLocale,
+  socialImageMeta,
+} from '@/lib/seo';
 
 import type { Locale } from '@/i18n/locales';
-import type { AlternateLocalization } from '@/lib/seo';
+import type { AlternateLocalization, SocialImage } from '@/lib/seo';
 
 /**
  * The server-rendered SEO head (ADR-0013).
@@ -26,9 +32,22 @@ interface Props {
   /** Published localizations of this page, this locale included. */
   alternates?: AlternateLocalization[] | undefined;
   ogType?: 'website' | 'article' | undefined;
+  ogTitle?: string | undefined;
+  ogDescription?: string | null | undefined;
+  image?: SocialImage | null;
 }
 
-const { locale, title, description, path, alternates = [], ogType = 'website' } = Astro.props;
+const {
+  locale,
+  title,
+  description,
+  path,
+  alternates = [],
+  ogType = 'website',
+  ogTitle = title,
+  ogDescription = description,
+  image = null,
+} = Astro.props;
 
 const siteUrl = Astro.site?.toString() ?? Astro.url.origin;
 const canonical = absolute(siteUrl, path);
@@ -54,10 +73,21 @@ const alternateOgLocales = ogAlternateLocales(alternates, locale);
 <meta name="robots" content="max-image-preview:large" />
 
 <meta property="og:type" content={ogType} />
-<meta property="og:title" content={title} />
-{description && <meta property="og:description" content={description} />}
+<meta property="og:title" content={ogTitle} />
+{ogDescription && <meta property="og:description" content={ogDescription} />}
 <meta property="og:url" content={canonical} />
 <meta property="og:locale" content={ogLocale(locale)} />
 {alternateOgLocales.map((alternate) => <meta property="og:locale:alternate" content={alternate} />)}
 
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={ogTitle} />
+{ogDescription && <meta name="twitter:description" content={ogDescription} />}
+{
+  socialImageMeta(siteUrl, image).map(({ attribute, key, content }) =>
+    attribute === 'property' ? (
+      <meta property={key} content={content} />
+    ) : (
+      <meta name={key} content={content} />
+    )
+  )
+}
