@@ -5,7 +5,7 @@ import PostCard from '@/components/post/post-card.astro';
 import { listCollectionPosts, resolveCollectionUrl } from '@/db/queries/collections';
 import { getTranslations, resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
-import { cacheTagHeader, setNotFoundCachePolicy } from '@/lib/cache-tags';
+import { applyPageCachePolicy, collectionTags } from '@/lib/cache-tags';
 import { getDb } from '@/lib/runtime';
 
 /**
@@ -31,19 +31,14 @@ const posts =
     ? await listCollectionPosts(db, resolution.collection.collectionId, locale)
     : [];
 
-if (resolution.kind === 'render') {
-  Astro.response.headers.set(
-    'Cache-Tag',
-    cacheTagHeader([`collection-${resolution.collection.collectionId}`, `locale-${locale}`])
-  );
-} else if (resolution.kind === 'gone') {
-  Astro.response.headers.set('Cache-Control', 'public, max-age=300');
-} else {
-  setNotFoundCachePolicy(Astro.response.headers);
-}
-
-if (resolution.kind === 'gone') Astro.response.status = 410;
-if (resolution.kind === 'not-found') Astro.response.status = 404;
+applyPageCachePolicy(
+  Astro.response,
+  resolution.kind === 'render'
+    ? { kind: 'render', tags: collectionTags(resolution.collection.collectionId, locale) }
+    : resolution.kind === 'gone'
+      ? { kind: 'gone' }
+      : { kind: 'not-found' }
+);
 ---
 
 <Layout>
