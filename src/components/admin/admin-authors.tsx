@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -91,7 +91,7 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
       }}
     >
       <h2 className="text-lg font-semibold">{author ? author.name : t('admin.authors.new')}</h2>
-      <FieldGroup className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <TextField
           id={`${id}-name`}
           label={t('admin.authors.name')}
@@ -117,7 +117,7 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
           inputMode="url"
           defaultValue={author?.websiteUrl ?? ''}
         />
-        <Field className="gap-1">
+        <Field spacing="compact">
           <FieldLabel htmlFor={avatarId}>{t('admin.authors.avatar')}</FieldLabel>
           <Select
             value={avatarMediaId || NO_AVATAR}
@@ -167,7 +167,7 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
         <FieldDescription id={sameAsHelpId} className="md:col-span-2">
           {t('admin.authors.sameAsHelp')}
         </FieldDescription>
-      </FieldGroup>
+      </div>
       <div className="flex items-center gap-3">
         <PendingButton type="submit" pending={status === 'pending'}>
           {t('admin.common.save')}
@@ -210,7 +210,7 @@ function TextField({
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & { id: string; label: string; name: string }) {
   return (
-    <Field className="gap-1">
+    <Field spacing="compact">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Input id={id} name={name} {...props} />
     </Field>

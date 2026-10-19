@@ -51,7 +51,7 @@ function FieldGroup({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-const fieldVariants = cva('group/field flex w-full gap-2 data-[invalid=true]:text-destructive', {
+const fieldVariants = cva('group/field flex w-full data-[invalid=true]:text-destructive', {
   variants: {
     orientation: {
       vertical: 'flex-col *:w-full [&>.sr-only]:w-auto',
@@ -60,15 +60,33 @@ const fieldVariants = cva('group/field flex w-full gap-2 data-[invalid=true]:tex
       responsive:
         'flex-col *:w-full @md/field-group:flex-row @md/field-group:items-center @md/field-group:*:w-auto @md/field-group:has-[>[data-slot=field-content]]:items-start @md/field-group:*:data-[slot=field-label]:flex-auto [&>.sr-only]:w-auto @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px',
     },
+    spacing: {
+      default: 'gap-2',
+      compact: 'gap-1',
+    },
+    size: {
+      default: '',
+      control: 'h-10 w-auto',
+    },
+    align: {
+      center: '',
+      start: 'items-start',
+    },
   },
   defaultVariants: {
     orientation: 'vertical',
+    spacing: 'default',
+    size: 'default',
+    align: 'center',
   },
 });
 
 function Field({
   className,
   orientation = 'vertical',
+  spacing = 'default',
+  size = 'default',
+  align = 'center',
   ...props
 }: React.ComponentProps<'div'> & VariantProps<typeof fieldVariants>) {
   return (
@@ -76,7 +94,7 @@ function Field({
       role="group"
       data-slot="field"
       data-orientation={orientation}
-      className={cn(fieldVariants({ orientation }), className)}
+      className={cn(fieldVariants({ orientation, spacing, size, align }), className)}
       {...props}
     />
   );

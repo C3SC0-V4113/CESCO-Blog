@@ -232,7 +232,7 @@ function RenameConfirmation({
   return (
     <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
       <p>{t('admin.review.renameWarning')}</p>
-      <Field orientation="horizontal" className="items-start">
+      <Field orientation="horizontal" align="start">
         <Checkbox
           id="review-rename-confirmation"
           ref={acknowledgement}
@@ -365,7 +365,7 @@ function ReviewDetailPanel({
           }}
         >
           <ReviewSummary detail={detail} />
-          <Field className="gap-1">
+          <Field spacing="compact">
             <FieldLabel htmlFor="review-slug">{t('admin.posts.slug')}</FieldLabel>
             <Input
               id="review-slug"

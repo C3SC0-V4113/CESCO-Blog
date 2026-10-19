@@ -206,7 +206,7 @@ export function AdminCollectionEditor({
         void save(event.currentTarget);
       }}
     >
-      <UiField className="gap-1">
+      <UiField spacing="compact">
         <FieldLabel htmlFor="collection-editorial-state">
           {t('admin.collections.lifecycle')}
         </FieldLabel>
@@ -281,7 +281,7 @@ export function AdminCollectionEditor({
         <p id="members-status" role="status" className="sr-only">
           {membersStatus}
         </p>
-        <UiField className="gap-1">
+        <UiField spacing="compact">
           <FieldLabel htmlFor="collection-add-post">{t('admin.collections.add')}</FieldLabel>
           <Select
             value={null}
@@ -352,7 +352,7 @@ function Field({
 }) {
   const message = invalid?.name === name ? invalid.message : undefined;
   return (
-    <UiField data-invalid={Boolean(message)} className="gap-1">
+    <UiField data-invalid={Boolean(message)} spacing="compact">
       <FieldLabel htmlFor={name}>{label}</FieldLabel>
       <Input
         id={name}
@@ -399,7 +399,7 @@ function CollectionLocalizations({
             {locked && (
               <p className="text-sm text-muted-foreground">{t('admin.collections.slugLocked')}</p>
             )}
-            <UiField className="gap-1">
+            <UiField spacing="compact">
               <FieldLabel htmlFor={`collection-${locale}-description`}>
                 {t('admin.collections.description')}
               </FieldLabel>
@@ -410,7 +410,7 @@ function CollectionLocalizations({
                 className="min-h-20"
               />
             </UiField>
-            <UiField className="gap-1">
+            <UiField spacing="compact">
               <FieldLabel htmlFor={`collection-${locale}-status`}>
                 {t('admin.collections.status')}
               </FieldLabel>

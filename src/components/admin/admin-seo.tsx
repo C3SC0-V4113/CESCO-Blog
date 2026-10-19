@@ -182,7 +182,7 @@ function SeoFields({
 }) {
   return (
     <>
-      <Field className="gap-1">
+      <Field spacing="compact">
         <FieldLabel htmlFor="seo-canonical">{t('admin.seo.canonical')}</FieldLabel>
         <Input
           id="seo-canonical"
@@ -298,7 +298,7 @@ function SeoPreview({
           <img
             src={mediaPath(image.r2Key)}
             alt={alt || image.altText || ''}
-            className="size-full  object-cover opacity-55"
+            className="size-full object-cover opacity-55"
           />
         )}
         <div className="relative mt-[-52.35%] flex aspect-[1.91/1] flex-col justify-end bg-linear-to-t from-black/90 to-transparent p-6">
@@ -321,7 +321,7 @@ type FieldProps = {
 };
 function Text({ name, label, value, onChange }: FieldProps) {
   return (
-    <Field className="gap-1">
+    <Field spacing="compact">
       <FieldLabel htmlFor={`seo-${name}`}>{label}</FieldLabel>
       <Input
         id={`seo-${name}`}
@@ -334,7 +334,7 @@ function Text({ name, label, value, onChange }: FieldProps) {
 }
 function Area({ name, label, value, onChange }: FieldProps) {
   return (
-    <Field className="gap-1">
+    <Field spacing="compact">
       <FieldLabel htmlFor={`seo-${name}`}>{label}</FieldLabel>
       <Textarea
         id={`seo-${name}`}
@@ -356,7 +356,7 @@ function ChoiceField({
 }: FieldProps & { options: Array<{ value: string; label: string }>; invalid?: Invalid }) {
   const message = invalid?.name === name ? invalid.message : undefined;
   return (
-    <Field data-invalid={Boolean(message)} className="gap-1">
+    <Field data-invalid={Boolean(message)} spacing="compact">
       <FieldLabel htmlFor={`seo-${name}`}>{label}</FieldLabel>
       <BaseSelect
         value={value || NO_SELECTION}

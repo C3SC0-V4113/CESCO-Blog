@@ -294,7 +294,7 @@ export function AdminEditor({
         </div>
         {/* Each constraint sits outside its label: inside, it would be read twice,
           once in the name and again as the description. */}
-        <Field className="gap-2">
+        <Field>
           <FieldLabel htmlFor="editor-title">{t('admin.editor.postTitle')}</FieldLabel>
           <Input
             id="editor-title"
@@ -308,7 +308,7 @@ export function AdminEditor({
             {t('admin.editor.titleConstraint')}
           </FieldDescription>
         </Field>
-        <Field className="gap-2">
+        <Field>
           <FieldLabel htmlFor="editor-excerpt">{t('admin.editor.excerpt')}</FieldLabel>
           <Textarea
             id="editor-excerpt"

@@ -206,7 +206,7 @@ function MediaUpload({
             aria-describedby={altMissing ? 'altText-error' : undefined}
           />
         </Field>
-        <Field orientation="horizontal" className="h-10 w-auto items-center gap-2">
+        <Field orientation="horizontal" size="control">
           <Checkbox
             id={decorativeId}
             checked={decorative}
@@ -390,11 +390,11 @@ function MetadataForm({
         void save(event.currentTarget);
       }}
     >
-      <Field className="gap-1">
+      <Field spacing="compact">
         <FieldLabel htmlFor={`${formId}-alt`}>{t('admin.media.alt')}</FieldLabel>
         <Input id={`${formId}-alt`} name="altText" defaultValue={asset.altText ?? ''} />
       </Field>
-      <Field orientation="horizontal" className="items-center">
+      <Field orientation="horizontal">
         <Checkbox
           id={`${formId}-decorative`}
           name="decorative"
@@ -403,7 +403,7 @@ function MetadataForm({
         <FieldLabel htmlFor={`${formId}-decorative`}>{t('admin.media.decorative')}</FieldLabel>
       </Field>
       {metadataFields.map((field) => (
-        <Field key={field} className="gap-1">
+        <Field key={field} spacing="compact">
           <FieldLabel htmlFor={`${formId}-${field}`}>{t(`admin.media.${field}`)}</FieldLabel>
           <Input
             id={`${formId}-${field}`}
@@ -413,7 +413,7 @@ function MetadataForm({
           />
         </Field>
       ))}
-      <Field orientation="horizontal" className="items-center">
+      <Field orientation="horizontal">
         <Checkbox id={`${formId}-own-work`} name="isOwnWork" defaultChecked={asset.isOwnWork} />
         <FieldLabel htmlFor={`${formId}-own-work`}>{t('admin.media.isOwnWork')}</FieldLabel>
       </Field>
