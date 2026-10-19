@@ -85,6 +85,16 @@
   --font-sans: 'Figtree Variable', sans-serif;
   --font-heading: 'Merriweather Variable', serif;
 
+  /* The compact label size keeps an explicit 1rem line box. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+
+  /* Display title sizes preserve the article title's existing scale and leading. */
+  --text-display: 2.125rem;
+  --text-display--line-height: 1.15;
+  --text-display-sm: 2.5rem;
+  --text-display-sm--line-height: 1.15;
+
   /*
    * The easing scale of ADR-0022. Declared in the theme rather than as loose
    * custom properties so Tailwind generates `ease-out-quad` and friends, which
@@ -167,6 +177,10 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@utility eyebrow {
+  @apply text-2xs font-medium tracking-[0.14em] uppercase;
 }
 
 @layer base {
