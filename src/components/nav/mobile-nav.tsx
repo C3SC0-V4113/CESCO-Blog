@@ -49,7 +49,7 @@ export default function MobileNav({ openLabel, closeLabel, navLabel, items }: Pr
     <Sheet>
       <SheetTrigger
         render={
-          <Button variant="ghost" size="icon-lg" className="size-10" aria-label={openLabel}>
+          <Button variant="ghost" size="icon-xl" aria-label={openLabel}>
             <Menu />
           </Button>
         }

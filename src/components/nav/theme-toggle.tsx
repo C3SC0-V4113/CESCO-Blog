@@ -79,14 +79,7 @@ function toggleTheme() {
 
 export default function ThemeToggle({ label }: Props) {
   return (
-    <Button
-      variant="ghost"
-      size="icon-lg"
-      className="size-10"
-      onClick={toggleTheme}
-      aria-label={label}
-      title={label}
-    >
+    <Button variant="ghost" size="icon-xl" onClick={toggleTheme} aria-label={label} title={label}>
       {/*
         Opacity carries the swap and scale only nudges it. The usual shadcn
         toggle animates to `scale-0`, which ADR-0022 rules out — "enter from

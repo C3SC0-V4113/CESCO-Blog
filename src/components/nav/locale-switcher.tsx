@@ -59,7 +59,7 @@ export default function LocaleSwitcher({ triggerLabel, options }: Props) {
         render={
           <Button
             variant="ghost"
-            className="h-10 min-w-10"
+            size="xl"
             aria-label={active ? `${triggerLabel}: ${active.label}` : triggerLabel}
           >
             <Languages />

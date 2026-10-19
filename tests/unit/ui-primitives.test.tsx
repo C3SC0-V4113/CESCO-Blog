@@ -88,8 +88,13 @@ describe('registry primitives', () => {
       const classes = control.className;
       expect(classes).toMatch(/focus-visible:ring-ring(?:\s|$)/);
       expect(classes).not.toMatch(/ring-ring\/\d/);
-      expect(classes).not.toMatch(/aria-invalid:ring-(?:destructive|ring)/);
     }
+
+    const buttonClasses = screen.getByRole('button', { name: 'Save' }).className;
+    expect(buttonClasses).toContain('focus-visible:ring-ring');
+    expect(buttonClasses).toContain('aria-invalid:ring-3');
+    expect(buttonClasses).toContain('aria-invalid:ring-destructive/20');
+    expect(buttonClasses).toContain('dark:aria-invalid:ring-destructive/40');
 
     const labelClasses = screen.getByText('Grouped checkbox').className;
     expect(labelClasses).toContain('has-[:focus-visible]:ring-ring');
