@@ -80,14 +80,14 @@ const trail = [
   column spans the article and the outline stays beside it the whole way down.
 */}
 <main class="px-6 pt-12 pb-20">
-  <div class="mx-auto max-w-[34rem] lg:grid lg:max-w-[52rem] lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:gap-10">
+  <div class="mx-auto max-w-136 lg:grid lg:max-w-208 lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:gap-10">
     {post.toc.length > 0 && (
-      <aside class="sticky top-0 z-10 -mx-6 mb-10 bg-background px-6 py-2 lg:relative lg:top-auto lg:order-2 lg:mx-0 lg:mb-0 lg:px-0 lg:py-0">
+      <aside class="sticky top-0 z-10 -mx-6 mb-10 bg-background px-6 py-2 lg:relative lg:top-auto lg:order-2 lg:mx-0 lg:mb-0 lg:p-0 ">
         <TableOfContents locale={locale} entries={post.toc} />
       </aside>
     )}
 
-    <article class="max-w-[34rem] lg:order-1">
+    <article class="max-w-136 lg:order-1">
       <BreadcrumbTrail locale={locale} trail={trail} current={post.title} />
 
       {/*
@@ -113,13 +113,13 @@ const trail = [
             alt={post.cover.alt ?? ''}
             width={post.cover.width ?? undefined}
             height={post.cover.height ?? undefined}
-            class="mt-7 aspect-[1200/628] w-full rounded-lg object-cover outline -outline-offset-1 outline-image-outline"
+            class="mt-7 aspect-1200/628 w-full rounded-lg object-cover outline -outline-offset-1 outline-image-outline"
             fetchpriority="high"
           />
         )}
 
         {post.excerpt && (
-          <p class="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
+          <p class="mt-5 text-lg/relaxed  text-pretty text-muted-foreground">
             {post.excerpt}
           </p>
         )}

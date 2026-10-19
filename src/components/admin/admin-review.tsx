@@ -104,7 +104,7 @@ function ReviewPreview({ detail }: { detail: ReviewDetail }) {
               width={asset.width ?? undefined}
               height={asset.height ?? undefined}
               alt={block.attrs.alt}
-              className="h-auto max-h-[32rem] w-full rounded-md object-contain"
+              className="h-auto max-h-128 w-full rounded-md object-contain"
             />
           </figure>
         ) : (
@@ -190,7 +190,7 @@ function ReviewSummary({ detail }: { detail: ReviewDetail }) {
   return (
     <>
       <div>
-        <h2 className="text-xl font-semibold [overflow-wrap:anywhere]">
+        <h2 className="text-xl font-semibold wrap-anywhere">
           {detail.title || detail.slug}
         </h2>
         <p className="text-sm text-muted-foreground">

@@ -436,7 +436,7 @@ function EditorImagePicker({
           id="editor-image-picker"
           aria-labelledby="editor-image-picker-heading"
           className={cn(
-            'sticky top-4 max-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-3 overflow-hidden rounded-xl border bg-background p-4 transition-[opacity,translate,display] [transition-behavior:allow-discrete] duration-200 ease-out-cubic [@starting-style]:opacity-0 motion-safe:[@starting-style]:translate-x-2',
+            'sticky top-4 max-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-3 overflow-hidden rounded-xl border bg-background p-4 transition-[opacity,translate,display] transition-discrete duration-200 ease-out-cubic starting:opacity-0 motion-safe:starting:translate-x-2',
             open
               ? 'flex translate-x-0 opacity-100'
               : 'pointer-events-none hidden opacity-0 duration-150 motion-safe:translate-x-2'

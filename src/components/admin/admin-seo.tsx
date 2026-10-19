@@ -298,10 +298,10 @@ function SeoPreview({
           <img
             src={mediaPath(image.r2Key)}
             alt={alt || image.altText || ''}
-            className="h-full w-full object-cover opacity-55"
+            className="size-full  object-cover opacity-55"
           />
         )}
-        <div className="relative -mt-[52.35%] flex aspect-[1.91/1] flex-col justify-end bg-gradient-to-t from-black/90 to-transparent p-6">
+        <div className="relative mt-[-52.35%] flex aspect-[1.91/1] flex-col justify-end bg-linear-to-t from-black/90 to-transparent p-6">
           <p className="text-sm font-semibold">{author?.name ?? SITE_NAME}</p>
           {/* Styled, not structural: a preview's title is not a section of this page. */}
           <p className="mt-2 text-2xl font-bold">{effective.ogTitle}</p>

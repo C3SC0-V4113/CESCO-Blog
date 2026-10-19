@@ -157,22 +157,22 @@ export function AdminPostList({ posts, page, total }: AdminPostListProps) {
             <tbody className="divide-y">
               {posts.map((post) => (
                 <tr key={post.id}>
-                  <th scope="row" className="max-w-64 truncate px-4 py-4 font-medium">
+                  <th scope="row" className="max-w-64 truncate p-4  font-medium">
                     {post.displayName}
                   </th>
-                  <td className="px-4 py-4">
+                  <td className="p-4 ">
                     {t(post.section === 'analysis' ? 'nav.analysis' : 'nav.opinion')}
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="p-4 ">
                     <LocaleCell post={post} locale="es" />
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="p-4 ">
                     <LocaleCell post={post} locale="en" />
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="p-4 ">
                     {t(`admin.posts.state.${post.editorialState}` as UiKey)}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
+                  <td className="p-4  whitespace-nowrap">
                     {formatDate(post.updatedAt, 'es')}
                   </td>
                 </tr>

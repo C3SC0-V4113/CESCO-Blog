@@ -96,11 +96,11 @@ export default function ThemeToggle({ label }: Props) {
       */}
       <Sun
         data-theme-glyph
-        className="scale-100 rotate-0 opacity-100 transition-[transform,opacity] duration-150 ease-[var(--ease-out-quad)] motion-reduce:transition-none dark:scale-95 dark:-rotate-90 dark:opacity-0"
+        className="scale-100 rotate-0 opacity-100 transition-[transform,opacity] duration-150 ease-out-quad motion-reduce:transition-none dark:scale-95 dark:-rotate-90 dark:opacity-0"
       />
       <Moon
         data-theme-glyph
-        className="absolute scale-95 rotate-90 opacity-0 transition-[transform,opacity] duration-150 ease-[var(--ease-out-quad)] motion-reduce:transition-none dark:scale-100 dark:rotate-0 dark:opacity-100"
+        className="absolute scale-95 rotate-90 opacity-0 transition-[transform,opacity] duration-150 ease-out-quad motion-reduce:transition-none dark:scale-100 dark:rotate-0 dark:opacity-100"
       />
     </Button>
   );

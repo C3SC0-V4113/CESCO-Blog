@@ -346,7 +346,7 @@ function MediaCard({ asset, compact = false }: { asset: AdminMediaAsset; compact
           compact ? 'size-16 shrink-0 rounded-md object-cover' : 'aspect-video w-full object-cover'
         }
       />
-      <span className={compact ? 'min-w-0 flex-1 p-2 break-words' : 'block truncate p-3'}>
+      <span className={compact ? 'min-w-0 flex-1 p-2 wrap-break-word' : 'block truncate p-3'}>
         {asset.altText || t('admin.media.decorative')}
       </span>
     </>
