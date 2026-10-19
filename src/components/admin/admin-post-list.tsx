@@ -42,9 +42,9 @@ const statusKey = (status: AdminLocaleStatus) => `admin.posts.locale.${status}` 
 
 function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | 'en' }) {
   const id = post.localizationIds[locale];
-  const [pending, setPending] = useState(false);
-  const [cacheWarning, setCacheWarning] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [state, setState] = useState<
+    'idle' | 'pending' | 'feature-error' | 'cache-warning' | 'cache-error'
+  >('idle');
   const featured = post.featured[locale] ?? false;
   const label = t(statusKey(post.locales[locale]));
   const name = (action: string) =>
@@ -54,37 +54,30 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
       locale: t(`locale.${locale}`),
     });
   if (!id) return <span>{label}</span>;
-  const settle = (work: Promise<boolean>) => {
-    setPending(true);
-    setFailed(false);
-    void work
-      .catch(() => false)
-      .then((done) => {
-        if (!done) {
-          setPending(false);
-          setFailed(true);
-        }
-      });
-  };
-  const toggleFeatured = () =>
-    settle(
-      callSetFeatured({ localizationId: id, featured: !featured }).then((result) => {
-        if (result.error) return false;
-        if (result.data.status.includes('warning')) {
-          setCacheWarning(true);
-          setPending(false);
+  const toggleFeatured = () => {
+    setState('pending');
+    void callSetFeatured({ localizationId: id, featured: !featured })
+      .then((result) => {
+        if (result.error) {
+          setState('feature-error');
+        } else if (result.data.status.includes('warning')) {
+          setState('cache-warning');
         } else window.location.reload();
-        return true;
       })
-    );
-  const retryCache = () =>
-    settle(
-      callRetryPendingPurges().then((result) => {
-        if (result.error || result.data.status !== 'purged') return false;
-        window.location.reload();
-        return true;
+      .catch(() => setState('feature-error'));
+  };
+  const retryCache = () => {
+    setState('pending');
+    void callRetryPendingPurges()
+      .then((result) => {
+        if (result.error || result.data.status !== 'purged') {
+          setState('cache-error');
+        } else window.location.reload();
       })
-    );
+      .catch(() => setState('cache-error'));
+  };
+  const cacheWarning = state === 'cache-warning' || state === 'cache-error';
+  const pending = state === 'pending';
   // The status stays the way into the editor: it is what an editor scans the
   // table for, and the publish and editor flows locate a draft by it.
   return (
@@ -132,9 +125,9 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
             </Button>
           ))}
       </div>
-      {failed && (
+      {(state === 'feature-error' || state === 'cache-error') && (
         <p role="alert" className="text-xs text-destructive">
-          {t(cacheWarning ? 'admin.common.error' : 'admin.posts.featureError')}
+          {t(state === 'cache-error' ? 'admin.common.error' : 'admin.posts.featureError')}
         </p>
       )}
     </div>
