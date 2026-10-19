@@ -1,16 +1,112 @@
+import { plugin as shadcn } from '@shadcn/lint';
 import vitest from '@vitest/eslint-plugin';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import eslintPluginAstro from 'eslint-plugin-astro';
+import betterTailwindcss from 'eslint-plugin-better-tailwindcss';
+import { getDefaultSelectors } from 'eslint-plugin-better-tailwindcss/defaults';
 import importPlugin from 'eslint-plugin-import';
 import playwrightPlugin from 'eslint-plugin-playwright';
 import reactDoctor from 'eslint-plugin-react-doctor';
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
 import testingLibraryPlugin from 'eslint-plugin-testing-library';
 import tseslint from 'typescript-eslint';
+
+// Keep built-in class attributes while limiting helper-call linting to our APIs.
+const tailwindSelectors = getDefaultSelectors().filter(
+  (selector) => selector.kind !== 'callee' || selector.name === '^cn$' || selector.name === '^cva$'
+);
+
 const eslintConfig = defineConfig([
   ...tseslint.configs.recommended,
   ...eslintPluginAstro.configs.recommended,
+  {
+    files: ['**/*.{ts,tsx,astro}'],
+    plugins: {
+      'better-tailwindcss': betterTailwindcss,
+    },
+    settings: {
+      'better-tailwindcss': {
+        entryPoint: 'src/styles/global.css',
+        selectors: tailwindSelectors,
+      },
+    },
+    rules: {
+      'better-tailwindcss/enforce-canonical-classes': 'warn',
+      'better-tailwindcss/enforce-shorthand-classes': 'warn',
+      'better-tailwindcss/no-conflicting-classes': 'warn',
+      'better-tailwindcss/no-deprecated-classes': 'warn',
+      'better-tailwindcss/no-duplicate-classes': 'warn',
+      'better-tailwindcss/no-restricted-classes': [
+        'warn',
+        {
+          restrict: [
+            {
+              pattern: '^(?:.+:)?text-primary(?:/[0-9]{1,3})?!?$',
+              message: 'use text-brand for accent text; text-primary is a fill colour',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['**/*.tsx'],
+    plugins: {
+      shadcn,
+    },
+    settings: {
+      shadcn: {
+        ui: '@/components/ui',
+        componentImports: ['^@/components/ui(/|$)'],
+        mergeFunctions: ['cn'],
+        variantFunctions: ['cva'],
+        themeImports: ['(?:^|/)styles/global\\.css$'],
+      },
+    },
+    rules: {
+      // Allow placement on the parent while components retain visual styling.
+      'shadcn/no-restyle': [
+        'warn',
+        {
+          allow: [
+            'm-*',
+            'mx-*',
+            'my-*',
+            'mt-*',
+            'mr-*',
+            'mb-*',
+            'ml-*',
+            'ms-*',
+            'me-*',
+            'w-full',
+            'w-auto',
+            'min-w-0',
+            'max-w-*',
+            'flex-1',
+            'flex-none',
+            'grow',
+            'shrink-0',
+            'self-*',
+            'justify-self-*',
+            'col-span-*',
+            'row-span-*',
+            'order-*',
+            'hidden',
+            'block',
+            'flex',
+            'inline-flex',
+            'grid',
+          ],
+        },
+      ],
+      'shadcn/no-raw-colors': 'warn',
+      'shadcn/no-arbitrary-values': 'warn',
+      'shadcn/no-inline-styles': 'warn',
+      'shadcn/no-unknown-classes': 'warn',
+      'shadcn/require-static-classes': 'warn',
+    },
+  },
   {
     ...reactDoctor.configs.recommended,
     files: ['**/*.{jsx,tsx}'],
