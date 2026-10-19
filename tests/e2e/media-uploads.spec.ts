@@ -125,6 +125,14 @@ async function loadPickerPage(page: Page, target: { alt: string }) {
   throw Error('candidate-not-found-in-picker');
 }
 
+async function waitForPickerAnimations(page: Page) {
+  await page
+    .locator('#editor-image-picker')
+    .evaluate((el) =>
+      Promise.all(el.getAnimations({ subtree: true }).map((animation) => animation.finished))
+    );
+}
+
 async function uploadFromPicker(page: Page, alt: string) {
   const altInput = page.getByLabel('Texto alternativo').first();
   const decorative = page.getByRole('checkbox', { name: 'Imagen decorativa' }).first();
@@ -200,6 +208,8 @@ test('normalizes, delivers, paginates reuse, and keeps the image block stable', 
   await pickerTrigger.click();
   const picker = page.getByRole('complementary', { name: 'Insertar imagen' });
   await expect(picker.locator('ul > li')).toHaveCount(20);
+  // Pagination clicks can be swallowed while the picker panel is moving.
+  await waitForPickerAnimations(page);
   await loadPickerPage(page, target);
   const reusable = page.getByRole('button', { name: target.alt, exact: true });
   await expect(reusable).toBeVisible();
