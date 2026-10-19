@@ -3,6 +3,7 @@ import { useId, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { useAsyncTransition } from '@/hooks/use-async-transition';
 import { getTranslations } from '@/i18n/utils';
 import { callUpdateMediaAsset } from '@/lib/admin-actions';
 
@@ -28,10 +29,10 @@ export function MetadataForm({
   asset: AdminMediaAsset;
   onSaved(asset: AdminMediaAsset): void;
 }) {
-  const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [isPending, runTransition] = useAsyncTransition();
+  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const formId = useId();
   const save = async (form: HTMLFormElement) => {
-    setStatus('pending');
     const data = new FormData(form);
     try {
       const result = await callUpdateMediaAsset({
@@ -55,7 +56,11 @@ export function MetadataForm({
       className="mt-3 grid gap-3"
       onSubmit={(event) => {
         event.preventDefault();
-        void save(event.currentTarget);
+        setStatus('idle');
+        const form = event.currentTarget;
+        runTransition(async () => {
+          await save(form);
+        });
       }}
     >
       <Field spacing="compact">
@@ -85,18 +90,18 @@ export function MetadataForm({
         <Checkbox id={`${formId}-own-work`} name="isOwnWork" defaultChecked={asset.isOwnWork} />
         <FieldLabel htmlFor={`${formId}-own-work`}>{t('admin.media.isOwnWork')}</FieldLabel>
       </Field>
-      <PendingButton type="submit" variant="outline" pending={status === 'pending'}>
+      <PendingButton type="submit" variant="outline" pending={isPending}>
         {t('admin.media.saveMetadata')}
       </PendingButton>
       <FormStatus
         message={
-          status === 'pending'
+          isPending
             ? t('admin.media.metadataPending')
             : status === 'success'
               ? t('admin.media.metadataSuccess')
               : undefined
         }
-        error={status === 'error' ? t('admin.media.metadataError') : undefined}
+        error={!isPending && status === 'error' ? t('admin.media.metadataError') : undefined}
       />
     </form>
   );

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useAsyncTransition } from '@/hooks/use-async-transition';
 import { getTranslations, interpolate } from '@/i18n/utils';
 import {
   callCreateCollection,
@@ -40,10 +41,9 @@ const saveErrorCopy: Partial<Record<string, UiKey>> = {
 };
 
 export function AdminCollections({ collections }: { collections: AdminCollectionSummary[] }) {
-  const [pending, setPending] = useState(false);
+  const [isPending, runTransition] = useAsyncTransition();
   const [failed, setFailed] = useState(false);
   const create = async () => {
-    setPending(true);
     setFailed(false);
     const id = crypto.randomUUID();
     try {
@@ -52,17 +52,20 @@ export function AdminCollections({ collections }: { collections: AdminCollection
       // Still pending while the editor loads.
       window.location.assign(`/admin/collections/${id}`);
     } catch {
-      setPending(false);
       setFailed(true);
     }
   };
   return (
     <div className="grid gap-5">
       <div className="grid justify-items-end gap-2">
-        <PendingButton type="button" pending={pending} onClick={() => void create()}>
+        <PendingButton
+          type="button"
+          pending={isPending}
+          onClick={() => runTransition(async () => await create())}
+        >
           {t('admin.collections.new')}
         </PendingButton>
-        {failed && (
+        {failed && !isPending && (
           <p role="alert" className="text-sm text-destructive">
             {t('admin.collections.createError')}
           </p>
@@ -105,7 +108,8 @@ export function AdminCollectionEditor({
   posts: AdminMembershipPost[];
 }) {
   const [postIds, setPostIds] = useState(() => collection.postIds);
-  const [status, setStatus] = useState<'idle' | 'pending' | 'saved' | 'warning' | 'error'>('idle');
+  const [isPending, runTransition] = useAsyncTransition();
+  const [status, setStatus] = useState<'idle' | 'saved' | 'warning' | 'error'>('idle');
   const [error, setError] = useState<UiKey>('admin.common.error');
   const [invalid, setInvalid] = useState<{ name: string; message: UiKey }>();
   // A move or removal re-renders the rows, so the control that did it is found
@@ -152,7 +156,6 @@ export function AdminCollectionEditor({
     }
     if (!localizations.length)
       return failField(form, 'es-title', 'admin.collections.localeRequired');
-    setStatus('pending');
     const result = await callSaveCollection({
       id: collection.id,
       editorialState: String(data.get('editorialState')) as 'active' | 'archived',
@@ -203,7 +206,11 @@ export function AdminCollectionEditor({
       className="grid gap-6"
       onSubmit={(event) => {
         event.preventDefault();
-        void save(event.currentTarget);
+        setStatus('idle');
+        const form = event.currentTarget;
+        runTransition(async () => {
+          await save(form);
+        });
       }}
     >
       <UiField spacing="compact">
@@ -306,30 +313,31 @@ export function AdminCollectionEditor({
         </UiField>
       </section>
       <div className="flex items-center gap-3">
-        <PendingButton type="submit" pending={status === 'pending'}>
+        <PendingButton type="submit" pending={isPending}>
           {t('admin.common.save')}
         </PendingButton>
         <FormStatus
           message={
-            status === 'saved'
+            !isPending && status === 'saved'
               ? t('admin.common.saved')
-              : status === 'warning'
+              : !isPending && status === 'warning'
                 ? t('admin.common.cacheWarning')
                 : undefined
           }
-          error={status === 'error' ? t(error) : undefined}
+          error={!isPending && status === 'error' ? t(error) : undefined}
         />
-        {status === 'warning' && (
+        {status === 'warning' && !isPending && (
           <Button
             type="button"
             variant="outline"
             onClick={() => {
-              setStatus('pending');
-              void callRetryPendingPurges().then((result) =>
+              setStatus('idle');
+              runTransition(async () => {
+                const result = await callRetryPendingPurges();
                 setStatus(
                   result.error ? 'error' : result.data.status === 'purged' ? 'saved' : 'warning'
-                )
-              );
+                );
+              });
             }}
           >
             {t('admin.common.retryCache')}

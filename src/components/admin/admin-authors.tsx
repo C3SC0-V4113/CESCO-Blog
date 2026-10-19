@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAsyncTransition } from '@/hooks/use-async-transition';
 import { getTranslations } from '@/i18n/utils';
 import { callCreateAuthor, callRetryPendingPurges, callUpdateAuthor } from '@/lib/admin-actions';
 
@@ -45,12 +46,10 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
   const avatarId = `${id}-avatar`;
   const sameAsHelpId = `${id}-same-as-help`;
   const [avatarMediaId, setAvatarMediaId] = useState(author?.avatarMediaId ?? '');
-  const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'warning' | 'error'>(
-    'idle'
-  );
+  const [isPending, runTransition] = useAsyncTransition();
+  const [status, setStatus] = useState<'idle' | 'success' | 'warning' | 'error'>('idle');
   const save = async (form: HTMLFormElement) => {
     const data = new FormData(form);
-    setStatus('pending');
     const input = {
       id: author?.id ?? crypto.randomUUID(),
       slug: String(data.get('slug') ?? ''),
@@ -79,6 +78,13 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
     if (result.error) setStatus('error');
     else window.location.reload();
   };
+  const retryCache = () => {
+    setStatus('idle');
+    runTransition(async () => {
+      const result = await callRetryPendingPurges();
+      setStatus(result.error ? 'error' : result.data.status === 'purged' ? 'success' : 'warning');
+    });
+  };
   const sameAs = Array.isArray(author?.sameAs)
     ? author.sameAs.filter((value): value is string => typeof value === 'string')
     : [];
@@ -87,7 +93,11 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
       className="grid gap-4 rounded-xl border bg-background p-5"
       onSubmit={(event) => {
         event.preventDefault();
-        void save(event.currentTarget);
+        const form = event.currentTarget;
+        setStatus('idle');
+        runTransition(async () => {
+          await save(form);
+        });
       }}
     >
       <h2 className="text-lg font-semibold">{author ? author.name : t('admin.authors.new')}</h2>
@@ -168,37 +178,47 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
           {t('admin.authors.sameAsHelp')}
         </FieldDescription>
       </div>
-      <div className="flex items-center gap-3">
-        <PendingButton type="submit" pending={status === 'pending'}>
-          {t('admin.common.save')}
-        </PendingButton>
-        <FormStatus
-          message={
-            status === 'success'
-              ? t('admin.common.saved')
-              : status === 'warning'
-                ? t('admin.common.cacheWarning')
-                : undefined
-          }
-          error={status === 'error' ? t('admin.common.error') : undefined}
-        />
-        {status === 'warning' && author && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setStatus('pending');
-              void callRetryPendingPurges().then((result) =>
-                setStatus(
-                  result.error ? 'error' : result.data.status === 'purged' ? 'success' : 'warning'
-                )
-              );
-            }}
-          >
-            {t('admin.common.retryCache')}
-          </Button>
-        )}
-      </div>
+      <AuthorFormActions
+        status={status}
+        isPending={isPending}
+        canRetry={Boolean(status === 'warning' && author)}
+        onRetry={retryCache}
+      />
     </form>
+  );
+}
+
+function AuthorFormActions({
+  status,
+  isPending,
+  canRetry,
+  onRetry,
+}: {
+  status: 'idle' | 'success' | 'warning' | 'error';
+  isPending: boolean;
+  canRetry: boolean;
+  onRetry(): void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <PendingButton type="submit" pending={isPending}>
+        {t('admin.common.save')}
+      </PendingButton>
+      <FormStatus
+        message={
+          !isPending && status === 'success'
+            ? t('admin.common.saved')
+            : !isPending && status === 'warning'
+              ? t('admin.common.cacheWarning')
+              : undefined
+        }
+        error={!isPending && status === 'error' ? t('admin.common.error') : undefined}
+      />
+      {canRetry && status === 'warning' && !isPending && (
+        <Button type="button" variant="outline" onClick={onRetry}>
+          {t('admin.common.retryCache')}
+        </Button>
+      )}
+    </div>
   );
 }
