@@ -120,7 +120,8 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
             <Button
               type="button"
               variant="link"
-              className={cn(linkVariants({ variant: 'adminAction' }), 'gap-1')}
+              size="tight"
+              className={linkVariants({ variant: 'adminAction' })}
               disabled={pending}
               aria-pressed={featured}
               aria-label={name(t('admin.posts.feature'))}
