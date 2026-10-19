@@ -136,10 +136,10 @@ function ReviewQueue({
   return (
     <section
       aria-label={t('admin.review.queue')}
-      className="order-last max-h-[70vh] overflow-auto rounded-xl border bg-background p-1.5 lg:order-first"
+      className="order-last max-h-review-queue overflow-auto rounded-xl border bg-background p-1.5 lg:order-first"
     >
       {items.length ? (
-        <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
+        <ul className="grid grid-cols-1 gap-1.5">
           {items.map((item) => (
             <li key={item.localizationId}>
               <a
@@ -481,7 +481,7 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
   return (
     <div className="grid gap-6">
       {pendingPurges > 0 && <PendingPurgesNotice />}
-      <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
+      <div className="grid gap-6 lg:grid-cols-review-split">
         {/* Concentric: the items' radius-md plus the 6px inset is radius-xl. */}
         <ReviewQueue items={items} detail={detail} page={page} pageSize={pageSize} total={total} />
         <ReviewDetailPanel

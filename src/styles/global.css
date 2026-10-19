@@ -96,6 +96,16 @@
   --text-display-sm: 2.5rem;
   --text-display-sm--line-height: 1.15;
 
+  /* Named administration tracks and caps keep layouts on shared dimensions. */
+  --spacing-admin-sidebar: 15rem;
+  --spacing-admin-panel: 22rem;
+  --spacing-review-panel: 18rem;
+  --spacing-review-queue-max-height: 70vh;
+  --spacing-bottom-sheet-max-height: 85dvh;
+
+  /* Social preview images follow the Open Graph landscape ratio. */
+  --aspect-og-preview: 1.91 / 1;
+
   /*
    * The easing scale of ADR-0022. Declared in the theme rather than as loose
    * custom properties so Tailwind generates `ease-out-quad` and friends, which
@@ -178,6 +188,51 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Named property sets keep transition lists shared and searchable. */
+@utility motion-button {
+  transition-property: color, background-color, border-color, box-shadow, scale;
+}
+
+@utility motion-field-frame {
+  transition-property: border-color, box-shadow;
+}
+
+@utility motion-picker {
+  transition-property: opacity, translate, display;
+}
+
+@utility motion-theme-glyph {
+  transition-property: transform, opacity;
+}
+
+@utility motion-dropdown {
+  transition-property: opacity, scale;
+}
+
+@utility motion-sheet {
+  transition-property: opacity, translate;
+}
+
+@utility grid-cols-admin-shell {
+  grid-template-columns: var(--spacing-admin-sidebar) 1fr;
+}
+
+@utility grid-cols-editor-picker {
+  grid-template-columns: minmax(0, 1fr) var(--spacing-admin-panel);
+}
+
+@utility grid-cols-review-split {
+  grid-template-columns: var(--spacing-review-panel) 1fr;
+}
+
+@utility grid-cols-seo-preview {
+  grid-template-columns: minmax(0, 1fr) minmax(var(--spacing-admin-panel), 0.8fr);
+}
+
+@utility max-h-review-queue {
+  max-height: var(--spacing-review-queue-max-height);
 }
 
 @utility eyebrow {

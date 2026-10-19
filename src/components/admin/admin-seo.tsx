@@ -142,7 +142,7 @@ export function AdminSeo({
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.8fr)]">
+    <div className="grid gap-6 xl:grid-cols-seo-preview">
       <form
         className="grid gap-4 rounded-xl border bg-background p-5"
         onSubmit={(event) => {
@@ -287,7 +287,7 @@ function SeoPreview({
   return (
     <aside>
       <h2 className="mb-3 font-semibold">{t('admin.seo.preview')}</h2>
-      <div className="aspect-[1.91/1] overflow-hidden rounded-xl border bg-slate-950 text-white shadow-lg">
+      <div className="aspect-og-preview overflow-hidden rounded-xl border bg-slate-950 text-white shadow-lg">
         {image && (
           <img
             src={mediaPath(image.r2Key)}
@@ -295,7 +295,7 @@ function SeoPreview({
             className="size-full object-cover opacity-55"
           />
         )}
-        <div className="relative mt-[-52.35%] flex aspect-[1.91/1] flex-col justify-end bg-linear-to-t from-black/90 to-transparent p-6">
+        <div className="relative mt-[-52.35%] flex aspect-og-preview flex-col justify-end bg-linear-to-t from-black/90 to-transparent p-6">
           <p className="text-sm font-semibold">{author?.name ?? SITE_NAME}</p>
           {/* Styled, not structural: a preview's title is not a section of this page. */}
           <p className="mt-2 text-2xl font-bold">{effective.ogTitle}</p>

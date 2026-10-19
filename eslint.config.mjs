@@ -102,7 +102,18 @@ const eslintConfig = defineConfig([
         },
       ],
       'shadcn/no-raw-colors': 'warn',
-      'shadcn/no-arbitrary-values': 'warn',
+      // Keep only browser insets, viewport bounds, and the OG image overlap as one-off values.
+      'shadcn/no-arbitrary-values': [
+        'warn',
+        {
+          allow: [
+            'md:min-h-[calc(100dvh-4rem)]',
+            'max-h-[calc(100dvh-2rem)]',
+            'pb-[env(safe-area-inset-bottom)]',
+            'mt-[-52.35%]',
+          ],
+        },
+      ],
       'shadcn/no-inline-styles': 'warn',
       'shadcn/no-unknown-classes': 'warn',
       'shadcn/require-static-classes': 'warn',
