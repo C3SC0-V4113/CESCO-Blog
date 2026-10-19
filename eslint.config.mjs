@@ -82,6 +82,7 @@ const eslintConfig = defineConfig([
             'w-full',
             'w-auto',
             'min-w-0',
+            'min-w-*',
             'max-w-*',
             'flex-1',
             'flex-none',

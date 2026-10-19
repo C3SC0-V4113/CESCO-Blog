@@ -244,7 +244,7 @@ function RenameConfirmation({
             acknowledgementMissing ? 'acknowledgePermanentRedirect-error' : undefined
           }
         />
-        <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
+        <FieldLabel htmlFor="review-rename-confirmation" weight="normal">
           {t('admin.review.renameConfirm')}
         </FieldLabel>
       </Field>

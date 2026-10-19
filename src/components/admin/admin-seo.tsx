@@ -184,13 +184,7 @@ function SeoFields({
     <>
       <Field spacing="compact">
         <FieldLabel htmlFor="seo-canonical">{t('admin.seo.canonical')}</FieldLabel>
-        <Input
-          id="seo-canonical"
-          name="canonical"
-          readOnly
-          value={canonical}
-          className="bg-muted"
-        />
+        <Input id="seo-canonical" name="canonical" readOnly value={canonical} variant="muted" />
       </Field>
       <Text
         name="seoTitle"

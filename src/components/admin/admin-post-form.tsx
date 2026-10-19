@@ -150,7 +150,6 @@ export function AdminPostForm({
               id="slug"
               aria-invalid={errors.slug ? true : undefined}
               aria-describedby={errors.slug ? 'slug-error' : undefined}
-              className="h-9 font-normal"
               autoComplete="off"
               spellCheck={false}
             />
