@@ -11,7 +11,7 @@ import {
   type RefObject,
 } from 'react';
 
-import { AdminMedia, type MediaUploader } from '@/components/admin/admin-media';
+import { MediaPicker, PendingMediaUploadQueue } from '@/components/admin/media';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { getTranslations } from '@/i18n/utils';
@@ -28,8 +28,7 @@ type PickerContextValue = {
   openState: boolean;
   headingRef: RefObject<HTMLHeadingElement | null>;
   buttonRef: RefObject<HTMLButtonElement | null>;
-  uploaderRef: RefObject<MediaUploader | null>;
-  pendingFilesRef: RefObject<File[] | null>;
+  pendingUploadQueue: PendingMediaUploadQueue;
   restoreFocusRef: RefObject<boolean>;
   toggle(): void;
   close(restoreFocus?: boolean): void;
@@ -57,8 +56,7 @@ function Root({ isWide, assets, total, children }: RootProps) {
   const [openState, setOpenState] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const uploaderRef = useRef<MediaUploader>(null);
-  const pendingFilesRef = useRef<File[] | null>(null);
+  const [pendingUploadQueue] = useState(() => new PendingMediaUploadQueue());
   const restoreFocusRef = useRef(true);
   const openRef = useRef(false);
 
@@ -89,11 +87,10 @@ function Root({ isWide, assets, total, children }: RootProps) {
 
   const uploadFiles = useCallback(
     (files: File[]) => {
-      if (uploaderRef.current) uploaderRef.current.upload(files);
-      else pendingFilesRef.current = files;
+      pendingUploadQueue.enqueue(files);
       open(false);
     },
-    [open]
+    [open, pendingUploadQueue]
   );
 
   const value = useMemo<PickerContextValue>(
@@ -102,8 +99,7 @@ function Root({ isWide, assets, total, children }: RootProps) {
       openState,
       headingRef,
       buttonRef,
-      uploaderRef,
-      pendingFilesRef,
+      pendingUploadQueue,
       restoreFocusRef,
       toggle,
       close,
@@ -111,7 +107,7 @@ function Root({ isWide, assets, total, children }: RootProps) {
       assets,
       total,
     }),
-    [isWide, openState, toggle, close, uploadFiles, assets, total]
+    [isWide, openState, toggle, close, uploadFiles, pendingUploadQueue, assets, total]
   );
 
   return (
@@ -154,18 +150,6 @@ type PanelProps = {
 function Panel({ onSelect }: PanelProps) {
   const picker = useImagePicker();
 
-  function attachUploader(instance: MediaUploader | null) {
-    picker.uploaderRef.current = instance;
-    if (!instance || !picker.pendingFilesRef.current) return;
-    const files = picker.pendingFilesRef.current;
-    picker.pendingFilesRef.current = null;
-    // The sheet popup mounts through a portal after the editor commits.
-    queueMicrotask(() => {
-      if (picker.uploaderRef.current === instance) instance.upload(files);
-      else picker.pendingFilesRef.current ??= files;
-    });
-  }
-
   return (
     <>
       {picker.isWide && (
@@ -207,12 +191,12 @@ function Panel({ onSelect }: PanelProps) {
           {picker.openState && (
             <>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                <AdminMedia
-                  ref={attachUploader}
+                <MediaPicker
                   assets={picker.assets}
                   total={picker.total}
                   showLibraryLink={false}
                   onSelect={onSelect}
+                  pendingUploadQueue={picker.pendingUploadQueue}
                 />
               </div>
               <footer className="border-t pt-3">
@@ -239,11 +223,11 @@ function Panel({ onSelect }: PanelProps) {
                 </SheetTitle>
               </SheetHeader>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
-                <AdminMedia
-                  ref={attachUploader}
+                <MediaPicker
                   assets={picker.assets}
                   total={picker.total}
                   onSelect={onSelect}
+                  pendingUploadQueue={picker.pendingUploadQueue}
                 />
               </div>
             </SheetContent>
