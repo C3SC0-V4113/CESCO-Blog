@@ -33,6 +33,9 @@ export class DraftAutosave<T> {
     this.invalid = true;
     this.set('failed');
   }
+  cancelPending() {
+    clearTimeout(this.timer);
+  }
   // Every caller loops until nothing is active and nothing is pending. Whichever
   // caller resumes first after a save starts the follow-up; the rest must wait on
   // it rather than read an empty queue whose value is already in flight.

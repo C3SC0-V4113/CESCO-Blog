@@ -44,8 +44,11 @@ export function useDraftAutosave({ postId, localizationId, draft }: Props) {
       if (statusRef.current !== 'saved') event.preventDefault();
     };
     addEventListener('beforeunload', unload);
-    return () => removeEventListener('beforeunload', unload);
-  }, []);
+    return () => {
+      removeEventListener('beforeunload', unload);
+      autosave.cancelPending();
+    };
+  }, [autosave]);
 
   // Runs inside Tiptap's onUpdate, where a throw would drop the edit while the
   // status still claimed it was saved.
