@@ -1,9 +1,7 @@
-import UniqueID from '@tiptap/extension-unique-id';
 import { NodeSelection, Selection } from '@tiptap/pm/state';
 import { EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
 import { XIcon } from 'lucide-react';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useRef, useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
@@ -11,32 +9,22 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { getTranslations } from '@/i18n/utils';
-import { callSaveDraft } from '@/lib/admin-actions';
-import { createDraftSave, DraftAutosave } from '@/lib/draft-autosave';
-import { parseDraftContent } from '@/lib/drafts';
 import { imageFilesToUpload, imageNode, mediaPath } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
-import { AdminMedia, type MediaUploader } from './admin-media';
-import { EditorToolbar } from './editor-toolbar';
-import { MediaImage } from './media-image-extension';
+import { AdminMedia, type MediaUploader } from '../admin-media';
+import { EditorToolbar } from '../editor-toolbar';
+import { createEditorExtensions } from './editor-extensions';
+import { LocaleSwitch } from './locale-switch';
+import { SaveStatus } from './save-status';
+import { useDraftAutosave } from './use-draft-autosave';
+import { useWideEditor } from './use-wide-editor';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
-import type { EditorDraft, EditorLocalizations, SaveDraftInput } from '@/lib/drafts';
+import type { EditorDraft, EditorLocalizations } from '@/lib/drafts';
 import type { RefObject } from 'react';
 
 const t = getTranslations('es');
-// At 80rem the shell leaves 608px beside the panel: 544px of reading measure plus canvas chrome.
-const wideEditorQuery = '(min-width: 80rem)';
-const subscribeWideEditor = (callback: () => void) => {
-  if (typeof window.matchMedia !== 'function') return () => undefined;
-  const media = window.matchMedia(wideEditorQuery);
-  media.addEventListener('change', callback);
-  return () => media.removeEventListener('change', callback);
-};
-const getWideEditorSnapshot = () =>
-  typeof window.matchMedia === 'function' && window.matchMedia(wideEditorQuery).matches;
-const getWideEditorServerSnapshot = () => false;
 
 function useEditorImagePicker(isWide: boolean) {
   const [openState, setOpenState] = useState(false);
@@ -89,10 +77,6 @@ type Props = {
   referencedAssets: AdminMediaAsset[];
   mediaTotal: number;
 };
-type SaveValue = Omit<SaveDraftInput, 'draftToken' | 'nextToken'>;
-type Status = 'saved' | 'dirty' | 'saving' | 'failed' | 'conflict';
-const localeLabel = (locale: 'es' | 'en') => t(`admin.editor.locale.${locale}`);
-const pill = 'inline-flex h-8 items-center rounded-lg px-2.5 text-sm font-medium';
 
 export function AdminEditor({
   postId,
@@ -103,17 +87,9 @@ export function AdminEditor({
   referencedAssets,
   mediaTotal,
 }: Props) {
-  const [status, setStatus] = useState<Status>('saved');
-  const isWideEditor = useSyncExternalStore(
-    subscribeWideEditor,
-    getWideEditorSnapshot,
-    getWideEditorServerSnapshot
-  );
-  const statusRef = useRef<Status>('saved');
+  const isWideEditor = useWideEditor();
   const picker = useEditorImagePicker(isWideEditor);
-  // The opening state is "saved" too, but nothing was saved yet to announce.
-  const [edited, setEdited] = useState(false);
-  const fields = useRef({ title: draft.title, excerpt: draft.excerpt ?? '' });
+  const autosave = useDraftAutosave({ postId, localizationId, draft });
   // Assets known when the editor opens never change, so they stay plain state.
   // One picked or uploaded later must resolve in the same call that inserts it,
   // before any re-render, so the event handler records it in a ref instead.
@@ -123,42 +99,7 @@ export function AdminEditor({
     )
   );
   const pickedUrls = useRef<Record<string, string>>({});
-  // Created once: it owns the save queue and the attempt tokens, and both must
-  // outlive every render.
-  const [autosave] = useState(
-    () =>
-      new DraftAutosave(
-        createDraftSave<SaveValue>(draft.draftToken, async (value, tokens) => {
-          const result = await callSaveDraft({ ...value, ...tokens });
-          if (result.error) throw result;
-        }),
-        1_000,
-        (next) => {
-          statusRef.current = next;
-          setStatus(next);
-          if (next !== 'saved') setEdited(true);
-        }
-      )
-  );
-
-  // Runs inside Tiptap's onUpdate, where a throw would drop the edit while the
-  // status still claimed it was saved.
-  function enqueue(content: unknown) {
-    const parsed = parseDraftContent(content);
-    if (!parsed.success) {
-      // Paths and codes only: the draft text stays out of the console.
-      console.error(`Draft content rejected: ${parsed.issues.join('; ')}`);
-      autosave.markInvalid();
-      return;
-    }
-    autosave.change({
-      postId,
-      localizationId,
-      ...fields.current,
-      excerpt: fields.current.excerpt || null,
-      contentJson: parsed.data,
-    });
-  }
+  const enqueue = autosave.enqueue;
   // Images pasted or dropped on the canvas go through the picker, so they meet
   // the same alt-text rule and the same upload as one chosen there (ADR-0024).
   // The picker opens so its alt field and any error are in view.
@@ -195,46 +136,13 @@ export function AdminEditor({
         return true;
       },
     },
-    extensions: [
-      StarterKit.configure({
-        blockquote: false,
-        bold: false,
-        bulletList: false,
-        code: false,
-        hardBreak: false,
-        horizontalRule: false,
-        italic: false,
-        link: false,
-        listItem: false,
-        listKeymap: false,
-        orderedList: false,
-        strike: false,
-        trailingNode: false,
-        underline: false,
-        heading: { levels: [2, 3] },
-      }),
-      UniqueID.configure({
-        attributeName: 'blockId',
-        types: ['paragraph', 'heading', 'codeBlock', 'image'],
-        generateID: () => crypto.randomUUID(),
-      }),
-      MediaImage.configure({ resolveUrl: (id) => pickedUrls.current[id] ?? knownUrls[id] }),
-    ],
+    extensions: createEditorExtensions((id) => pickedUrls.current[id] ?? knownUrls[id]),
     onUpdate: ({ editor: instance }) => enqueue(instance.getJSON()),
   });
-  useEffect(() => {
-    const unload = (event: BeforeUnloadEvent) => {
-      if (statusRef.current !== 'saved') event.preventDefault();
-    };
-    addEventListener('beforeunload', unload);
-    return () => removeEventListener('beforeunload', unload);
-  }, []);
   if (!editor) return <p>{t('admin.editor.loading')}</p>;
   const editField = (name: 'title' | 'excerpt', value: string) => {
-    fields.current[name] = value;
-    enqueue(editor.getJSON());
+    autosave.updateField(name, value, editor.getJSON());
   };
-  const currentLocale = localizations.es === localizationId ? 'es' : 'en';
   const reviewHref = `/admin/review?post=${postId}&localization=${localizationId}`;
   return (
     <div
@@ -246,52 +154,12 @@ export function AdminEditor({
       )}
     >
       <div className="grid min-w-0 content-start gap-4">
-        <div>
-          <p className="mb-1 text-sm font-medium">{t('admin.editor.locale')}</p>
-          {/* Only the other locale is a destination. The current one and a
-            missing one are plain text, so nothing focusable does nothing. */}
-          <div className="flex gap-2" role="group" aria-label={t('admin.editor.locale')}>
-            {(['es', 'en'] as const).map((locale) => {
-              const id = localizations[locale];
-              if (locale === currentLocale)
-                return (
-                  <span
-                    key={locale}
-                    aria-current="page"
-                    className={cn(pill, 'bg-primary text-primary-foreground')}
-                  >
-                    {localeLabel(locale)} ({t('admin.editor.locale.current')})
-                  </span>
-                );
-              if (!id)
-                return (
-                  <span
-                    key={locale}
-                    className={cn(pill, 'border border-dashed text-muted-foreground')}
-                  >
-                    {localeLabel(locale)} ({t('admin.editor.locale.missing')})
-                  </span>
-                );
-              const href = `/admin/posts/${postId}/edit?localization=${id}`;
-              return (
-                <a
-                  key={locale}
-                  className={buttonVariants({ variant: 'outline' })}
-                  href={href}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    void autosave
-                      .flush()
-                      .then((saved) => saved && window.location.assign(href))
-                      .catch(() => undefined);
-                  }}
-                >
-                  {localeLabel(locale)}
-                </a>
-              );
-            })}
-          </div>
-        </div>
+        <LocaleSwitch
+          postId={postId}
+          localizationId={localizationId}
+          localizations={localizations}
+          flush={autosave.flush}
+        />
         {/* Each constraint sits outside its label: inside, it would be read twice,
           once in the name and again as the description. */}
         <Field>
@@ -342,7 +210,7 @@ export function AdminEditor({
           />
         </div>
         <div className="flex items-center gap-3">
-          <SaveStatus status={status} edited={edited} />
+          <SaveStatus status={autosave.status} edited={autosave.edited} />
           <Button type="button" variant="outline" onClick={() => void autosave.flush()}>
             {t('admin.editor.save')}
           </Button>
@@ -513,26 +381,6 @@ function EditorImagePicker({
           )}
         </Sheet>
       )}
-    </>
-  );
-}
-
-/**
- * The visible line follows every state. Screen readers hear a landed save,
- * through a region that is always there, and a failure, which interrupts;
- * typing does not announce "pending" on every keystroke.
- */
-function SaveStatus({ status, edited }: { status: Status; edited: boolean }) {
-  return (
-    <>
-      {status === 'failed' || status === 'conflict' ? (
-        <p role="alert">{t(`admin.editor.status.${status}`)}</p>
-      ) : (
-        <p>{t(`admin.editor.status.${status}`)}</p>
-      )}
-      <p role="status" className="sr-only">
-        {edited && status === 'saved' ? t('admin.editor.status.saved') : ''}
-      </p>
     </>
   );
 }
