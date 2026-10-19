@@ -220,7 +220,8 @@ function MediaUpload({
         <Field className="w-auto">
           <FieldLabel
             htmlFor={fileId}
-            className={buttonVariants({ className: status === 'loading' ? 'opacity-50' : '' })}
+            className={buttonVariants()}
+            data-loading={status === 'loading'}
           >
             {status === 'loading' ? (
               <LoaderCircleIcon aria-hidden="true" />

@@ -29,6 +29,8 @@
   --input: oklch(0.925 0.005 214.3);
   --ring: oklch(0.511 0.096 186.391);
   --image-outline: oklch(0 0 0 / 0.1);
+  /* Keep the social preview canvas dark in either site color scheme. */
+  --seo-preview-background: #020617;
   --chart-1: oklch(0.845 0.143 164.978);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.596 0.145 163.225);
@@ -144,6 +146,7 @@
    * rather than around it and changes no layout.
    */
   --color-image-outline: var(--image-outline);
+  --color-seo-preview: var(--seo-preview-background);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

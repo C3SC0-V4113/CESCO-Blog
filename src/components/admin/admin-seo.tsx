@@ -287,7 +287,7 @@ function SeoPreview({
   return (
     <aside>
       <h2 className="mb-3 font-semibold">{t('admin.seo.preview')}</h2>
-      <div className="aspect-og-preview overflow-hidden rounded-xl border bg-slate-950 text-white shadow-lg">
+      <div className="aspect-og-preview overflow-hidden rounded-xl border bg-seo-preview text-white shadow-lg">
         {image && (
           <img
             src={mediaPath(image.r2Key)}
