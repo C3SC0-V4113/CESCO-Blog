@@ -284,7 +284,6 @@ function ReviewActions({
       <div className="flex flex-wrap gap-2">
         <PendingButton
           type="button"
-          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
           pending={state === 'pending' && running === 'publish'}
           disabled={blocked || state === 'pending'}
           focusableWhenDisabled
