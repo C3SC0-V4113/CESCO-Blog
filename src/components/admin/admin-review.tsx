@@ -5,7 +5,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { linkVariants } from '@/components/ui/link-variants';
-import { useAsyncTransition } from '@/hooks/use-async-transition';
 import { getTranslations } from '@/i18n/utils';
 import {
   callPublish,
@@ -29,7 +28,7 @@ type Props = {
   total: number;
   pendingPurges: number;
 };
-type State = 'idle' | 'error';
+type State = 'idle' | 'pending' | 'error';
 type Action = 'publish' | 'unpublish' | 'rename';
 
 // Every outcome reloads, including one whose purge failed: the change recorded
@@ -38,16 +37,15 @@ type Action = 'publish' | 'unpublish' | 'rename';
 const reload = () => window.location.reload();
 
 function PendingPurgesNotice() {
-  const [isPending, runTransition] = useAsyncTransition();
-  const [failed, setFailed] = useState(false);
+  const [state, setState] = useState<'idle' | 'pending' | 'error'>('idle');
   const retry = async () => {
-    setFailed(false);
+    setState('pending');
     try {
       const { data, error } = await callRetryPendingPurges();
       if (error || data?.status !== 'purged') throw error ?? Error('purge-still-pending');
       reload();
     } catch {
-      setFailed(true);
+      setState('error');
     }
   };
   return (
@@ -56,12 +54,12 @@ function PendingPurgesNotice() {
       <PendingButton
         type="button"
         variant="outline"
-        pending={isPending}
-        onClick={() => runTransition(async () => await retry())}
+        pending={state === 'pending'}
+        onClick={() => void retry()}
       >
         {t('admin.review.retryPurge')}
       </PendingButton>
-      {failed && (
+      {state === 'error' && (
         <p role="alert" className="basis-full">
           {t('admin.review.pendingPurgesError')}
         </p>
@@ -263,7 +261,6 @@ function ReviewActions({
   detail,
   state,
   running,
-  isPending,
   blocked,
   renameBlocked,
   onPublish,
@@ -272,7 +269,6 @@ function ReviewActions({
   detail: ReviewDetail;
   state: State;
   running?: Action;
-  isPending: boolean;
   blocked: boolean;
   renameBlocked: boolean;
   onPublish(): void;
@@ -288,8 +284,8 @@ function ReviewActions({
       <div className="flex flex-wrap gap-2">
         <PendingButton
           type="button"
-          pending={isPending && running === 'publish'}
-          disabled={blocked || isPending}
+          pending={state === 'pending' && running === 'publish'}
+          disabled={blocked || state === 'pending'}
           focusableWhenDisabled
           aria-describedby={blocked ? 'publish-blocked' : undefined}
           onClick={onPublish}
@@ -299,8 +295,8 @@ function ReviewActions({
         <PendingButton
           type="button"
           variant="outline"
-          pending={isPending && running === 'unpublish'}
-          disabled={detail.status !== 'published' || isPending}
+          pending={state === 'pending' && running === 'unpublish'}
+          disabled={detail.status !== 'published' || state === 'pending'}
           onClick={onUnpublish}
         >
           {t('admin.review.unpublish')}
@@ -309,15 +305,15 @@ function ReviewActions({
         <PendingButton
           type="submit"
           variant="outline"
-          pending={isPending && running === 'rename'}
+          pending={state === 'pending' && running === 'rename'}
           disabled={renameBlocked}
         >
           {t('admin.review.rename')}
         </PendingButton>
       </div>
       <FormStatus
-        message={isPending ? t('admin.review.pending') : undefined}
-        error={!isPending && state === 'error' ? t('admin.review.error') : undefined}
+        message={state === 'pending' ? t('admin.review.pending') : undefined}
+        error={state === 'error' ? t('admin.review.error') : undefined}
       />
     </>
   );
@@ -327,7 +323,6 @@ function ReviewDetailPanel({
   detail,
   state,
   running,
-  isPending,
   acknowledgement,
   renameConfirmed,
   setRenameConfirmed,
@@ -342,7 +337,6 @@ function ReviewDetailPanel({
   detail: ReviewDetail | null;
   state: State;
   running?: Action;
-  isPending: boolean;
   acknowledgement: { current: HTMLButtonElement | null };
   renameConfirmed: boolean;
   setRenameConfirmed(confirmed: boolean): void;
@@ -396,7 +390,6 @@ function ReviewDetailPanel({
             detail={detail}
             state={state}
             running={running}
-            isPending={isPending}
             blocked={blocked}
             renameBlocked={renameBlocked}
             onPublish={onPublish}
@@ -410,7 +403,6 @@ function ReviewDetailPanel({
 
 export function AdminReview({ items, detail, page, pageSize, total, pendingPurges }: Props) {
   const [state, setState] = useState<State>('idle');
-  const [isPending, runTransition] = useAsyncTransition();
   const [running, setRunning] = useState<Action>();
   const [renameConfirmed, setRenameConfirmed] = useState(false);
   // Set when the server asks for the redirect confirmation this page did not
@@ -419,7 +411,9 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
   const acknowledgement = useRef<HTMLButtonElement>(null);
   const operationId = useRef<string | null>(null);
   const mutation = detail ? { postId: detail.postId, localizationId: detail.localizationId } : null;
-  const run = async (work: () => Promise<{ error?: unknown; data?: unknown }>) => {
+  const run = async (action: Action, work: () => Promise<{ error?: unknown; data?: unknown }>) => {
+    setState('pending');
+    setRunning(action);
     try {
       const result = await work();
       if (result.error) throw result.error;
@@ -429,72 +423,60 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
       return null;
     }
   };
-  const publish = () => {
+  const publish = async () => {
     if (!detail?.draftToken) return;
     // Kept across a failed call, so retrying after a lost response replays the
     // same revision instead of publishing a second one.
     operationId.current ??= crypto.randomUUID();
-    setState('idle');
-    setRunning('publish');
-    runTransition(async () => {
-      const data = await run(() =>
-        callPublish({
-          ...mutation!,
-          draftToken: detail.draftToken!,
-          operationId: operationId.current!,
-        })
-      );
-      if (data) {
-        operationId.current = null;
-        reload();
-      }
-    });
+    const data = await run('publish', () =>
+      callPublish({
+        ...mutation!,
+        draftToken: detail.draftToken!,
+        operationId: operationId.current!,
+      })
+    );
+    if (data) {
+      operationId.current = null;
+      reload();
+    }
   };
   const blocked = !detail?.draftToken || !detail.title?.trim() || !detail.coverAssetId;
   const needsAcknowledgement = Boolean(detail?.firstPublishedAt) || acknowledgementRejected;
   const acknowledgementMissing = acknowledgementRejected && !renameConfirmed;
-  const renameBlocked = isPending || (needsAcknowledgement && !renameConfirmed);
-  const rename = (form: HTMLFormElement) => {
+  const renameBlocked = state === 'pending' || (needsAcknowledgement && !renameConfirmed);
+  const rename = async (form: HTMLFormElement) => {
     // Enter in the slug field submits as well, so this repeats the guard the
     // disabled button already applies.
     if (renameBlocked) return;
     const slug = new FormData(form).get('slug');
-    setState('idle');
-    setRunning('rename');
-    runTransition(async () => {
-      const data = await run(() =>
-        callRenameLocalization({
-          ...mutation!,
-          slug: String(slug),
-          acknowledgePermanentRedirect: renameConfirmed,
-        })
-      );
-      if (isRenameLocalizationRejection(data)) {
-        // Rendered before the move, so focus lands on a checkbox already described.
-        flushSync(() => {
-          setAcknowledgementRejected(true);
-          setState('idle');
-        });
-        acknowledgement.current?.focus();
-      } else if (data) {
-        setRenameConfirmed(false);
-        reload();
-      }
-    });
+    const data = await run('rename', () =>
+      callRenameLocalization({
+        ...mutation!,
+        slug: String(slug),
+        acknowledgePermanentRedirect: renameConfirmed,
+      })
+    );
+    if (isRenameLocalizationRejection(data)) {
+      // Rendered before the move, so focus lands on a checkbox already described.
+      flushSync(() => {
+        setAcknowledgementRejected(true);
+        setState('idle');
+      });
+      acknowledgement.current?.focus();
+    } else if (data) {
+      setRenameConfirmed(false);
+      reload();
+    }
   };
-  const unpublish = () => {
-    setState('idle');
-    setRunning('unpublish');
-    runTransition(async () => {
-      const data = await run(() =>
-        callUnpublish({
-          ...mutation!,
-          publishedRevisionId: detail?.publishedRevisionId ?? undefined,
-        })
-      );
+  const unpublish = () =>
+    void run('unpublish', () =>
+      callUnpublish({
+        ...mutation!,
+        publishedRevisionId: detail?.publishedRevisionId ?? undefined,
+      })
+    ).then((data) => {
       if (data) reload();
     });
-  };
 
   return (
     <div className="grid gap-6">
@@ -506,7 +488,6 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
           detail={detail}
           state={state}
           running={running}
-          isPending={isPending}
           acknowledgement={acknowledgement}
           renameConfirmed={renameConfirmed}
           setRenameConfirmed={setRenameConfirmed}
@@ -514,8 +495,8 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
           acknowledgementMissing={acknowledgementMissing}
           blocked={blocked}
           renameBlocked={renameBlocked}
-          onRename={rename}
-          onPublish={publish}
+          onRename={(form) => void rename(form)}
+          onPublish={() => void publish()}
           onUnpublish={unpublish}
         />
       </div>

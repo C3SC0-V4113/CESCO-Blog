@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useAsyncTransition } from '@/hooks/use-async-transition';
 import { getTranslations } from '@/i18n/utils';
 import { callRetryPendingPurges, callSaveSeoDraft } from '@/lib/admin-actions';
 import { createDraftSave } from '@/lib/draft-autosave';
@@ -29,7 +28,7 @@ import type { UiKey } from '@/i18n/ui';
 import type { SeoDraftInput } from '@/lib/admin-taxonomy';
 
 const t = getTranslations('es');
-type SaveStatus = 'idle' | 'saved' | 'warning' | 'error' | 'conflict';
+type SaveStatus = 'idle' | 'pending' | 'saved' | 'warning' | 'error' | 'conflict';
 
 type SeoValues = Omit<SeoDraftInput, 'draftToken' | 'nextToken'>;
 type FormValues = Record<
@@ -73,7 +72,6 @@ export function AdminSeo({
     authorId: seo.authorId ?? '',
   });
   const [status, setStatus] = useState<SaveStatus>('idle');
-  const [isPending, runTransition] = useAsyncTransition();
   const [invalid, setInvalid] = useState<Invalid>();
   const outcome = useRef<'saved' | 'warning'>('saved');
   // The same values object for an unedited retry, so the queue below replays
@@ -117,6 +115,7 @@ export function AdminSeo({
           authorId: values.authorId || null,
         },
       };
+    setStatus('pending');
     setInvalid(undefined);
     try {
       await send(submitted.current.value);
@@ -136,11 +135,10 @@ export function AdminSeo({
     }
   };
   const retryCachePurge = () => {
-    setStatus('idle');
-    runTransition(async () => {
-      const result = await callRetryPendingPurges();
-      setStatus(result.error ? 'error' : result.data.status === 'purged' ? 'saved' : 'warning');
-    });
+    setStatus('pending');
+    void callRetryPendingPurges().then((result) =>
+      setStatus(result.error ? 'error' : result.data.status === 'purged' ? 'saved' : 'warning')
+    );
   };
 
   return (
@@ -149,11 +147,7 @@ export function AdminSeo({
         className="grid gap-4 rounded-xl border bg-background p-5"
         onSubmit={(event) => {
           event.preventDefault();
-          setStatus('idle');
-          const form = event.currentTarget;
-          runTransition(async () => {
-            await save(form);
-          });
+          void save(event.currentTarget);
         }}
       >
         <SeoFields
@@ -164,7 +158,7 @@ export function AdminSeo({
           media={media}
           onChange={set}
         />
-        <SeoSaveControls status={status} isPending={isPending} onRetry={retryCachePurge} />
+        <SeoSaveControls status={status} onRetry={retryCachePurge} />
       </form>
       <SeoPreview effective={effective} image={image} author={author} alt={values.ogImageAlt} />
     </div>
@@ -248,37 +242,29 @@ function SeoFields({
   );
 }
 
-function SeoSaveControls({
-  status,
-  isPending,
-  onRetry,
-}: {
-  status: SaveStatus;
-  isPending: boolean;
-  onRetry(): void;
-}) {
+function SeoSaveControls({ status, onRetry }: { status: SaveStatus; onRetry(): void }) {
   return (
     <div className="flex items-center gap-3">
-      <PendingButton type="submit" pending={isPending} disabled={status === 'conflict'}>
+      <PendingButton type="submit" pending={status === 'pending'} disabled={status === 'conflict'}>
         {t('admin.common.save')}
       </PendingButton>
       <FormStatus
         message={
-          !isPending && status === 'saved'
+          status === 'saved'
             ? t('admin.common.saved')
-            : !isPending && status === 'warning'
+            : status === 'warning'
               ? t('admin.common.cacheWarning')
               : undefined
         }
         error={
-          !isPending && status === 'error'
+          status === 'error'
             ? t('admin.common.error')
-            : !isPending && status === 'conflict'
+            : status === 'conflict'
               ? t('admin.editor.status.conflict')
               : undefined
         }
       />
-      {status === 'warning' && !isPending && (
+      {status === 'warning' && (
         <Button type="button" variant="outline" onClick={onRetry}>
           {t('admin.common.retryCache')}
         </Button>
