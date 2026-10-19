@@ -3,11 +3,12 @@ import {
   Code2Icon,
   Heading2Icon,
   Heading3Icon,
+  ImagePlusIcon,
   PilcrowIcon,
   Redo2Icon,
   Undo2Icon,
 } from 'lucide-react';
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
@@ -20,7 +21,21 @@ const shortcut = (keys: string) => `Control+${keys} Meta+${keys}`;
  * The editor's formatting toolbar, one tab stop moved by the arrows, Home and
  * End (WAI-ARIA APG toolbar pattern).
  */
-export function EditorToolbar({ editor }: { editor: Editor }) {
+type Props = {
+  editor: Editor;
+  imagePickerOpen: boolean;
+  imagePickerDesktop: boolean;
+  imagePickerButtonRef: RefObject<HTMLButtonElement | null>;
+  onToggleImagePicker(): void;
+};
+
+export function EditorToolbar({
+  editor,
+  imagePickerOpen,
+  imagePickerDesktop,
+  imagePickerButtonRef,
+  onToggleImagePicker,
+}: Props) {
   const [activeTool, setActiveTool] = useState(0);
   const toolbar = useRef<HTMLDivElement>(null);
   // Read through a selector, so the toolbar re-renders when what it shows
@@ -68,6 +83,12 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
       run: () => editor.chain().focus().toggleCodeBlock().run(),
     },
     {
+      label: 'admin.editor.insertImage',
+      Icon: ImagePlusIcon,
+      picker: true,
+      run: onToggleImagePicker,
+    },
+    {
       label: 'admin.editor.undo',
       Icon: Undo2Icon,
       keys: shortcut('Z'),
@@ -112,13 +133,17 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
           variant="outline"
           className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-pressed:bg-muted aria-pressed:text-foreground aria-pressed:inset-ring aria-pressed:inset-ring-foreground/20"
           aria-label={t(tool.label)}
-          aria-keyshortcuts={tool.keys}
+          aria-keyshortcuts={'keys' in tool ? tool.keys || undefined : undefined}
           aria-pressed={'pressed' in tool ? tool.pressed : undefined}
+          aria-expanded={'picker' in tool ? imagePickerOpen : undefined}
+          aria-controls={'picker' in tool && imagePickerDesktop ? 'editor-image-picker' : undefined}
+          aria-haspopup={'picker' in tool && !imagePickerDesktop ? 'dialog' : undefined}
           // An unavailable command stays reachable, so the arrows never skip it
           // and the roving stop is never stranded on a control that vanished.
           disabled={'unavailable' in tool && tool.unavailable}
           focusableWhenDisabled
           tabIndex={index === activeTool ? 0 : -1}
+          ref={'picker' in tool ? imagePickerButtonRef : undefined}
           onFocus={() => setActiveTool(index)}
           onClick={tool.run}
           key={tool.label}

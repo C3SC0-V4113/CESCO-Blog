@@ -98,11 +98,14 @@ async function loadPickerPage(page: Page, target: { alt: string }) {
       currentPage = next;
       const candidate = result.assets.find((asset) => asset.altText === target.alt);
       if (candidate) {
-        await expect(page.locator(`details img[src="/${candidate.r2Key}"]`)).toBeVisible();
+        await expect(
+          page.locator(`#editor-image-picker img[src="/${candidate.r2Key}"]`)
+        ).toBeVisible();
         return;
       }
       const first = result.assets[0];
-      if (first) await expect(page.locator(`details img[src="/${first.r2Key}"]`)).toBeVisible();
+      if (first)
+        await expect(page.locator(`#editor-image-picker img[src="/${first.r2Key}"]`)).toBeVisible();
     }
     while (currentPage > 1) {
       const previous = currentPage - 1;
@@ -120,6 +123,14 @@ async function loadPickerPage(page: Page, target: { alt: string }) {
     }
   }
   throw Error('candidate-not-found-in-picker');
+}
+
+async function waitForPickerAnimations(page: Page) {
+  await page
+    .locator('#editor-image-picker')
+    .evaluate((el) =>
+      Promise.all(el.getAnimations({ subtree: true }).map((animation) => animation.finished))
+    );
 }
 
 async function uploadFromPicker(page: Page, alt: string) {
@@ -192,8 +203,13 @@ test('normalizes, delivers, paginates reuse, and keeps the image block stable', 
   const target = await findReusableCandidate(page.request);
 
   await openNewDraft(page);
-  await page.getByText('Insertar imagen').click();
-  await expect(page.locator('details ul > li')).toHaveCount(20);
+  const pickerTrigger = page.getByRole('button', { name: 'Insertar imagen' });
+  await expect(pickerTrigger).toBeEnabled();
+  await pickerTrigger.click();
+  const picker = page.getByRole('complementary', { name: 'Insertar imagen' });
+  await expect(picker.locator('ul > li')).toHaveCount(20);
+  // Pagination clicks can be swallowed while the picker panel is moving.
+  await waitForPickerAnimations(page);
   await loadPickerPage(page, target);
   const reusable = page.getByRole('button', { name: target.alt, exact: true });
   await expect(reusable).toBeVisible();
@@ -213,8 +229,9 @@ test('normalizes, delivers, paginates reuse, and keeps the image block stable', 
   const blockId = await block.getAttribute('data-blockid');
   await page.reload();
   await expect(page.locator(`[data-blockid="${blockId}"]`)).toHaveAttribute('alt', target.alt);
-  await page.getByText('Insertar imagen').click();
-  await expect(page.locator('details ul > li')).toHaveCount(20);
+  await expect(pickerTrigger).toBeEnabled();
+  await pickerTrigger.click();
+  await expect(picker.locator('ul > li')).toHaveCount(20);
   await page.screenshot({ path: testInfo.outputPath('editor-image.png'), fullPage: true });
 });
 
