@@ -103,6 +103,13 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
 
   return (
     <div className="min-h-dvh bg-muted/30">
+      {/* The first stop on every screen, past the header and the navigation. */}
+      <a
+        href="#admin-main"
+        className="sr-only bg-background text-foreground focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:px-4 focus:py-2 focus:ring-3 focus:ring-ring"
+      >
+        {t('nav.skipToContent')}
+      </a>
       <header className="border-b bg-background">
         <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4 sm:px-6">
           <Button
@@ -118,7 +125,9 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
           >
             <NavigationIcon aria-hidden="true" />
           </Button>
-          <span className="font-heading text-lg font-semibold">{t('admin.brand')}</span>
+          <a href="/admin" className="font-heading text-lg font-semibold">
+            {t('admin.brand')}
+          </a>
           <span className="text-sm text-muted-foreground">{t('admin.navigation')}</span>
         </div>
       </header>
@@ -207,15 +216,17 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
           </nav>
         </aside>
 
-        <main className="min-w-0 p-4 sm:p-6 lg:p-8">
+        {/* Focused by the skip link only, so it draws no ring of its own. */}
+        <main id="admin-main" tabIndex={-1} className="min-w-0 p-4 outline-none sm:p-6 lg:p-8">
           <div className="mb-6 flex flex-col gap-1">
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t(title)}</h1>
             <p className="text-muted-foreground">{t(subtitle)}</p>
           </div>
-          {/* A disabled fieldset makes every control inside it inert until
-              hydration, so nothing can be typed that React would discard.
+          {/* Inert until hydration, so nothing can be typed that React would
+              discard. Unlike a disabled fieldset it leaves every control
+              looking as it will, so the screen does not flash on hydrating.
               `contents` keeps it out of the layout. */}
-          <fieldset disabled={!isHydrated} className="contents">
+          <div inert={!isHydrated} className="contents">
             {screen.name === 'dashboard' && <AdminDashboard />}
             {screen.name === 'posts' && (
               <AdminPostList posts={screen.posts} page={screen.page} total={screen.total} />
@@ -234,7 +245,7 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
               <AdminCollectionEditor collection={screen.collection} posts={screen.posts} />
             )}
             {screen.name === 'seo' && <AdminSeo {...screen} />}
-          </fieldset>
+          </div>
         </main>
       </div>
     </div>

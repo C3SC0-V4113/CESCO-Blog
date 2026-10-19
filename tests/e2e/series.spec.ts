@@ -40,6 +40,7 @@ test('answers 404 for a series that does not exist', async ({ page }) => {
   const response = await page.goto('/es/series/no-existe');
 
   expect(response?.status()).toBe(404);
+  await expect(page).toHaveTitle('Esta página no existe');
 });
 
 test('links series from the header now that the route exists', async ({ page }) => {

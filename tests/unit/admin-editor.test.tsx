@@ -45,6 +45,21 @@ const emptyDraft: EditorDraft = {
   draftToken: null,
   contentJson: { type: 'doc', content: [] },
 };
+const paragraphDraft: EditorDraft = {
+  title: 'Título',
+  excerpt: null,
+  draftToken: null,
+  contentJson: {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        attrs: { blockId: 'p1' },
+        content: [{ type: 'text', text: 'Texto' }],
+      },
+    ],
+  },
+};
 const asset = (altText: string, r2Key: string): AdminMediaAsset => ({
   id: crypto.randomUUID(),
   r2Key,
@@ -73,7 +88,9 @@ beforeAll(() => {
 });
 
 describe('admin editor', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it('exposes the title and excerpt as labeled fields with their constraints as descriptions', async () => {
     const view = render(
@@ -146,9 +163,11 @@ describe('admin editor', () => {
     fireEvent.change(await screen.findByRole('textbox', { name: /^Título/ }), {
       target: { value: 'Título nuevo' },
     });
-    expect(screen.getByRole('status').textContent).toBe(
+    // A failure interrupts; the polite region stays quiet until a save lands.
+    expect(screen.getByRole('alert').textContent).toBe(
       'No se pudo guardar. Edita nuevamente para reintentar.'
     );
+    expect(screen.getByRole('status').textContent).toBe('');
     expect(log).toHaveBeenCalledOnce();
     expect(JSON.stringify(log.mock.calls)).not.toMatch(/confidencial|Título nuevo/);
     fireEvent.click(screen.getByRole('button', { name: 'Guardar ahora' }));
@@ -281,5 +300,96 @@ describe('admin editor', () => {
         .map((image) => image.getAttribute('alt'))
     ).toEqual(['Primera', 'Segunda']);
     view.unmount();
+  });
+
+  describe('toolbar', () => {
+    function renderEditor() {
+      return render(
+        <AdminEditor
+          postId="p1"
+          localizationId="l1"
+          localizations={{ es: 'l1' }}
+          draft={paragraphDraft}
+          mediaAssets={[]}
+          referencedAssets={[]}
+          mediaTotal={0}
+        />
+      );
+    }
+    const tool = (name: string) => screen.getByRole('button', { name });
+
+    it('is one tab stop that arrows, Home and End move through', async () => {
+      const view = renderEditor();
+      const toolbar = await screen.findByRole('toolbar', { name: 'Formato del documento' });
+      const tools = within(toolbar).getAllByRole('button');
+      expect(tools.map((button) => button.tabIndex)).toEqual([0, -1, -1, -1, -1, -1]);
+
+      tools[0]!.focus();
+      fireEvent.keyDown(tools[0]!, { key: 'ArrowRight' });
+      expect(tools[1]!.matches(':focus')).toBe(true);
+      expect(tools.map((button) => button.tabIndex)).toEqual([-1, 0, -1, -1, -1, -1]);
+
+      // Undo and redo start unavailable, yet the arrows still reach them.
+      fireEvent.keyDown(tools[1]!, { key: 'End' });
+      expect(tools[5]!.matches(':focus')).toBe(true);
+      fireEvent.keyDown(tools[5]!, { key: 'ArrowRight' });
+      expect(tools[0]!.matches(':focus')).toBe(true);
+      fireEvent.keyDown(tools[0]!, { key: 'ArrowLeft' });
+      expect(tools[5]!.matches(':focus')).toBe(true);
+      fireEvent.keyDown(tools[5]!, { key: 'Home' });
+      expect(tools[0]!.matches(':focus')).toBe(true);
+      expect(tools[0]!.tabIndex).toBe(0);
+      view.unmount();
+    });
+
+    it('presses the block type under the selection', async () => {
+      const view = renderEditor();
+      await screen.findByRole('toolbar');
+      expect(tool('Párrafo').getAttribute('aria-pressed')).toBe('true');
+      expect(tool('Encabezado 2').getAttribute('aria-pressed')).toBe('false');
+      expect(tool('Encabezado 2').getAttribute('aria-keyshortcuts')).toBe(
+        'Control+Alt+2 Meta+Alt+2'
+      );
+
+      fireEvent.click(tool('Encabezado 2'));
+      await waitFor(() => expect(tool('Encabezado 2').getAttribute('aria-pressed')).toBe('true'));
+      expect(tool('Párrafo').getAttribute('aria-pressed')).toBe('false');
+      // History commands are actions, not toggles.
+      expect(tool('Deshacer').hasAttribute('aria-pressed')).toBe(false);
+      view.unmount();
+    });
+
+    it('offers undo and redo only when there is history', async () => {
+      const view = renderEditor();
+      await screen.findByRole('toolbar');
+      expect(tool('Deshacer').getAttribute('aria-disabled')).toBe('true');
+      expect(tool('Rehacer').getAttribute('aria-disabled')).toBe('true');
+
+      fireEvent.click(tool('Encabezado 2'));
+      await waitFor(() => expect(tool('Deshacer').getAttribute('aria-disabled')).toBe('false'));
+      fireEvent.click(tool('Deshacer'));
+      await waitFor(() => expect(tool('Rehacer').getAttribute('aria-disabled')).toBe('false'));
+      expect(tool('Párrafo').getAttribute('aria-pressed')).toBe('true');
+      view.unmount();
+    });
+
+    it('announces a landed save, not every pending edit', async () => {
+      const view = renderEditor();
+      await screen.findByRole('toolbar');
+      const region = screen.getByRole('status');
+      expect(region.textContent).toBe('');
+
+      fireEvent.change(screen.getByRole('textbox', { name: 'Título' }), {
+        target: { value: 'Otro título' },
+      });
+      // The visible line follows every state; the live region does not.
+      expect(screen.getByText('Cambios pendientes')).toBeTruthy();
+      expect(region.textContent).toBe('');
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar ahora' }));
+      await waitFor(() => expect(region.textContent).toBe('Guardado'));
+      expect(screen.getByRole('status')).toBe(region);
+      expect(screen.queryByRole('alert')).toBeNull();
+      view.unmount();
+    });
   });
 });

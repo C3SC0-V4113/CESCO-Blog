@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { waitForAdminHydration } from './helpers/admin-hydration';
+
 import type { APIRequestContext } from '@playwright/test';
 
 async function collectJavaScriptGraph(request: APIRequestContext, entryPoints: string[]) {
@@ -89,15 +91,15 @@ test('gates the navigation trigger until the admin island hydrates', async ({ pa
     await expect.poll(() => heldScripts.length).toBeGreaterThan(0);
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
 
-    // Attempt activation against server-rendered markup while its island
-    // scripts are held. The disabled native button must ignore this click.
+    // Attempt activation against the server-rendered button while its island
+    // scripts are held. A disabled native button must ignore this click.
     await trigger.evaluate((button: HTMLButtonElement) => button.click());
     await expect(trigger).toBeDisabled();
   } finally {
     releaseScripts();
   }
 
-  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+  await waitForAdminHydration(page);
   const trigger = page.getByRole('button', { name: 'Abrir navegación' });
   await expect(trigger).toBeEnabled();
   await trigger.click();

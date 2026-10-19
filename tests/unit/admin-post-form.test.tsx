@@ -43,9 +43,32 @@ describe('admin post creation', () => {
       <AdminPostForm createPost={vi.fn().mockResolvedValue({ error: { code: 'CONFLICT' } })} />
     );
     submitSlug('reservado');
-    expect((await screen.findByRole('alert')).textContent).toBe(
-      'Ese slug ya está reservado para este idioma.'
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe('Ese slug ya está reservado para este idioma.');
+    const slug = screen.getByLabelText('Slug');
+    expect(slug.getAttribute('aria-invalid')).toBe('true');
+    expect(slug.getAttribute('aria-describedby')).toBe(alert.id);
+    expect(slug.matches(':focus')).toBe(true);
+    view.unmount();
+  });
+
+  it('keeps the label and shows progress while the post is created', async () => {
+    const view = render(
+      <AdminPostForm createPost={vi.fn().mockReturnValue(new Promise(() => {}))} />
     );
+    const create = screen.getByRole('button', { name: 'Crear publicación' });
+    expect(create).toHaveProperty('disabled', false);
+    submitSlug('en-curso');
+    await waitFor(() => expect(create).toHaveProperty('disabled', true));
+    expect(create.textContent).toBe('Crear publicación');
+    expect(create.innerHTML).toMatch(/<svg[^>]*animate-spin motion-reduce:animate-none/);
+    expect(create.innerHTML).toContain('aria-hidden="true"');
+    view.unmount();
+  });
+
+  it('marks the slug as a plain identifier, not prose', () => {
+    const view = render(<AdminPostForm />);
+    expect(screen.getByLabelText('Slug').getAttribute('spellcheck')).toBe('false');
     view.unmount();
   });
 

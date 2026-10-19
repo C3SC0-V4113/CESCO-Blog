@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { getTranslations } from '@/i18n/utils';
 import {
@@ -13,6 +13,8 @@ import {
 } from '@/lib/admin-actions';
 import { mediaPath } from '@/lib/media';
 import { isRenameLocalizationRejection } from '@/lib/publishing';
+
+import { FormStatus, PendingButton } from './admin-form';
 
 import type { ReviewDetail, ReviewQueueItem } from '@/db/queries/admin-review';
 
@@ -25,12 +27,14 @@ type Props = {
   total: number;
   pendingPurges: number;
 };
-type State = 'idle' | 'pending' | 'error' | 'acknowledgement-error';
+type State = 'idle' | 'pending' | 'error';
+type Action = 'publish' | 'unpublish' | 'rename';
 
 // Every outcome reloads, including one whose purge failed: the change recorded
 // its tags when it committed (ADR-0037), so the server renders the pending
 // notice and its retry for whoever opens the page next, not just this tab.
 const reload = () => window.location.reload();
+const textLink = 'inline-flex min-h-6 items-center underline underline-offset-4';
 
 function PendingPurgesNotice() {
   const [state, setState] = useState<'idle' | 'pending' | 'error'>('idle');
@@ -47,14 +51,14 @@ function PendingPurgesNotice() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/40 p-4 text-sm">
       <p>{t('admin.review.pendingPurges')}</p>
-      <Button
+      <PendingButton
         type="button"
         variant="outline"
-        disabled={state === 'pending'}
+        pending={state === 'pending'}
         onClick={() => void retry()}
       >
         {t('admin.review.retryPurge')}
-      </Button>
+      </PendingButton>
       {state === 'error' && (
         <p role="alert" className="basis-full">
           {t('admin.review.pendingPurgesError')}
@@ -75,14 +79,14 @@ function ReviewPreview({ detail }: { detail: ReviewDetail }) {
       {detail.contentJson.content.map((block) => {
         const text = 'content' in block ? block.content.map((node) => node.text).join('') : '';
         if (block.type === 'paragraph') return <p key={block.attrs.blockId}>{text}</p>;
-        if (block.type === 'heading') {
-          const Heading = `h${block.attrs.level}` as 'h2';
+        // Styled, not structural: the draft's headings would otherwise nest
+        // under the page's own and break its outline.
+        if (block.type === 'heading')
           return (
-            <Heading key={block.attrs.blockId} className="text-lg font-semibold">
+            <p key={block.attrs.blockId} className="text-lg font-semibold">
               {text}
-            </Heading>
+            </p>
           );
-        }
         if (block.type === 'codeBlock')
           return (
             <pre
@@ -104,9 +108,7 @@ function ReviewPreview({ detail }: { detail: ReviewDetail }) {
             />
           </figure>
         ) : (
-          <p key={block.attrs.blockId} role="status">
-            {t('admin.media.unavailable')}
-          </p>
+          <p key={block.attrs.blockId}>{t('admin.media.unavailable')}</p>
         );
       })}
     </section>
@@ -124,11 +126,17 @@ function reviewUrl(page: number, selection?: ReviewDetail | ReviewQueueItem | nu
 
 export function AdminReview({ items, detail, page, pageSize, total, pendingPurges }: Props) {
   const [state, setState] = useState<State>('idle');
+  const [running, setRunning] = useState<Action>();
   const [renameConfirmed, setRenameConfirmed] = useState(false);
+  // Set when the server asks for the redirect confirmation this page did not
+  // know it needed, because the localization went live after it loaded.
+  const [acknowledgementRejected, setAcknowledgementRejected] = useState(false);
+  const acknowledgement = useRef<HTMLButtonElement>(null);
   const operationId = useRef<string | null>(null);
   const mutation = detail ? { postId: detail.postId, localizationId: detail.localizationId } : null;
-  const run = async (work: () => Promise<{ error?: unknown; data?: unknown }>) => {
+  const run = async (action: Action, work: () => Promise<{ error?: unknown; data?: unknown }>) => {
     setState('pending');
+    setRunning(action);
     try {
       const result = await work();
       if (result.error) throw result.error;
@@ -143,7 +151,7 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
     // Kept across a failed call, so retrying after a lost response replays the
     // same revision instead of publishing a second one.
     operationId.current ??= crypto.randomUUID();
-    const data = await run(() =>
+    const data = await run('publish', () =>
       callPublish({
         ...mutation!,
         draftToken: detail.draftToken!,
@@ -156,7 +164,33 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
     }
   };
   const blocked = !detail?.draftToken || !detail.title?.trim() || !detail.coverAssetId;
-  const everPublished = Boolean(detail?.firstPublishedAt);
+  const needsAcknowledgement = Boolean(detail?.firstPublishedAt) || acknowledgementRejected;
+  const acknowledgementMissing = acknowledgementRejected && !renameConfirmed;
+  const renameBlocked = state === 'pending' || (needsAcknowledgement && !renameConfirmed);
+  const rename = async (form: HTMLFormElement) => {
+    // Enter in the slug field submits as well, so this repeats the guard the
+    // disabled button already applies.
+    if (renameBlocked) return;
+    const slug = new FormData(form).get('slug');
+    const data = await run('rename', () =>
+      callRenameLocalization({
+        ...mutation!,
+        slug: String(slug),
+        acknowledgePermanentRedirect: renameConfirmed,
+      })
+    );
+    if (isRenameLocalizationRejection(data)) {
+      // Rendered before the move, so focus lands on a checkbox already described.
+      flushSync(() => {
+        setAcknowledgementRejected(true);
+        setState('idle');
+      });
+      acknowledgement.current?.focus();
+    } else if (data) {
+      setRenameConfirmed(false);
+      reload();
+    }
+  };
   const firstItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const lastItem = Math.min(page * pageSize, total);
 
@@ -164,16 +198,17 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
     <div className="grid gap-6">
       {pendingPurges > 0 && <PendingPurgesNotice />}
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
+        {/* Concentric: the items' radius-md plus the 6px inset is radius-xl. */}
         <section
           aria-label={t('admin.review.queue')}
-          className="order-last max-h-[70vh] overflow-auto rounded-xl border bg-background p-4 lg:order-first"
+          className="order-last max-h-[70vh] overflow-auto rounded-xl border bg-background p-1.5 lg:order-first"
         >
           {items.length ? (
-            <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
+            <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
               {items.map((item) => (
                 <li key={item.localizationId}>
                   <a
-                    className="block rounded-lg border p-3"
+                    className="block rounded-md border p-3 outline-none focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:border-primary aria-[current=page]:bg-muted"
                     aria-current={
                       detail?.localizationId === item.localizationId ? 'page' : undefined
                     }
@@ -188,21 +223,30 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
               ))}
             </ul>
           ) : (
-            <p>{t('admin.review.empty')}</p>
+            <p className="p-2.5">{t('admin.review.empty')}</p>
           )}
           {total > 0 && (
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="mt-1.5 px-2.5 text-sm text-muted-foreground tabular-nums">
               {t('admin.review.showing')} {firstItem}–{lastItem} {t('admin.review.of')} {total}
             </p>
           )}
           {total > pageSize && (
-            <nav aria-label={t('listing.pagination')} className="mt-3 flex justify-between gap-2">
+            <nav
+              aria-label={t('listing.pagination')}
+              className="mt-1.5 flex justify-between gap-2 px-2.5 pb-1"
+            >
               {page > 1 ? (
-                <a href={reviewUrl(page - 1, detail)}>{t('listing.previous')}</a>
+                <a className={textLink} href={reviewUrl(page - 1, detail)}>
+                  {t('listing.previous')}
+                </a>
               ) : (
                 <span />
               )}
-              {lastItem < total && <a href={reviewUrl(page + 1, detail)}>{t('listing.next')}</a>}
+              {lastItem < total && (
+                <a className={textLink} href={reviewUrl(page + 1, detail)}>
+                  {t('listing.next')}
+                </a>
+              )}
             </nav>
           )}
         </section>
@@ -213,7 +257,13 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
           {!detail ? (
             <p>{t('admin.review.select')}</p>
           ) : (
-            <form className="grid gap-4">
+            <form
+              className="grid gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void rename(event.currentTarget);
+              }}
+            >
               <div>
                 <h2 className="text-xl font-semibold [overflow-wrap:anywhere]">
                   {detail.title || detail.slug}
@@ -229,11 +279,11 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                 </div>
                 <div>
                   <dt>{t('admin.review.blocks')}</dt>
-                  <dd>{detail.contentJson.content.length}</dd>
+                  <dd className="tabular-nums">{detail.contentJson.content.length}</dd>
                 </div>
                 <div>
                   <dt>{t('admin.review.media')}</dt>
-                  <dd>{detail.referencedMedia.length}</dd>
+                  <dd className="tabular-nums">{detail.referencedMedia.length}</dd>
                 </div>
                 <div>
                   <dt>{t('admin.review.draft')}</dt>
@@ -241,40 +291,62 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                 </div>
               </dl>
               <ReviewPreview detail={detail} />
-              <FieldGroup className="gap-4">
-                <Field className="gap-1">
-                  <FieldLabel htmlFor="review-slug">{t('admin.posts.slug')}</FieldLabel>
-                  <Input
-                    id="review-slug"
-                    name="slug"
-                    defaultValue={detail.slug}
-                    onChange={(event) => {
-                      if (event.target.value === detail.slug) setRenameConfirmed(false);
-                    }}
-                    className="h-10"
-                  />
-                </Field>
-                {everPublished && (
-                  <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
-                    <p>{t('admin.review.renameWarning')}</p>
-                    <Field orientation="horizontal" className="items-start">
-                      <Checkbox
-                        id="review-rename-confirmation"
-                        checked={renameConfirmed}
-                        onCheckedChange={(checked) => setRenameConfirmed(checked === true)}
-                      />
-                      <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
-                        {t('admin.review.renameConfirm')}
-                      </FieldLabel>
-                    </Field>
-                  </div>
-                )}
-              </FieldGroup>
-              {blocked && <p role="alert">{t('admin.review.blocked')}</p>}
+              <Field className="gap-1">
+                <FieldLabel htmlFor="review-slug">{t('admin.posts.slug')}</FieldLabel>
+                <Input
+                  id="review-slug"
+                  name="slug"
+                  defaultValue={detail.slug}
+                  autoComplete="off"
+                  required
+                  spellCheck={false}
+                  onChange={(event) => {
+                    if (event.target.value === detail.slug) setRenameConfirmed(false);
+                  }}
+                />
+              </Field>
+              {needsAcknowledgement && (
+                <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
+                  <p>{t('admin.review.renameWarning')}</p>
+                  <Field orientation="horizontal" className="items-start">
+                    <Checkbox
+                      id="review-rename-confirmation"
+                      ref={acknowledgement}
+                      name="acknowledgePermanentRedirect"
+                      checked={renameConfirmed}
+                      onCheckedChange={(checked) => setRenameConfirmed(checked === true)}
+                      aria-invalid={acknowledgementMissing ? true : undefined}
+                      aria-describedby={
+                        acknowledgementMissing ? 'acknowledgePermanentRedirect-error' : undefined
+                      }
+                    />
+                    <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
+                      {t('admin.review.renameConfirm')}
+                    </FieldLabel>
+                  </Field>
+                  {acknowledgementMissing && (
+                    <FieldError id="acknowledgePermanentRedirect-error">
+                      {t('admin.review.renameAcknowledgementError')}
+                    </FieldError>
+                  )}
+                </div>
+              )}
+              {/* A standing condition, not an event: it describes the button rather
+                  than interrupting on load. The button stays focusable, so the
+                  reason is read where the action is. */}
+              {blocked && (
+                <p id="publish-blocked" className="text-sm text-muted-foreground">
+                  {t('admin.review.blocked')}
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
-                <Button
+                <PendingButton
                   type="button"
+                  className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+                  pending={state === 'pending' && running === 'publish'}
                   disabled={blocked || state === 'pending'}
+                  focusableWhenDisabled
+                  aria-describedby={blocked ? 'publish-blocked' : undefined}
                   onClick={() => void publish()}
                 >
                   {t(
@@ -282,13 +354,14 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                       ? 'admin.review.republish'
                       : 'admin.review.publish'
                   )}
-                </Button>
-                <Button
+                </PendingButton>
+                <PendingButton
                   type="button"
                   variant="outline"
+                  pending={state === 'pending' && running === 'unpublish'}
                   disabled={detail.status !== 'published' || state === 'pending'}
                   onClick={() =>
-                    void run(() =>
+                    void run('unpublish', () =>
                       callUnpublish({
                         ...mutation!,
                         publishedRevisionId: detail.publishedRevisionId ?? undefined,
@@ -299,41 +372,21 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
                   }
                 >
                   {t('admin.review.unpublish')}
-                </Button>
-                <Button
-                  type="button"
+                </PendingButton>
+                {/* The form's only submit button, so Enter in the slug field renames. */}
+                <PendingButton
+                  type="submit"
                   variant="outline"
-                  disabled={state === 'pending' || (everPublished && !renameConfirmed)}
-                  onClick={(event) => {
-                    const slug = new FormData(event.currentTarget.form!).get('slug');
-                    void run(() =>
-                      callRenameLocalization({
-                        ...mutation!,
-                        slug: String(slug),
-                        acknowledgePermanentRedirect: renameConfirmed,
-                      })
-                    ).then((data) => {
-                      if (isRenameLocalizationRejection(data)) {
-                        setState('acknowledgement-error');
-                      } else if (data) {
-                        setRenameConfirmed(false);
-                        reload();
-                      }
-                    });
-                  }}
+                  pending={state === 'pending' && running === 'rename'}
+                  disabled={renameBlocked}
                 >
                   {t('admin.review.rename')}
-                </Button>
+                </PendingButton>
               </div>
-              <p role={state === 'error' || state === 'acknowledgement-error' ? 'alert' : 'status'}>
-                {state === 'pending'
-                  ? t('admin.review.pending')
-                  : state === 'error'
-                    ? t('admin.review.error')
-                    : state === 'acknowledgement-error'
-                      ? t('admin.review.renameAcknowledgementError')
-                      : ''}
-              </p>
+              <FormStatus
+                message={state === 'pending' ? t('admin.review.pending') : undefined}
+                error={state === 'error' ? t('admin.review.error') : undefined}
+              />
             </form>
           )}
         </section>

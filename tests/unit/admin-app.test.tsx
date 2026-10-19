@@ -16,16 +16,30 @@ import { callPublish, callRenameLocalization, callRetryPendingPurges } from '@/l
 describe('AdminApp', () => {
   it('keeps every control inert until React has hydrated the page', () => {
     // The server markup is what an editor can type into before hydration, and
-    // React resets controlled inputs to it when it commits.
-    expect(renderToString(<AdminApp screen={{ name: 'new-post' }} />)).toContain(
-      '<fieldset disabled="" class="contents">'
+    // React resets controlled inputs to it when it commits. Inert blocks that
+    // without restyling every control as disabled, so nothing flashes.
+    expect(renderToString(<AdminApp screen={{ name: 'dashboard' }} />)).toMatch(
+      /^(?!.*<fieldset).*<div inert="" class="contents">/
     );
 
     render(<AdminApp screen={{ name: 'new-post' }} />);
+    expect(screen.getByRole('main').matches('[inert] *')).toBe(false);
     expect(screen.getByRole('button', { name: 'Crear publicación' })).toHaveProperty(
       'disabled',
       false
     );
+  });
+
+  it('opens with a skip link to the main content and a way home', () => {
+    render(<AdminApp />);
+    const [skip] = screen.getAllByRole('link');
+    expect(skip!.textContent).toBe('Saltar al contenido');
+    expect(skip!.getAttribute('href')).toBe('#admin-main');
+    const main = screen.getByRole('main');
+    expect(main.id).toBe('admin-main');
+    // Focusable by the skip link without joining the tab order.
+    expect(main.tabIndex).toBe(-1);
+    expect(screen.getByRole('link', { name: 'Checkpoint' }).getAttribute('href')).toBe('/admin');
   });
 
   it('renders an honest dashboard with live taxonomy destinations', () => {

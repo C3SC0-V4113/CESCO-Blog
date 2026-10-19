@@ -78,6 +78,26 @@ describe('AdminSeo', () => {
         'La portada no se puede quitar mientras algún idioma de la publicación esté publicado.'
       )
     );
+    const cover = screen.getByLabelText('Portada editorial limpia');
+    expect(cover.getAttribute('aria-invalid')).toBe('true');
+    expect(cover.getAttribute('aria-describedby')).toBe(screen.getByRole('alert').id);
+    expect(cover.matches(':focus')).toBe(true);
+  });
+
+  it('saves through the form and shows progress without losing the label', () => {
+    vi.mocked(callSaveSeoDraft).mockReturnValue(new Promise(() => {}));
+    renderSeo();
+    const save = screen.getByRole('button', { name: 'Guardar' });
+    expect(save.getAttribute('type')).toBe('submit');
+    expect(save).toHaveProperty('disabled', false);
+
+    expect(fireEvent.submit((save as HTMLButtonElement).form!)).toBe(false);
+
+    expect(callSaveSeoDraft).toHaveBeenCalledTimes(1);
+    expect(save).toHaveProperty('disabled', true);
+    expect(save.textContent).toBe('Guardar');
+    expect(save.innerHTML).toMatch(/<svg[^>]*animate-spin motion-reduce:animate-none/);
+    expect(save.innerHTML).toContain('aria-hidden="true"');
   });
 
   it('stops at a conflict instead of overwriting the other session', async () => {
@@ -95,5 +115,30 @@ describe('AdminSeo', () => {
       )
     );
     expect(screen.getByRole('button', { name: 'Guardar' })).toHaveProperty('disabled', true);
+  });
+
+  it('keeps the social card title out of the page outline', () => {
+    renderSeo();
+    expect(screen.getByText('Una publicación')).toBeTruthy();
+    expect(screen.queryByRole('heading', { level: 3 })).toBeNull();
+  });
+
+  it('keeps one polite region and inserts a failure beside it', async () => {
+    vi.mocked(callSaveSeoDraft)
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValue({ data: { status: 'saved' }, error: undefined } as never);
+    renderSeo();
+    const region = screen.getByRole('status');
+    expect(region.textContent).toBe('');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await screen.findByRole('alert');
+    // The region never turns into the alert, so it is still there, and quiet.
+    expect(screen.getByRole('status')).toBe(region);
+    expect(region.textContent).toBe('');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(region.textContent).toBe('Cambios guardados.'));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

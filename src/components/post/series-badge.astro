@@ -34,15 +34,15 @@ const t = getTranslations(locale);
 
 <a
   href={`/${locale}/series/${series.slug}`}
-  class="group/series mb-5 inline-flex items-center gap-2 rounded-full border border-border py-1.5 ps-3 pe-3.5 text-xs transition-colors duration-150 hover:border-primary/40 hover:bg-muted"
+  class="group/series mb-5 inline-flex items-center gap-2 rounded-full border border-border py-1.5 ps-3 pe-3.5 text-xs transition-colors duration-150 hover:border-primary/40 hover:bg-muted motion-reduce:transition-none"
 >
-  <Library aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
+  <Library aria-hidden="true" strokeWidth={1.75} className="size-3.5 shrink-0 text-primary-text" />
 
   <span class="text-muted-foreground">
     {t('post.partOfSeries')}
   </span>
 
-  <span class="font-medium text-foreground group-hover/series:text-primary">
+  <span class="font-medium text-foreground group-hover/series:text-primary-text">
     {series.title}
   </span>
 
@@ -61,7 +61,7 @@ const t = getTranslations(locale);
     only once rendered, which is where this was caught.
   */
   }
-  <span class="text-muted-foreground">
+  <span class="text-muted-foreground tabular-nums">
     {`${series.position} ${t('post.ofSeries')} ${series.total}`}
   </span>
 </a>

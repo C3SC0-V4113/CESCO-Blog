@@ -2,14 +2,6 @@ import UniqueID from '@tiptap/extension-unique-id';
 import { NodeSelection, Selection } from '@tiptap/pm/state';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import {
-  Code2Icon,
-  Heading2Icon,
-  Heading3Icon,
-  PilcrowIcon,
-  Redo2Icon,
-  Undo2Icon,
-} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -21,8 +13,10 @@ import { callSaveDraft } from '@/lib/admin-actions';
 import { createDraftSave, DraftAutosave } from '@/lib/draft-autosave';
 import { parseDraftContent } from '@/lib/drafts';
 import { imageFilesToUpload, imageNode, mediaPath } from '@/lib/media';
+import { cn } from '@/lib/utils';
 
 import { AdminMedia, type MediaUploader } from './admin-media';
+import { EditorToolbar } from './editor-toolbar';
 import { MediaImage } from './media-image-extension';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
@@ -41,6 +35,7 @@ type Props = {
 type SaveValue = Omit<SaveDraftInput, 'draftToken' | 'nextToken'>;
 type Status = 'saved' | 'dirty' | 'saving' | 'failed' | 'conflict';
 const localeLabel = (locale: 'es' | 'en') => t(`admin.editor.locale.${locale}`);
+const pill = 'inline-flex h-8 items-center rounded-lg px-2.5 text-sm font-medium';
 
 export function AdminEditor({
   postId,
@@ -53,6 +48,8 @@ export function AdminEditor({
 }: Props) {
   const [status, setStatus] = useState<Status>('saved');
   const statusRef = useRef<Status>('saved');
+  // The opening state is "saved" too, but nothing was saved yet to announce.
+  const [edited, setEdited] = useState(false);
   const fields = useRef({ title: draft.title, excerpt: draft.excerpt ?? '' });
   // Assets known when the editor opens never change, so they stay plain state.
   // One picked or uploaded later must resolve in the same call that inserts it,
@@ -78,6 +75,7 @@ export function AdminEditor({
         (next) => {
           statusRef.current = next;
           setStatus(next);
+          if (next !== 'saved') setEdited(true);
         }
       )
   );
@@ -112,7 +110,7 @@ export function AdminEditor({
     content: draft.contentJson,
     editorProps: {
       attributes: {
-        'aria-label': t('admin.editor.body'),
+        'aria-labelledby': 'editor-body-label',
         'aria-multiline': 'true',
         role: 'textbox',
       },
@@ -170,22 +168,6 @@ export function AdminEditor({
     return () => removeEventListener('beforeunload', unload);
   }, []);
   if (!editor) return <p>{t('admin.editor.loading')}</p>;
-  const tools = [
-    ['admin.editor.paragraph', PilcrowIcon, () => editor.chain().focus().setParagraph().run()],
-    [
-      'admin.editor.heading2',
-      Heading2Icon,
-      () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
-    ],
-    [
-      'admin.editor.heading3',
-      Heading3Icon,
-      () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
-    ],
-    ['admin.editor.code', Code2Icon, () => editor.chain().focus().toggleCodeBlock().run()],
-    ['admin.editor.undo', Undo2Icon, () => editor.chain().focus().undo().run()],
-    ['admin.editor.redo', Redo2Icon, () => editor.chain().focus().redo().run()],
-  ] as const;
   const editField = (name: 'title' | 'excerpt', value: string) => {
     fields.current[name] = value;
     enqueue(editor.getJSON());
@@ -196,20 +178,29 @@ export function AdminEditor({
     <div className="grid max-w-4xl gap-4">
       <div>
         <p className="mb-1 text-sm font-medium">{t('admin.editor.locale')}</p>
+        {/* Only the other locale is a destination. The current one and a
+            missing one are plain text, so nothing focusable does nothing. */}
         <div className="flex gap-2" role="group" aria-label={t('admin.editor.locale')}>
           {(['es', 'en'] as const).map((locale) => {
             const id = localizations[locale];
             if (locale === currentLocale)
               return (
-                <Button key={locale} type="button" disabled aria-current="page">
+                <span
+                  key={locale}
+                  aria-current="page"
+                  className={cn(pill, 'bg-primary text-primary-foreground')}
+                >
                   {localeLabel(locale)} ({t('admin.editor.locale.current')})
-                </Button>
+                </span>
               );
             if (!id)
               return (
-                <Button key={locale} type="button" variant="outline" disabled>
+                <span
+                  key={locale}
+                  className={cn(pill, 'border border-dashed text-muted-foreground')}
+                >
                   {localeLabel(locale)} ({t('admin.editor.locale.missing')})
-                </Button>
+                </span>
               );
             const href = `/admin/posts/${postId}/edit?localization=${id}`;
             return (
@@ -231,12 +222,14 @@ export function AdminEditor({
           })}
         </div>
       </div>
+      {/* Each constraint sits outside its label: inside, it would be read twice,
+          once in the name and again as the description. */}
       <Field className="gap-2">
         <FieldLabel htmlFor="editor-title">{t('admin.editor.postTitle')}</FieldLabel>
         <Input
           id="editor-title"
+          name="title"
           aria-describedby="editor-title-constraint"
-          className="h-10 w-full rounded-lg px-3 md:text-base"
           defaultValue={draft.title}
           maxLength={300}
           onChange={(event) => editField('title', event.target.value)}
@@ -249,8 +242,9 @@ export function AdminEditor({
         <FieldLabel htmlFor="editor-excerpt">{t('admin.editor.excerpt')}</FieldLabel>
         <Textarea
           id="editor-excerpt"
+          name="excerpt"
           aria-describedby="editor-excerpt-constraint"
-          className="min-h-20 w-full rounded-lg p-3 md:text-base"
+          className="min-h-20"
           defaultValue={draft.excerpt ?? ''}
           maxLength={1000}
           onChange={(event) => editField('excerpt', event.target.value)}
@@ -259,25 +253,20 @@ export function AdminEditor({
           {t('admin.editor.excerptConstraint')}
         </FieldDescription>
       </Field>
-      <div className="flex flex-wrap gap-2" role="toolbar" aria-label={t('admin.editor.toolbar')}>
-        {tools.map(([label, Icon, run]) => (
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            aria-label={t(label)}
-            onClick={run}
-            key={label}
-          >
-            <Icon />
-          </Button>
-        ))}
+      <EditorToolbar editor={editor} />
+      <div>
+        <p id="editor-body-label" className="mb-1 text-sm font-medium">
+          {t('admin.editor.body')}
+        </p>
+        {/* The canvas is a text field, so its frame draws the same ring as the
+            other fields while it holds focus. */}
+        <EditorContent
+          editor={editor}
+          className="min-h-72 rounded-xl border bg-background p-4 transition-[border-color,box-shadow] duration-150 ease-out-quad has-[.ProseMirror:focus-visible]:border-ring has-[.ProseMirror:focus-visible]:ring-3 has-[.ProseMirror:focus-visible]:ring-ring motion-reduce:transition-none [&_.ProseMirror]:min-h-64 [&_.ProseMirror]:outline-none"
+        />
       </div>
-      <EditorContent
-        editor={editor}
-        className="min-h-72 rounded-xl border bg-background p-4 [&_.ProseMirror]:min-h-64 [&_.ProseMirror]:outline-none"
-      />
-      <details ref={picker} className="rounded-xl border bg-background p-4">
+      {/* Concentric with the media surfaces inside: their radius-lg plus p-4. */}
+      <details ref={picker} className="rounded-4xl border bg-background p-4">
         <summary className="cursor-pointer font-medium">{t('admin.editor.insertImage')}</summary>
         <div className="mt-4">
           <AdminMedia
@@ -303,7 +292,7 @@ export function AdminEditor({
         </div>
       </details>
       <div className="flex items-center gap-3">
-        <p role="status">{t(`admin.editor.status.${status}`)}</p>
+        <SaveStatus status={status} edited={edited} />
         <Button type="button" variant="outline" onClick={() => void autosave.flush()}>
           {t('admin.editor.save')}
         </Button>
@@ -322,5 +311,25 @@ export function AdminEditor({
         </a>
       </div>
     </div>
+  );
+}
+
+/**
+ * The visible line follows every state. Screen readers hear a landed save,
+ * through a region that is always there, and a failure, which interrupts;
+ * typing does not announce "pending" on every keystroke.
+ */
+function SaveStatus({ status, edited }: { status: Status; edited: boolean }) {
+  return (
+    <>
+      {status === 'failed' || status === 'conflict' ? (
+        <p role="alert">{t(`admin.editor.status.${status}`)}</p>
+      ) : (
+        <p>{t(`admin.editor.status.${status}`)}</p>
+      )}
+      <p role="status" className="sr-only">
+        {edited && status === 'saved' ? t('admin.editor.status.saved') : ''}
+      </p>
+    </>
   );
 }

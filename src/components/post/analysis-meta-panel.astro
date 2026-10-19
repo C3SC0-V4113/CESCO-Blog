@@ -51,7 +51,9 @@ const completionKeys = {
 // Built by pushing rather than filtering a list of `&&` expressions: those
 // evaluate to the falsy value itself, so an empty platform name would leave an
 // empty string in the array that no filter predicate narrows away.
-const facts: { label: string; value: string }[] = [];
+// `numeric` sets tabular figures on values that are counts, so a playtime of
+// 12 and one of 18 sit the same width on successive pages.
+const facts: { label: string; value: string; numeric?: boolean }[] = [];
 
 if (analysis.playedPlatform) {
   facts.push({ label: t('analysis.platform'), value: analysis.playedPlatform });
@@ -61,6 +63,7 @@ if (analysis.playtimeHours !== null) {
   facts.push({
     label: t('analysis.playtime'),
     value: `${analysis.playtimeHours} ${t('analysis.playtimeHours')}`,
+    numeric: true,
   });
 }
 
@@ -88,7 +91,7 @@ if (analysis.completionState) {
           <dd class="mt-1 text-sm">
             <a
               href={`/${locale}/${gameSegment}/${game.slug}`}
-              class="text-foreground transition-colors duration-150 hover:text-primary"
+              class="text-foreground transition-colors duration-150 hover:text-primary-text motion-reduce:transition-none"
             >
               {game.title}
             </a>
@@ -99,7 +102,9 @@ if (analysis.completionState) {
       {facts.map((fact) => (
         <div>
           <dt class="text-xs tracking-wide text-muted-foreground uppercase">{fact.label}</dt>
-          <dd class="mt-1 text-sm text-foreground">{fact.value}</dd>
+          <dd class:list={['mt-1 text-sm text-foreground', fact.numeric && 'tabular-nums']}>
+            {fact.value}
+          </dd>
         </div>
       ))}
     </dl>

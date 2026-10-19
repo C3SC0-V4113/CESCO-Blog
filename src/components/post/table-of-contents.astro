@@ -88,6 +88,7 @@ const shown = entries.filter((entry) => entry.level <= 3);
           */}
           <ChevronDown
             aria-hidden="true"
+            strokeWidth={1.75}
             className="size-4 shrink-0 transition-transform duration-150 ease-[var(--ease-out-quad)] group-open:rotate-180 motion-reduce:transition-none"
           />
         </summary>
@@ -98,9 +99,14 @@ const shown = entries.filter((entry) => entry.level <= 3);
       </details>
 
       <div class="hidden lg:sticky lg:top-8 lg:block">
-        <h2 class="text-xs tracking-wide text-muted-foreground uppercase">
+        {/*
+          A caption, not a heading. The landmark already carries this name, and
+          the outline precedes the article in source order, so an `<h2>` here
+          was the page's first heading — above its `<h1>`.
+        */}
+        <p class="text-xs tracking-wide text-muted-foreground uppercase">
           {t('post.tableOfContents')}
-        </h2>
+        </p>
 
         <div class="mt-3">
           <TocList entries={shown} />

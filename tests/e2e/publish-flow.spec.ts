@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { parse } from 'devalue';
 
+import { waitForAdminHydration } from './helpers/admin-hydration';
 import { publishE2eFixture } from '../../scripts/publish-e2e-fixtures';
 
 import type { Page } from '@playwright/test';
@@ -117,6 +118,12 @@ test('reviews, publishes, withdraws, republishes, and renames one localization',
   const publicUrl = `/es/analisis/${originalSlug}`;
   await page.goto(publicUrl);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
+  // A code sample can scroll sideways, so a keyboard has to be able to reach
+  // it, and what it reaches has to say what it is.
+  await expect(page.getByRole('group', { name: 'Ejemplo de código: javascript' })).toHaveAttribute(
+    'tabindex',
+    '0'
+  );
 
   await page.goto(`/admin/review?post=${postId}&localization=${localizationId}`);
   const unpublished = actionResponse(page, 'unpublish');
@@ -153,6 +160,7 @@ test('reviews, publishes, withdraws, republishes, and renames one localization',
   expect(JSON.stringify(safeResultData)).not.toContain('redirect-acknowledgement-required');
   await page.reload();
   await expect(page.getByLabel('Slug')).toHaveValue(originalSlug);
+  await waitForAdminHydration(page);
 
   const slug = `publicado-${crypto.randomUUID()}`;
   await page.getByLabel('Slug').fill(slug);

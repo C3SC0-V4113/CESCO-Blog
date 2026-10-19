@@ -14,6 +14,9 @@ import type { Locale } from '@/i18n/locales';
  *
  * ADR-0018 requires the trust pages to be reachable from the footer on every
  * page, so this is where they belong once they exist.
+ *
+ * Links are held to a 24px minimum height (WCAG 2.5.8); `gap-4` keeps wrapped
+ * rows from overlapping once they grow.
  */
 
 interface Props {
@@ -37,7 +40,10 @@ const year = new Date().getUTCFullYear();
       links.length > 0 && (
         <nav aria-label={t('footer.about')} class="flex flex-wrap items-center gap-4">
           {links.map((link) => (
-            <a href={link.href} class="transition-colors duration-150 hover:text-foreground">
+            <a
+              href={link.href}
+              class="inline-flex min-h-6 items-center transition-colors duration-150 hover:text-foreground motion-reduce:transition-none"
+            >
               {t(link.key)}
             </a>
           ))}

@@ -1,6 +1,8 @@
 ---
 import ThemeScript from '@/components/common/theme-script.astro';
 
+// Deliberately without `page-transitions.css`: the admin does not opt in to
+// cross-document view transitions, so its navigations and reloads snap.
 import '../styles/global.css';
 
 interface Props {
@@ -14,7 +16,7 @@ const { title } = Astro.props;
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="referrer" content="no-referrer" />
     <title>{title}</title>
