@@ -28,6 +28,7 @@ import type { UiKey } from '@/i18n/ui';
 import type { SeoDraftInput } from '@/lib/admin-taxonomy';
 
 const t = getTranslations('es');
+type SaveStatus = 'idle' | 'pending' | 'saved' | 'warning' | 'error' | 'conflict';
 
 type SeoValues = Omit<SeoDraftInput, 'draftToken' | 'nextToken'>;
 type FormValues = Record<
@@ -70,9 +71,7 @@ export function AdminSeo({
     coverMediaId: seo.coverMediaId ?? '',
     authorId: seo.authorId ?? '',
   });
-  const [status, setStatus] = useState<
-    'idle' | 'pending' | 'saved' | 'warning' | 'error' | 'conflict'
-  >('idle');
+  const [status, setStatus] = useState<SaveStatus>('idle');
   const [invalid, setInvalid] = useState<Invalid>();
   const outcome = useRef<'saved' | 'warning'>('saved');
   // The same values object for an unedited retry, so the queue below replays
@@ -135,6 +134,13 @@ export function AdminSeo({
       form.querySelector<HTMLElement>(`#seo-${field.name}`)?.focus();
     }
   };
+  const retryCachePurge = () => {
+    setStatus('pending');
+    void callRetryPendingPurges().then((result) =>
+      setStatus(result.error ? 'error' : result.data.status === 'purged' ? 'saved' : 'warning')
+    );
+  };
+
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.8fr)]">
       <form
@@ -144,131 +150,167 @@ export function AdminSeo({
           void save(event.currentTarget);
         }}
       >
-        <Field className="gap-1">
-          <FieldLabel htmlFor="seo-canonical">{t('admin.seo.canonical')}</FieldLabel>
-          <Input
-            id="seo-canonical"
-            name="canonical"
-            readOnly
-            value={canonical}
-            className="bg-muted"
-          />
-        </Field>
-        <Text
-          name="seoTitle"
-          label={t('admin.seo.title')}
-          value={values.seoTitle}
-          onChange={(value) => set('seoTitle', value)}
-        />
-        <Area
-          name="seoDescription"
-          label={t('admin.seo.description')}
-          value={values.seoDescription}
-          onChange={(value) => set('seoDescription', value)}
-        />
-        <Text
-          name="ogTitle"
-          label={t('admin.seo.ogTitle')}
-          value={values.ogTitle}
-          onChange={(value) => set('ogTitle', value)}
-        />
-        <Area
-          name="ogDescription"
-          label={t('admin.seo.ogDescription')}
-          value={values.ogDescription}
-          onChange={(value) => set('ogDescription', value)}
-        />
-        <ChoiceField
-          name="coverMediaId"
+        <SeoFields
+          canonical={canonical}
+          values={values}
           invalid={invalid}
-          label={t('admin.seo.cover')}
-          value={values.coverMediaId}
-          onChange={(value) => set('coverMediaId', value)}
-          options={media.map((asset) => ({ value: asset.id, label: asset.altText || asset.r2Key }))}
+          authors={authors}
+          media={media}
+          onChange={set}
         />
-        <ChoiceField
-          name="authorId"
-          label={t('admin.seo.author')}
-          value={values.authorId}
-          onChange={(value) => set('authorId', value)}
-          options={authors.map((item) => ({ value: item.id, label: item.name }))}
-        />
-        <ChoiceField
-          name="ogImageMediaId"
-          label={t('admin.seo.ogImage')}
-          value={values.ogImageMediaId}
-          onChange={(value) => set('ogImageMediaId', value)}
-          options={media.map((asset) => ({ value: asset.id, label: asset.altText || asset.r2Key }))}
-        />
-        <Text
-          name="ogImageAlt"
-          label={t('admin.seo.ogAlt')}
-          value={values.ogImageAlt}
-          onChange={(value) => set('ogImageAlt', value)}
-        />
-        <div className="flex items-center gap-3">
-          <PendingButton
-            type="submit"
-            pending={status === 'pending'}
-            disabled={status === 'conflict'}
-          >
-            {t('admin.common.save')}
-          </PendingButton>
-          <FormStatus
-            message={
-              status === 'saved'
-                ? t('admin.common.saved')
-                : status === 'warning'
-                  ? t('admin.common.cacheWarning')
-                  : undefined
-            }
-            error={
-              status === 'error'
-                ? t('admin.common.error')
-                : status === 'conflict'
-                  ? t('admin.editor.status.conflict')
-                  : undefined
-            }
-          />
-          {status === 'warning' && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setStatus('pending');
-                void callRetryPendingPurges().then((result) =>
-                  setStatus(
-                    result.error ? 'error' : result.data.status === 'purged' ? 'saved' : 'warning'
-                  )
-                );
-              }}
-            >
-              {t('admin.common.retryCache')}
-            </Button>
-          )}
-        </div>
+        <SeoSaveControls status={status} onRetry={retryCachePurge} />
       </form>
-      <aside>
-        <h2 className="mb-3 font-semibold">{t('admin.seo.preview')}</h2>
-        <div className="aspect-[1.91/1] overflow-hidden rounded-xl border bg-slate-950 text-white shadow-lg">
-          {image && (
-            <img
-              src={mediaPath(image.r2Key)}
-              alt={values.ogImageAlt || image.altText || ''}
-              className="h-full w-full object-cover opacity-55"
-            />
-          )}
-          <div className="relative -mt-[52.35%] flex aspect-[1.91/1] flex-col justify-end bg-gradient-to-t from-black/90 to-transparent p-6">
-            <p className="text-sm font-semibold">{author?.name ?? SITE_NAME}</p>
-            {/* Styled, not structural: a preview's title is not a section of this page. */}
-            <p className="mt-2 text-2xl font-bold">{effective.ogTitle}</p>
-            {effective.ogDescription && (
-              <p className="mt-2 line-clamp-2 text-sm text-white/80">{effective.ogDescription}</p>
-            )}
-          </div>
-        </div>
-      </aside>
+      <SeoPreview effective={effective} image={image} author={author} alt={values.ogImageAlt} />
     </div>
+  );
+}
+
+function SeoFields({
+  canonical,
+  values,
+  invalid,
+  authors,
+  media,
+  onChange,
+}: {
+  canonical: string;
+  values: FormValues;
+  invalid?: Invalid;
+  authors: AdminAuthor[];
+  media: AdminMediaAsset[];
+  onChange(key: keyof FormValues, value: string): void;
+}) {
+  return (
+    <>
+      <Field className="gap-1">
+        <FieldLabel htmlFor="seo-canonical">{t('admin.seo.canonical')}</FieldLabel>
+        <Input
+          id="seo-canonical"
+          name="canonical"
+          readOnly
+          value={canonical}
+          className="bg-muted"
+        />
+      </Field>
+      <Text
+        name="seoTitle"
+        label={t('admin.seo.title')}
+        value={values.seoTitle}
+        onChange={(value) => onChange('seoTitle', value)}
+      />
+      <Area
+        name="seoDescription"
+        label={t('admin.seo.description')}
+        value={values.seoDescription}
+        onChange={(value) => onChange('seoDescription', value)}
+      />
+      <Text
+        name="ogTitle"
+        label={t('admin.seo.ogTitle')}
+        value={values.ogTitle}
+        onChange={(value) => onChange('ogTitle', value)}
+      />
+      <Area
+        name="ogDescription"
+        label={t('admin.seo.ogDescription')}
+        value={values.ogDescription}
+        onChange={(value) => onChange('ogDescription', value)}
+      />
+      <ChoiceField
+        name="coverMediaId"
+        invalid={invalid}
+        label={t('admin.seo.cover')}
+        value={values.coverMediaId}
+        onChange={(value) => onChange('coverMediaId', value)}
+        options={media.map((asset) => ({ value: asset.id, label: asset.altText || asset.r2Key }))}
+      />
+      <ChoiceField
+        name="authorId"
+        label={t('admin.seo.author')}
+        value={values.authorId}
+        onChange={(value) => onChange('authorId', value)}
+        options={authors.map((item) => ({ value: item.id, label: item.name }))}
+      />
+      <ChoiceField
+        name="ogImageMediaId"
+        label={t('admin.seo.ogImage')}
+        value={values.ogImageMediaId}
+        onChange={(value) => onChange('ogImageMediaId', value)}
+        options={media.map((asset) => ({ value: asset.id, label: asset.altText || asset.r2Key }))}
+      />
+      <Text
+        name="ogImageAlt"
+        label={t('admin.seo.ogAlt')}
+        value={values.ogImageAlt}
+        onChange={(value) => onChange('ogImageAlt', value)}
+      />
+    </>
+  );
+}
+
+function SeoSaveControls({ status, onRetry }: { status: SaveStatus; onRetry(): void }) {
+  return (
+    <div className="flex items-center gap-3">
+      <PendingButton type="submit" pending={status === 'pending'} disabled={status === 'conflict'}>
+        {t('admin.common.save')}
+      </PendingButton>
+      <FormStatus
+        message={
+          status === 'saved'
+            ? t('admin.common.saved')
+            : status === 'warning'
+              ? t('admin.common.cacheWarning')
+              : undefined
+        }
+        error={
+          status === 'error'
+            ? t('admin.common.error')
+            : status === 'conflict'
+              ? t('admin.editor.status.conflict')
+              : undefined
+        }
+      />
+      {status === 'warning' && (
+        <Button type="button" variant="outline" onClick={onRetry}>
+          {t('admin.common.retryCache')}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function SeoPreview({
+  effective,
+  image,
+  author,
+  alt,
+}: {
+  effective: ReturnType<typeof effectiveSeo>;
+  image?: AdminMediaAsset;
+  author?: AdminAuthor;
+  alt: string;
+}) {
+  return (
+    <aside>
+      <h2 className="mb-3 font-semibold">{t('admin.seo.preview')}</h2>
+      <div className="aspect-[1.91/1] overflow-hidden rounded-xl border bg-slate-950 text-white shadow-lg">
+        {image && (
+          <img
+            src={mediaPath(image.r2Key)}
+            alt={alt || image.altText || ''}
+            className="h-full w-full object-cover opacity-55"
+          />
+        )}
+        <div className="relative -mt-[52.35%] flex aspect-[1.91/1] flex-col justify-end bg-gradient-to-t from-black/90 to-transparent p-6">
+          <p className="text-sm font-semibold">{author?.name ?? SITE_NAME}</p>
+          {/* Styled, not structural: a preview's title is not a section of this page. */}
+          <p className="mt-2 text-2xl font-bold">{effective.ogTitle}</p>
+          {effective.ogDescription && (
+            <p className="mt-2 line-clamp-2 text-sm text-white/80">{effective.ogDescription}</p>
+          )}
+        </div>
+      </div>
+    </aside>
   );
 }
 type FieldProps = {
