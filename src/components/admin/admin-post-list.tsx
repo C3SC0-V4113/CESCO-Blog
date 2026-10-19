@@ -1,8 +1,18 @@
+import { cva } from 'class-variance-authority';
 import { PlusIcon, StarIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { linkVariants } from '@/components/ui/link-variants';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatDate, getTranslations, interpolate } from '@/i18n/utils';
 import { callRetryPendingPurges, callSetFeatured } from '@/lib/admin-actions';
 import { pageCount } from '@/lib/pagination';
@@ -12,6 +22,22 @@ import type { AdminLocaleStatus, AdminPostSummary } from '@/db/queries/admin-pos
 import type { UiKey } from '@/i18n/ui';
 
 const t = getTranslations('es');
+const adminPostsTableVariants = cva('', {
+  variants: {
+    part: {
+      table: 'min-w-2xl text-left',
+      caption: 'sr-only',
+      header: 'bg-muted/50 text-xs text-muted-foreground',
+      headerRow: 'border-b-0 transition-none hover:bg-transparent',
+      column: 'px-4 py-3 font-medium',
+      body: 'divide-y',
+      row: 'border-0 transition-none hover:bg-transparent',
+      title: 'max-w-64 truncate p-4 font-medium',
+      cell: 'p-4',
+      date: 'p-4 whitespace-nowrap',
+    },
+  },
+});
 const statusKey = (status: AdminLocaleStatus) => `admin.posts.locale.${status}` as UiKey;
 
 function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | 'en' }) {
@@ -128,52 +154,58 @@ export function AdminPostList({ posts, page, total }: AdminPostListProps) {
           {t('admin.posts.empty')}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
-          <table className="w-full min-w-2xl text-left text-sm">
-            <caption className="sr-only">{t('admin.posts.caption')}</caption>
-            <thead className="border-b bg-muted/50 text-xs text-muted-foreground">
-              <tr>
-                <th scope="col" className="px-4 py-3 font-medium">
+        <div className="rounded-xl border bg-card shadow-sm">
+          <Table className={adminPostsTableVariants({ part: 'table' })}>
+            <TableCaption className={adminPostsTableVariants({ part: 'caption' })}>
+              {t('admin.posts.caption')}
+            </TableCaption>
+            <TableHeader className={adminPostsTableVariants({ part: 'header' })}>
+              <TableRow className={adminPostsTableVariants({ part: 'headerRow' })}>
+                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
                   {t('admin.posts.title')}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                </TableHead>
+                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
                   {t('admin.posts.section')}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                </TableHead>
+                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
                   {t('locale.es')}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                </TableHead>
+                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
                   {t('locale.en')}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                </TableHead>
+                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
                   {t('admin.posts.state')}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                </TableHead>
+                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
                   {t('post.updatedOn')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className={adminPostsTableVariants({ part: 'body' })}>
               {posts.map((post) => (
-                <tr key={post.id}>
-                  <th scope="row" className="max-w-64 truncate p-4 font-medium">
+                <TableRow key={post.id} className={adminPostsTableVariants({ part: 'row' })}>
+                  <TableHead scope="row" className={adminPostsTableVariants({ part: 'title' })}>
                     {post.displayName}
-                  </th>
-                  <td className="p-4">
+                  </TableHead>
+                  <TableCell className={adminPostsTableVariants({ part: 'cell' })}>
                     {t(post.section === 'analysis' ? 'nav.analysis' : 'nav.opinion')}
-                  </td>
-                  <td className="p-4">
+                  </TableCell>
+                  <TableCell className={adminPostsTableVariants({ part: 'cell' })}>
                     <LocaleCell post={post} locale="es" />
-                  </td>
-                  <td className="p-4">
+                  </TableCell>
+                  <TableCell className={adminPostsTableVariants({ part: 'cell' })}>
                     <LocaleCell post={post} locale="en" />
-                  </td>
-                  <td className="p-4">{t(`admin.posts.state.${post.editorialState}` as UiKey)}</td>
-                  <td className="p-4 whitespace-nowrap">{formatDate(post.updatedAt, 'es')}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell className={adminPostsTableVariants({ part: 'cell' })}>
+                    {t(`admin.posts.state.${post.editorialState}` as UiKey)}
+                  </TableCell>
+                  <TableCell className={adminPostsTableVariants({ part: 'date' })}>
+                    {formatDate(post.updatedAt, 'es')}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
       {totalPages > 1 && (
