@@ -2,6 +2,7 @@ import { PlusIcon, StarIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
+import { linkVariants } from '@/components/ui/link-variants';
 import { formatDate, getTranslations, interpolate } from '@/i18n/utils';
 import { callRetryPendingPurges, callSetFeatured } from '@/lib/admin-actions';
 import { pageCount } from '@/lib/pagination';
@@ -12,8 +13,6 @@ import type { UiKey } from '@/i18n/ui';
 
 const t = getTranslations('es');
 const statusKey = (status: AdminLocaleStatus) => `admin.posts.locale.${status}` as UiKey;
-const textAction =
-  'inline-flex min-h-6 items-center underline underline-offset-4 disabled:opacity-50';
 
 function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | 'en' }) {
   const id = post.localizationIds[locale];
@@ -65,7 +64,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
   return (
     <div className="grid gap-2">
       <a
-        className={textAction}
+        className={linkVariants({ variant: 'adminAction' })}
         href={`/admin/posts/${post.id}/edit?localization=${id}`}
         aria-label={name(label)}
       >
@@ -73,7 +72,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
       </a>
       <div className="flex flex-wrap gap-2 text-xs">
         <a
-          className={textAction}
+          className={linkVariants({ variant: 'adminAction' })}
           href={`/admin/posts/${post.id}/seo?localization=${id}`}
           aria-label={name(t('admin.posts.seo'))}
         >
@@ -84,7 +83,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
             <Button
               type="button"
               variant="link"
-              className={textAction}
+              className={linkVariants({ variant: 'adminAction' })}
               disabled={pending}
               aria-label={name(t('admin.common.retryCache'))}
               onClick={retryCache}
@@ -95,7 +94,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
             <Button
               type="button"
               variant="link"
-              className={cn(textAction, 'gap-1')}
+              className={cn(linkVariants({ variant: 'adminAction' }), 'gap-1')}
               disabled={pending}
               aria-pressed={featured}
               aria-label={name(t('admin.posts.feature'))}
@@ -157,24 +156,20 @@ export function AdminPostList({ posts, page, total }: AdminPostListProps) {
             <tbody className="divide-y">
               {posts.map((post) => (
                 <tr key={post.id}>
-                  <th scope="row" className="max-w-64 truncate p-4  font-medium">
+                  <th scope="row" className="max-w-64 truncate p-4 font-medium">
                     {post.displayName}
                   </th>
-                  <td className="p-4 ">
+                  <td className="p-4">
                     {t(post.section === 'analysis' ? 'nav.analysis' : 'nav.opinion')}
                   </td>
-                  <td className="p-4 ">
+                  <td className="p-4">
                     <LocaleCell post={post} locale="es" />
                   </td>
-                  <td className="p-4 ">
+                  <td className="p-4">
                     <LocaleCell post={post} locale="en" />
                   </td>
-                  <td className="p-4 ">
-                    {t(`admin.posts.state.${post.editorialState}` as UiKey)}
-                  </td>
-                  <td className="p-4  whitespace-nowrap">
-                    {formatDate(post.updatedAt, 'es')}
-                  </td>
+                  <td className="p-4">{t(`admin.posts.state.${post.editorialState}` as UiKey)}</td>
+                  <td className="p-4 whitespace-nowrap">{formatDate(post.updatedAt, 'es')}</td>
                 </tr>
               ))}
             </tbody>

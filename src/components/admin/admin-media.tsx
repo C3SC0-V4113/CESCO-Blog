@@ -5,6 +5,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { linkVariants } from '@/components/ui/link-variants';
 import { getTranslations } from '@/i18n/utils';
 import { callListMedia, callUpdateMediaAsset } from '@/lib/admin-actions';
 import { normalizeImage } from '@/lib/image-normalize';
@@ -24,7 +25,6 @@ const metadataFields = [
   'licenseUrl',
 ] as const;
 const urlFields: ReadonlySet<string> = new Set(['sourceUrl', 'licenseUrl']);
-const textLink = 'inline-flex min-h-6 items-center underline underline-offset-4';
 /** Lets the editor hand over files pasted or dropped outside the upload box. */
 export type MediaUploader = { upload(files: File[]): void };
 type Props = {
@@ -87,7 +87,7 @@ export function AdminMedia({
         }
       />
       {onSelect && showLibraryLink && (
-        <a className={textLink} href="/admin/media">
+        <a className={linkVariants({ variant: 'admin' })} href="/admin/media">
           {t('admin.media.openLibrary')}
         </a>
       )}
@@ -314,7 +314,7 @@ function MediaPagination({
             {t('listing.previous')}
           </Button>
         ) : (
-          <a className={textLink} href={`/admin/media?page=${page - 1}`}>
+          <a className={linkVariants({ variant: 'admin' })} href={`/admin/media?page=${page - 1}`}>
             {t('listing.previous')}
           </a>
         ))}
@@ -324,7 +324,7 @@ function MediaPagination({
             {t('listing.next')}
           </Button>
         ) : (
-          <a className={textLink} href={`/admin/media?page=${page + 1}`}>
+          <a className={linkVariants({ variant: 'admin' })} href={`/admin/media?page=${page + 1}`}>
             {t('listing.next')}
           </a>
         ))}

@@ -60,7 +60,7 @@ const eslintConfig = defineConfig([
         ui: '@/components/ui',
         componentImports: ['^@/components/ui(/|$)'],
         mergeFunctions: ['cn'],
-        variantFunctions: ['cva'],
+        variantFunctions: ['cva', 'linkVariants'],
         themeImports: ['(?:^|/)styles/global\\.css$'],
       },
     },

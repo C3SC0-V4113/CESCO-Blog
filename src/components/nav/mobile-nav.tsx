@@ -1,6 +1,7 @@
 import { Menu } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { linkVariants } from '@/components/ui/link-variants';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 /**
@@ -66,7 +67,7 @@ export default function MobileNav({ openLabel, closeLabel, navLabel, items }: Pr
               key={item.href}
               href={item.href}
               aria-current={item.current ? 'page' : undefined}
-              className="rounded-md px-3 py-2 text-base text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground aria-[current]:bg-muted aria-[current]:font-medium aria-[current]:text-foreground motion-reduce:transition-none"
+              className={linkVariants({ variant: 'mobileNav' })}
             >
               {item.label}
             </a>

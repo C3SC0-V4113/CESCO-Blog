@@ -4,6 +4,7 @@ import { flushSync } from 'react-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { linkVariants } from '@/components/ui/link-variants';
 import { getTranslations } from '@/i18n/utils';
 import {
   callPublish,
@@ -34,7 +35,6 @@ type Action = 'publish' | 'unpublish' | 'rename';
 // its tags when it committed (ADR-0037), so the server renders the pending
 // notice and its retry for whoever opens the page next, not just this tab.
 const reload = () => window.location.reload();
-const textLink = 'inline-flex min-h-6 items-center underline underline-offset-4';
 
 function PendingPurgesNotice() {
   const [state, setState] = useState<'idle' | 'pending' | 'error'>('idle');
@@ -169,14 +169,14 @@ function ReviewQueue({
           className="mt-1.5 flex justify-between gap-2 px-2.5 pb-1"
         >
           {page > 1 ? (
-            <a className={textLink} href={reviewUrl(page - 1, detail)}>
+            <a className={linkVariants({ variant: 'admin' })} href={reviewUrl(page - 1, detail)}>
               {t('listing.previous')}
             </a>
           ) : (
             <span />
           )}
           {lastItem < total && (
-            <a className={textLink} href={reviewUrl(page + 1, detail)}>
+            <a className={linkVariants({ variant: 'admin' })} href={reviewUrl(page + 1, detail)}>
               {t('listing.next')}
             </a>
           )}
@@ -190,9 +190,7 @@ function ReviewSummary({ detail }: { detail: ReviewDetail }) {
   return (
     <>
       <div>
-        <h2 className="text-xl font-semibold wrap-anywhere">
-          {detail.title || detail.slug}
-        </h2>
+        <h2 className="text-xl font-semibold wrap-anywhere">{detail.title || detail.slug}</h2>
         <p className="text-sm text-muted-foreground">
           {detail.locale.toUpperCase()} · {t(`admin.posts.locale.${detail.status}`)}
         </p>

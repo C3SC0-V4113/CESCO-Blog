@@ -2,6 +2,7 @@
 import LocaleSwitcher from '@/components/nav/locale-switcher';
 import MobileNav from '@/components/nav/mobile-nav';
 import ThemeToggle from '@/components/nav/theme-toggle';
+import { linkVariants } from '@/components/ui/link-variants';
 import { locales } from '@/i18n/locales';
 import { getTranslations } from '@/i18n/utils';
 import { isNavItemActive, mainNavItems } from '@/lib/navigation';
@@ -78,10 +79,7 @@ const localeOptions = locales.map((option) => ({
 
 <header class="border-b border-border">
   <div class="mx-auto flex h-16 max-w-5xl items-center gap-6 px-6">
-    <a
-      href={`/${locale}/`}
-      class="font-heading text-lg text-foreground transition-colors duration-150 hover:text-brand motion-reduce:transition-none"
-    >
+    <a href={`/${locale}/`} class={linkVariants({ variant: 'headerBrand' })}>
       {SITE_NAME}
     </a>
 
@@ -91,7 +89,7 @@ const localeOptions = locales.map((option) => ({
           <a
             href={item.href}
             aria-current={isNavItemActive(item.href, pathname) ? 'page' : undefined}
-            class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground aria-[current]:font-medium aria-[current]:text-foreground motion-reduce:transition-none"
+            class={linkVariants({ variant: 'nav' })}
           >
             {t(item.key)}
           </a>
