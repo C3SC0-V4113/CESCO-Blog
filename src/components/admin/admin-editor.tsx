@@ -314,7 +314,7 @@ export function AdminEditor({
             id="editor-excerpt"
             name="excerpt"
             aria-describedby="editor-excerpt-constraint"
-            className="min-h-20"
+            size="compact"
             defaultValue={draft.excerpt ?? ''}
             maxLength={1000}
             onChange={(event) => editField('excerpt', event.target.value)}

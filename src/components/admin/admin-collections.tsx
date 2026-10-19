@@ -407,7 +407,7 @@ function CollectionLocalizations({
                 id={`collection-${locale}-description`}
                 name={`${locale}-description`}
                 defaultValue={current?.description ?? ''}
-                className="min-h-20"
+                size="compact"
               />
             </UiField>
             <UiField spacing="compact">
