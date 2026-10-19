@@ -232,6 +232,7 @@ function MediaUpload({
           </FieldLabel>
           <input
             id={fileId}
+            data-slot="input"
             className="sr-only"
             ref={fileInput}
             type="file"

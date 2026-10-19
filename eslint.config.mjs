@@ -32,11 +32,11 @@ const eslintConfig = defineConfig([
       },
     },
     rules: {
-      'better-tailwindcss/enforce-canonical-classes': 'warn',
-      'better-tailwindcss/enforce-shorthand-classes': 'warn',
-      'better-tailwindcss/no-conflicting-classes': 'warn',
-      'better-tailwindcss/no-deprecated-classes': 'warn',
-      'better-tailwindcss/no-duplicate-classes': 'warn',
+      'better-tailwindcss/enforce-canonical-classes': 'error',
+      'better-tailwindcss/enforce-shorthand-classes': 'error',
+      'better-tailwindcss/no-conflicting-classes': 'error',
+      'better-tailwindcss/no-deprecated-classes': 'error',
+      'better-tailwindcss/no-duplicate-classes': 'error',
       'better-tailwindcss/no-restricted-classes': [
         'error',
         {
@@ -67,7 +67,7 @@ const eslintConfig = defineConfig([
     rules: {
       // Allow placement on the parent while components retain visual styling.
       'shadcn/no-restyle': [
-        'warn',
+        'error',
         {
           allow: [
             'm-*',
@@ -101,10 +101,10 @@ const eslintConfig = defineConfig([
           ],
         },
       ],
-      'shadcn/no-raw-colors': 'warn',
+      'shadcn/no-raw-colors': 'error',
       // Keep only browser insets, viewport bounds, and the OG image overlap as one-off values.
       'shadcn/no-arbitrary-values': [
-        'warn',
+        'error',
         {
           allow: [
             'md:min-h-[calc(100dvh-4rem)]',
@@ -114,9 +114,9 @@ const eslintConfig = defineConfig([
           ],
         },
       ],
-      'shadcn/no-inline-styles': 'warn',
-      'shadcn/no-unknown-classes': 'warn',
-      'shadcn/require-static-classes': 'warn',
+      'shadcn/no-inline-styles': 'error',
+      'shadcn/no-unknown-classes': 'error',
+      'shadcn/require-static-classes': 'error',
     },
   },
   {
