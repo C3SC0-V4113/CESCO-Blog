@@ -18,6 +18,7 @@ type Props = {
 export function useDraftAutosave({ postId, localizationId, draft }: Props) {
   const [status, setStatus] = useState<SaveStatusValue>('saved');
   const statusRef = useRef<SaveStatusValue>('saved');
+  const mounted = useRef(false);
   // The opening state is "saved" too, but nothing was saved yet to announce.
   const [edited, setEdited] = useState(false);
   const fields = useRef({ title: draft.title, excerpt: draft.excerpt ?? '' });
@@ -33,6 +34,7 @@ export function useDraftAutosave({ postId, localizationId, draft }: Props) {
         1_000,
         (next) => {
           statusRef.current = next;
+          if (!mounted.current) return;
           setStatus(next);
           if (next !== 'saved') setEdited(true);
         }
@@ -40,13 +42,15 @@ export function useDraftAutosave({ postId, localizationId, draft }: Props) {
   );
 
   useEffect(() => {
+    mounted.current = true;
     const unload = (event: BeforeUnloadEvent) => {
       if (statusRef.current !== 'saved') event.preventDefault();
     };
     addEventListener('beforeunload', unload);
     return () => {
+      mounted.current = false;
       removeEventListener('beforeunload', unload);
-      autosave.cancelPending();
+      void autosave.flush();
     };
   }, [autosave]);
 

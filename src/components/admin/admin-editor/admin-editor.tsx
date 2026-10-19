@@ -77,6 +77,7 @@ function EditorComposition({
     )
   );
   const pickedUrls = useRef<Record<string, string>>({});
+  const editorInitialized = useRef(false);
   const enqueue = autosave.enqueue;
   // Images pasted or dropped on the canvas go through the picker, so they meet
   // the same alt-text rule and the same upload as one chosen there (ADR-0024).
@@ -87,6 +88,9 @@ function EditorComposition({
   const editor = useEditor({
     immediatelyRender: false,
     content: draft.contentJson,
+    onCreate: () => {
+      editorInitialized.current = true;
+    },
     editorProps: {
       attributes: {
         'aria-labelledby': 'editor-body-label',
@@ -113,7 +117,9 @@ function EditorComposition({
       },
     },
     extensions: createEditorExtensions((id) => pickedUrls.current[id] ?? knownUrls[id]),
-    onUpdate: ({ editor: instance }) => enqueue(instance.getJSON()),
+    onUpdate: ({ editor: instance }) => {
+      if (editorInitialized.current) enqueue(instance.getJSON());
+    },
   });
   if (!editor) return <p>{t('admin.editor.loading')}</p>;
   const editField = (name: 'title' | 'excerpt', value: string) => {
