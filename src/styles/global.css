@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './typeset.css';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/figtree';
@@ -181,6 +182,15 @@
 
 @utility eyebrow {
   @apply text-2xs font-medium tracking-[0.14em] uppercase;
+}
+
+.typeset-article {
+  --typeset-font-body: var(--font-sans);
+  --typeset-font-heading: var(--font-heading);
+  --typeset-font-mono: var(--font-mono);
+  --typeset-size: 17px;
+  --typeset-leading: 1.7;
+  --typeset-flow: 1.25em;
 }
 
 @layer base {
