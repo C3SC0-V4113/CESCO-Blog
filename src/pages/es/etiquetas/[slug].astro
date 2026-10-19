@@ -35,34 +35,30 @@ applyPageCachePolicy(
 ---
 
 <Layout>
-  {
-    tag && (
-      <Fragment slot="head">
-        <SeoHead locale={locale} title={tag.name} path={`/es/etiquetas/${slug}`} />
-      </Fragment>
-    )
-  }
+  {tag && (
+    <Fragment slot="head">
+      <SeoHead locale={locale} title={tag.name} path={`/es/etiquetas/${slug}`} />
+    </Fragment>
+  )}
 
-  {
-    tag ? (
-      <main class="mx-auto max-w-3xl px-6 pt-12 pb-20">
-        <header class="mb-8">
-          <p class="text-xs tracking-wide text-muted-foreground uppercase">{t('post.tags')}</p>
-          <h1 class="mt-2 text-3xl leading-tight text-balance">{tag.name}</h1>
-        </header>
+  {tag ? (
+    <main class="mx-auto max-w-3xl px-6 pt-12 pb-20">
+      <header class="mb-8">
+        <p class="text-xs tracking-wide text-muted-foreground uppercase">{t('post.tags')}</p>
+        <h1 class="mt-2 text-3xl leading-tight text-balance">{tag.name}</h1>
+      </header>
 
-        {posts.length === 0 ? (
-          <p class="text-muted-foreground">{t('listing.empty')}</p>
-        ) : (
-          <div>
-            {posts.map((post) => (
-              <PostCard locale={locale} post={post} />
-            ))}
-          </div>
-        )}
-      </main>
-    ) : (
-      <ErrorState locale={locale} status={404} />
-    )
-  }
+      {posts.length === 0 ? (
+        <p class="text-muted-foreground">{t('listing.empty')}</p>
+      ) : (
+        <div>
+          {posts.map((post) => (
+            <PostCard locale={locale} post={post} />
+          ))}
+        </div>
+      )}
+    </main>
+  ) : (
+    <ErrorState locale={locale} status={404} />
+  )}
 </Layout>

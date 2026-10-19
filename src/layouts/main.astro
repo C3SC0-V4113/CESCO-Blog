@@ -64,16 +64,14 @@ const fallbackTitle = head.trim()
 
     <ThemeScript />
 
-    {
-      import.meta.env.DEV && (
-        <script
-          is:inline
-          defer
-          crossorigin="anonymous"
-          src="//unpkg.com/react-scan/dist/auto.global.js"
-        />
-      )
-    }
+    {import.meta.env.DEV && (
+      <script
+        is:inline
+        defer
+        crossorigin="anonymous"
+        src="//unpkg.com/react-scan/dist/auto.global.js"
+      />
+    )}
     <Fragment set:html={head} />
   </head>
   <body class="flex min-h-dvh flex-col">

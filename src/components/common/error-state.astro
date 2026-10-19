@@ -40,5 +40,7 @@ const actionHref = `/${locale}/`;
 <main class="mx-auto max-w-[34rem] px-6 py-24">
   <h1 class="font-heading text-2xl leading-tight text-balance text-foreground">{t(key.title)}</h1>
   <p class="mt-4 mb-8 leading-relaxed text-pretty text-muted-foreground">{t(key.body)}</p>
-  <a href={actionHref} class="text-primary-text underline underline-offset-4">{t(key.action)}</a>
+  <a href={actionHref} class="text-primary-text underline underline-offset-4">
+    {t(key.action)}
+  </a>
 </main>

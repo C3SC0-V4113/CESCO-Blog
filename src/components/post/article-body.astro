@@ -25,23 +25,21 @@ const t = getTranslations(locale);
 const headingLevel = (level: number) => Math.min(Math.max(level, 2), 3);
 ---
 
-{
-  doc.content.map((block) => {
-    if (block.type === 'heading') {
-      const Heading = `h${headingLevel(block.attrs.level)}` as 'h2' | 'h3';
-      return <Heading id={block.attrs.blockId}>{block.content.map((node) => node.text)}</Heading>;
-    }
+{doc.content.map((block) => {
+  if (block.type === 'heading') {
+    const Heading = `h${headingLevel(block.attrs.level)}` as 'h2' | 'h3';
+    return <Heading id={block.attrs.blockId}>{block.content.map((node) => node.text)}</Heading>;
+  }
 
-    if (block.type === 'codeBlock') {
-      // Focusable because it scrolls sideways: without a tab stop a keyboard
-      // cannot reach the end of a long line (WCAG 2.1.1). Once it is a stop it
-      // needs a name, and a group is the role that carries one without adding a
-      // landmark per sample. The ring comes from the base `:focus-visible`.
-      const label = block.attrs.language
-        ? `${t('post.codeSample')}: ${block.attrs.language}`
-        : t('post.codeSample');
-      return (
-        <pre id={block.attrs.blockId} tabindex="0" role="group" aria-label={label}>
+  if (block.type === 'codeBlock') {
+    // Focusable because it scrolls sideways: without a tab stop a keyboard
+    // cannot reach the end of a long line (WCAG 2.1.1). Once it is a stop it
+    // needs a name, and a group is the role that carries one without adding a
+    // landmark per sample. The ring comes from the base `:focus-visible`.
+    const label = block.attrs.language
+      ? `${t('post.codeSample')}: ${block.attrs.language}`
+      : t('post.codeSample');
+    return <pre id={block.attrs.blockId} tabindex="0" role="group" aria-label={label}>
           <code class={block.attrs.language ? `language-${block.attrs.language}` : undefined}>
             {block.attrs.highlighted
               ? block.attrs.highlighted.map((line, lineIndex) => (
@@ -56,53 +54,51 @@ const headingLevel = (level: number) => Math.min(Math.max(level, 2), 3);
                 ))
               : block.content.map((node) => node.text)}
           </code>
-        </pre>
-      );
-    }
+        </pre>;
+  }
 
-    if (block.type === 'paragraph')
-      return <p id={block.attrs.blockId}>{block.content.map((node) => node.text)}</p>;
+  if (block.type === 'paragraph')
+    return <p id={block.attrs.blockId}>{block.content.map((node) => node.text)}</p>;
 
-    if (block.type === 'image') {
-      const asset = media.find((item) => item.blockId === block.attrs.blockId);
-      if (!asset) throw Error(`Published media placement missing: ${block.attrs.blockId}`);
-      const sourceUrl = safeExternalUrl(asset.sourceUrl);
-      const licenseUrl = safeExternalUrl(asset.licenseUrl);
-      return (
-        <figure id={block.attrs.blockId}>
-          <img
-            src={mediaPath(asset.r2Key)}
-            width={asset.width ?? undefined}
-            height={asset.height ?? undefined}
-            alt={asset.altText ?? ''}
-          />
-          {(asset.caption || asset.credit || sourceUrl || asset.licenseLabel) && (
-            <figcaption>
-              {asset.caption && <span>{asset.caption}</span>}
-              {asset.credit && (
-                <span>
-                  {' '}
-                  {t('post.media.by')} {asset.credit}
-                </span>
-              )}
-              {sourceUrl && (
-                <span>
-                  {' '}
-                  <a href={sourceUrl}>{t('post.media.source')}</a>
-                </span>
-              )}
-              {asset.licenseLabel && (
-                <span>
-                  {' '}
-                  {licenseUrl ? <a href={licenseUrl}>{asset.licenseLabel}</a> : asset.licenseLabel}
-                </span>
-              )}
-            </figcaption>
-          )}
-        </figure>
-      );
-    }
+  if (block.type === 'image') {
+    const asset = media.find((item) => item.blockId === block.attrs.blockId);
+    if (!asset) throw Error(`Published media placement missing: ${block.attrs.blockId}`);
+    const sourceUrl = safeExternalUrl(asset.sourceUrl);
+    const licenseUrl = safeExternalUrl(asset.licenseUrl);
+    return (
+      <figure id={block.attrs.blockId}>
+        <img
+          src={mediaPath(asset.r2Key)}
+          width={asset.width ?? undefined}
+          height={asset.height ?? undefined}
+          alt={asset.altText ?? ''}
+        />
+        {(asset.caption || asset.credit || sourceUrl || asset.licenseLabel) && (
+          <figcaption>
+            {asset.caption && <span>{asset.caption}</span>}
+            {asset.credit && (
+              <span>
+                {' '}
+                {t('post.media.by')} {asset.credit}
+              </span>
+            )}
+            {sourceUrl && (
+              <span>
+                {' '}
+                <a href={sourceUrl}>{t('post.media.source')}</a>
+              </span>
+            )}
+            {asset.licenseLabel && (
+              <span>
+                {' '}
+                {licenseUrl ? <a href={licenseUrl}>{asset.licenseLabel}</a> : asset.licenseLabel}
+              </span>
+            )}
+          </figcaption>
+        )}
+      </figure>
+    );
+  }
 
-    return null;
-  })
-}
+  return null;
+})}

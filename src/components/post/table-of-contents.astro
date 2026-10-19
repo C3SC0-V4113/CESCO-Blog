@@ -68,14 +68,13 @@ const t = getTranslations(locale);
 const shown = entries.filter((entry) => entry.level <= 3);
 ---
 
-{
-  shown.length > 0 && (
-    <nav aria-label={t('post.tableOfContents')} class="lg:h-full">
-      <details class="group rounded-md border border-border bg-background lg:hidden">
-        <summary class="flex cursor-pointer items-center justify-between gap-2 p-4 text-xs tracking-wide text-muted-foreground uppercase marker:content-none [&::-webkit-details-marker]:hidden">
-          {t('post.tableOfContents')}
+{shown.length > 0 && (
+  <nav aria-label={t('post.tableOfContents')} class="lg:h-full">
+    <details class="group rounded-md border border-border bg-background lg:hidden">
+      <summary class="flex cursor-pointer items-center justify-between gap-2 p-4 text-xs tracking-wide text-muted-foreground uppercase marker:content-none [&::-webkit-details-marker]:hidden">
+        {t('post.tableOfContents')}
 
-          {/*
+        {/*
             Lucide, like every other icon here — `components.json` names it as
             the icon library and a hand-rolled path would be the only one in the
             tree, drifting in stroke weight and size the moment anything around
@@ -86,41 +85,40 @@ const shown = entries.filter((entry) => entry.level <= 3);
             rotation is `transform` only, under ADR-0022, and it turns rather
             than swapping glyphs so there is one element to animate.
           */}
-          <ChevronDown
-            aria-hidden="true"
-            strokeWidth={1.75}
-            className="size-4 shrink-0 transition-transform duration-150 ease-[var(--ease-out-quad)] group-open:rotate-180 motion-reduce:transition-none"
-          />
-        </summary>
+        <ChevronDown
+          aria-hidden="true"
+          strokeWidth={1.75}
+          className="size-4 shrink-0 transition-transform duration-150 ease-[var(--ease-out-quad)] group-open:rotate-180 motion-reduce:transition-none"
+        />
+      </summary>
 
-        <div class="px-4 pb-4">
-          <TocList entries={shown} />
-        </div>
-      </details>
+      <div class="px-4 pb-4">
+        <TocList entries={shown} />
+      </div>
+    </details>
 
-      <div class="hidden lg:sticky lg:top-8 lg:block">
-        {/*
+    <div class="hidden lg:sticky lg:top-8 lg:block">
+      {/*
           A caption, not a heading. The landmark already carries this name, and
           the outline precedes the article in source order, so an `<h2>` here
           was the page's first heading — above its `<h1>`.
         */}
-        <p class="text-xs tracking-wide text-muted-foreground uppercase">
-          {t('post.tableOfContents')}
-        </p>
+      <p class="text-xs tracking-wide text-muted-foreground uppercase">
+        {t('post.tableOfContents')}
+      </p>
 
-        <div class="mt-3">
-          <TocList entries={shown} />
-        </div>
+      <div class="mt-3">
+        <TocList entries={shown} />
       </div>
+    </div>
 
-      {/*
+    {/*
         `client:idle`, not `client:visible`, and the difference was a real bug:
         this component renders `null`, so Astro's placeholder has no box at all,
         and the visibility observer never reliably fired. The highlight simply
         never appeared. An island that decorates other elements cannot be
         triggered by its own visibility, because it has nothing to be visible.
       */}
-      <TocScrollSpy client:idle ids={shown.map((entry) => entry.id)} />
-    </nav>
-  )
-}
+    <TocScrollSpy client:idle ids={shown.map((entry) => entry.id)} />
+  </nav>
+)}

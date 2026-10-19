@@ -31,9 +31,7 @@ export const ERROR_RESPONSE_MAX_AGE = 300;
 type PageResponse = { status?: number; headers: Headers };
 
 type PageCacheOutcome =
-  | { kind: 'render'; tags: string[] }
-  | { kind: 'gone'; tags?: string[] }
-  | { kind: 'not-found' };
+  { kind: 'render'; tags: string[] } | { kind: 'gone'; tags?: string[] } | { kind: 'not-found' };
 
 /**
  * Apply the public response cache policy (ADR-0011).

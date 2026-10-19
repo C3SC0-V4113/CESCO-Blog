@@ -543,7 +543,7 @@ matching the design system.
 | Publish-time | Shiki                                    | Code highlighting, run **when publishing**, result stored in the code node. Never at render time                                                                                                                          |
 | Public       | `Intl.DateTimeFormat`                    | Bilingual dates with no dependency. Receives the locale from the URL, not from the browser                                                                                                                                |
 | Public       | —                                        | **No package.** That is the point of [ADR-0019](docs/adr/0019-render-astro-first-with-react-islands-for-behavior.md)                                                                                                      |
-| Tooling      | `@cloudflare/vitest-pool-workers`        | D1 integration tests inside workerd ([ADR-0025](docs/adr/0025-test-d1-through-the-workers-vitest-pool.md)). Dev dependency; never shipped                                                                                 |
+| Tooling      | `@cloudflare/vitest-plugin`              | D1 integration tests inside workerd ([ADR-0025](docs/adr/0025-test-d1-through-the-workers-vitest-pool.md)). Dev dependency; never shipped                                                                                 |
 
 Two rules that keep this list from leaking:
 

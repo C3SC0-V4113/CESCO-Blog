@@ -47,18 +47,9 @@ export function AdminMedia({
   const [assets, setAssets] = useState(initial);
   const [currentPage, setCurrentPage] = useState(page);
   const [currentTotal, setCurrentTotal] = useState(total);
-  const [altText, setAltText] = useState('');
-  const [decorative, setDecorative] = useState(false);
-  const [altMissing, setAltMissing] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   // Kept apart from the upload: a page that fails to load is not an image that
   // failed to process, and loading one does not block an upload.
   const [pageStatus, setPageStatus] = useState<'idle' | 'loading' | 'error'>('idle');
-  const fileInput = useRef<HTMLInputElement>(null);
-  const altInput = useRef<HTMLInputElement>(null);
-  const altId = useId();
-  const fileId = useId();
-  const decorativeId = useId();
 
   async function loadPage(next: number) {
     setPageStatus('loading');
@@ -73,6 +64,64 @@ export function AdminMedia({
       setPageStatus('error');
     }
   }
+
+  const handleUploaded = (asset: AdminMediaAsset) => {
+    setAssets((current) => [asset, ...current]);
+    setCurrentTotal((current) => current + 1);
+  };
+
+  return (
+    <div className={onSelect ? '@container grid gap-6' : 'grid gap-6'}>
+      <MediaUpload
+        ref={ref}
+        onUploaded={handleUploaded}
+        onSelect={onSelect}
+        compact={Boolean(onSelect)}
+      />
+      <MediaAssetList
+        assets={assets}
+        pageStatus={pageStatus}
+        onSelect={onSelect}
+        onSaved={(updated) =>
+          setAssets((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+        }
+      />
+      {onSelect && showLibraryLink && (
+        <a className={textLink} href="/admin/media">
+          {t('admin.media.openLibrary')}
+        </a>
+      )}
+      <MediaPagination
+        page={currentPage}
+        total={currentTotal}
+        picker={Boolean(onSelect)}
+        loadPage={loadPage}
+      />
+      {pageStatus === 'error' && <p role="alert">{t('admin.media.pageError')}</p>}
+    </div>
+  );
+}
+
+function MediaUpload({
+  onUploaded,
+  onSelect,
+  compact,
+  ref,
+}: {
+  onUploaded(asset: AdminMediaAsset): void;
+  onSelect?: (asset: AdminMediaAsset) => void;
+  compact: boolean;
+  ref?: Ref<MediaUploader>;
+}) {
+  const [altText, setAltText] = useState('');
+  const [decorative, setDecorative] = useState(false);
+  const [altMissing, setAltMissing] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const fileInput = useRef<HTMLInputElement>(null);
+  const altInput = useRef<HTMLInputElement>(null);
+  const altId = useId();
+  const fileId = useId();
+  const decorativeId = useId();
 
   async function upload(files: FileList | File[]) {
     if (files.length === 1 && !decorative && !altText.trim()) {
@@ -102,8 +151,7 @@ export function AdminMedia({
       });
       if (!response.ok) throw Error('upload-failed');
       const asset = (await response.json()) as AdminMediaAsset;
-      setAssets((current) => [asset, ...current]);
-      setCurrentTotal((current) => current + 1);
+      onUploaded(asset);
       setStatus('idle');
       onSelect?.(asset);
     } catch {
@@ -118,158 +166,169 @@ export function AdminMedia({
   useImperativeHandle(ref, () => ({ upload: (files) => void upload(files) }));
 
   return (
-    <div className={onSelect ? '@container grid gap-6' : 'grid gap-6'}>
-      <section
-        aria-label={t('admin.media.upload')}
-        className="rounded-lg border border-dashed bg-background p-4"
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
+    <section
+      aria-label={t('admin.media.upload')}
+      className="rounded-lg border border-dashed bg-background p-4"
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        void upload(event.dataTransfer.files);
+      }}
+      onPaste={(event) => {
+        const files = Array.from(event.clipboardData.files);
+        if (files.length) {
           event.preventDefault();
-          void upload(event.dataTransfer.files);
-        }}
-        onPaste={(event) => {
-          const files = Array.from(event.clipboardData.files);
-          if (files.length) {
-            event.preventDefault();
-            void upload(files);
-          }
-        }}
+          void upload(files);
+        }
+      }}
+    >
+      <div
+        className={
+          compact
+            ? 'flex flex-col gap-3 @min-[40rem]:flex-row @min-[40rem]:items-end'
+            : 'flex flex-col gap-3 sm:flex-row sm:items-end'
+        }
       >
-        <div
-          className={
-            onSelect
-              ? 'flex flex-col gap-3 @min-[40rem]:flex-row @min-[40rem]:items-end'
-              : 'flex flex-col gap-3 sm:flex-row sm:items-end'
-          }
-        >
-          <Field className="min-w-0 flex-1">
-            <FieldLabel htmlFor={altId}>{t('admin.media.alt')}</FieldLabel>
-            <Input
-              id={altId}
-              ref={altInput}
-              name="altText"
-              className="mt-1"
-              disabled={decorative}
-              value={altText}
-              onChange={(event) => {
-                setAltText(event.target.value);
-                setAltMissing(false);
-              }}
-              aria-invalid={altMissing ? true : undefined}
-              aria-describedby={altMissing ? 'altText-error' : undefined}
-            />
-          </Field>
-          <Field orientation="horizontal" className="h-10 w-auto items-center gap-2">
-            <Checkbox
-              id={decorativeId}
-              checked={decorative}
-              onCheckedChange={(checked) => {
-                setDecorative(checked === true);
-                setAltMissing(false);
-              }}
-            />
-            <FieldLabel htmlFor={decorativeId}>{t('admin.media.decorative')}</FieldLabel>
-          </Field>
-          <Field className="w-auto">
-            <FieldLabel
-              htmlFor={fileId}
-              className={buttonVariants({ className: status === 'loading' ? 'opacity-50' : '' })}
+        <Field className="min-w-0 flex-1">
+          <FieldLabel htmlFor={altId}>{t('admin.media.alt')}</FieldLabel>
+          <Input
+            id={altId}
+            ref={altInput}
+            name="altText"
+            className="mt-1"
+            disabled={decorative}
+            value={altText}
+            onChange={(event) => {
+              setAltText(event.target.value);
+              setAltMissing(false);
+            }}
+            aria-invalid={altMissing ? true : undefined}
+            aria-describedby={altMissing ? 'altText-error' : undefined}
+          />
+        </Field>
+        <Field orientation="horizontal" className="h-10 w-auto items-center gap-2">
+          <Checkbox
+            id={decorativeId}
+            checked={decorative}
+            onCheckedChange={(checked) => {
+              setDecorative(checked === true);
+              setAltMissing(false);
+            }}
+          />
+          <FieldLabel htmlFor={decorativeId}>{t('admin.media.decorative')}</FieldLabel>
+        </Field>
+        <Field className="w-auto">
+          <FieldLabel
+            htmlFor={fileId}
+            className={buttonVariants({ className: status === 'loading' ? 'opacity-50' : '' })}
+          >
+            {status === 'loading' ? (
+              <LoaderCircleIcon aria-hidden="true" />
+            ) : (
+              <ImagePlusIcon aria-hidden="true" />
+            )}
+            {t('admin.media.choose')}
+          </FieldLabel>
+          <Input
+            id={fileId}
+            className="sr-only"
+            ref={fileInput}
+            type="file"
+            disabled={status === 'loading'}
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(event) => event.target.files && void upload(event.target.files)}
+          />
+        </Field>
+      </div>
+      {altMissing && <FieldError id="altText-error">{t('admin.media.altRequired')}</FieldError>}
+      <p className="mt-2 text-sm text-muted-foreground">{t('admin.media.help')}</p>
+      {status === 'error' && <p role="alert">{t('admin.media.error')}</p>}
+    </section>
+  );
+}
+
+function MediaAssetList({
+  assets,
+  pageStatus,
+  onSelect,
+  onSaved,
+}: {
+  assets: AdminMediaAsset[];
+  pageStatus: 'idle' | 'loading' | 'error';
+  onSelect?: (asset: AdminMediaAsset) => void;
+  onSaved(asset: AdminMediaAsset): void;
+}) {
+  if (assets.length === 0) return <p>{t('admin.media.empty')}</p>;
+  return (
+    <ul
+      className={
+        onSelect
+          ? 'grid grid-cols-1 gap-3 @min-[40rem]:grid-cols-2 @min-[64rem]:grid-cols-3'
+          : 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
+      }
+      aria-busy={pageStatus === 'loading'}
+    >
+      {assets.map((asset) => (
+        <li key={asset.id} className="min-w-0 overflow-hidden rounded-lg border bg-background">
+          {onSelect ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-auto w-full flex-row items-center justify-start gap-3 rounded-none p-2 text-left font-normal whitespace-normal hover:bg-transparent focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
+              onClick={() => onSelect(asset)}
             >
-              {status === 'loading' ? (
-                <LoaderCircleIcon aria-hidden="true" />
-              ) : (
-                <ImagePlusIcon aria-hidden="true" />
-              )}
-              {t('admin.media.choose')}
-            </FieldLabel>
-            <Input
-              id={fileId}
-              className="sr-only"
-              ref={fileInput}
-              type="file"
-              disabled={status === 'loading'}
-              accept="image/png,image/jpeg,image/webp"
-              onChange={(event) => event.target.files && void upload(event.target.files)}
-            />
-          </Field>
-        </div>
-        {altMissing && <FieldError id="altText-error">{t('admin.media.altRequired')}</FieldError>}
-        <p className="mt-2 text-sm text-muted-foreground">{t('admin.media.help')}</p>
-        {status === 'error' && <p role="alert">{t('admin.media.error')}</p>}
-      </section>
-      {assets.length === 0 ? (
-        <p>{t('admin.media.empty')}</p>
-      ) : (
-        <ul
-          className={
-            onSelect
-              ? 'grid grid-cols-1 gap-3 @min-[40rem]:grid-cols-2 @min-[64rem]:grid-cols-3'
-              : 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
-          }
-          aria-busy={pageStatus === 'loading'}
-        >
-          {assets.map((asset) => (
-            <li key={asset.id} className="min-w-0 overflow-hidden rounded-lg border bg-background">
-              {onSelect ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-auto w-full flex-row items-center justify-start gap-3 rounded-none p-2 text-left font-normal whitespace-normal hover:bg-transparent focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
-                  onClick={() => onSelect(asset)}
-                >
-                  <MediaCard asset={asset} compact />
-                </Button>
-              ) : (
-                <MediaCard asset={asset} />
-              )}
-              {!onSelect && (
-                <details className="border-t p-3">
-                  <summary>{t('admin.media.metadata')}</summary>
-                  <MetadataForm
-                    asset={asset}
-                    onSaved={(updated) =>
-                      setAssets((current) =>
-                        current.map((item) => (item.id === updated.id ? updated : item))
-                      )
-                    }
-                  />
-                </details>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {onSelect && showLibraryLink && (
-        <a className={textLink} href="/admin/media">
-          {t('admin.media.openLibrary')}
-        </a>
-      )}
-      {currentTotal > 20 && (
-        <nav aria-label={t('listing.pagination')} className="flex gap-2">
-          {currentPage > 1 &&
-            (onSelect ? (
-              <Button type="button" variant="link" onClick={() => void loadPage(currentPage - 1)}>
-                {t('listing.previous')}
-              </Button>
-            ) : (
-              <a className={textLink} href={`/admin/media?page=${currentPage - 1}`}>
-                {t('listing.previous')}
-              </a>
-            ))}
-          {currentPage * 20 < currentTotal &&
-            (onSelect ? (
-              <Button type="button" variant="link" onClick={() => void loadPage(currentPage + 1)}>
-                {t('listing.next')}
-              </Button>
-            ) : (
-              <a className={textLink} href={`/admin/media?page=${currentPage + 1}`}>
-                {t('listing.next')}
-              </a>
-            ))}
-        </nav>
-      )}
-      {pageStatus === 'error' && <p role="alert">{t('admin.media.pageError')}</p>}
-    </div>
+              <MediaCard asset={asset} compact />
+            </Button>
+          ) : (
+            <MediaCard asset={asset} />
+          )}
+          {!onSelect && (
+            <details className="border-t p-3">
+              <summary>{t('admin.media.metadata')}</summary>
+              <MetadataForm asset={asset} onSaved={onSaved} />
+            </details>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MediaPagination({
+  page,
+  total,
+  picker,
+  loadPage,
+}: {
+  page: number;
+  total: number;
+  picker: boolean;
+  loadPage(page: number): Promise<void>;
+}) {
+  if (total <= 20) return null;
+  return (
+    <nav aria-label={t('listing.pagination')} className="flex gap-2">
+      {page > 1 &&
+        (picker ? (
+          <Button type="button" variant="link" onClick={() => void loadPage(page - 1)}>
+            {t('listing.previous')}
+          </Button>
+        ) : (
+          <a className={textLink} href={`/admin/media?page=${page - 1}`}>
+            {t('listing.previous')}
+          </a>
+        ))}
+      {page * 20 < total &&
+        (picker ? (
+          <Button type="button" variant="link" onClick={() => void loadPage(page + 1)}>
+            {t('listing.next')}
+          </Button>
+        ) : (
+          <a className={textLink} href={`/admin/media?page=${page + 1}`}>
+            {t('listing.next')}
+          </a>
+        ))}
+    </nav>
   );
 }
 

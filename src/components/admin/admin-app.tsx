@@ -93,14 +93,6 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
   const navigationLabel = isNavigationOpen
     ? t('admin.navigation.close')
     : t('admin.navigation.open');
-  const NavigationIcon = isNavigationOpen ? XIcon : MenuIcon;
-  const isPosts = ['posts', 'new-post', 'editor', 'seo'].includes(screen.name);
-  const isMedia = screen.name === 'media';
-  const isReview = screen.name === 'review';
-  const isCollections = ['collections', 'collection-editor'].includes(screen.name);
-  const isAuthors = screen.name === 'authors';
-  const [title, subtitle] = screenCopy[screen.name];
-
   return (
     <div className="min-h-dvh bg-muted/30">
       {/* The first stop on every screen, past the header and the navigation. */}
@@ -123,7 +115,7 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
             aria-expanded={isNavigationOpen}
             onClick={() => setIsNavigationOpen((open) => !open)}
           >
-            <NavigationIcon aria-hidden="true" />
+            {isNavigationOpen ? <XIcon aria-hidden="true" /> : <MenuIcon aria-hidden="true" />}
           </Button>
           <a href="/admin" className="font-heading text-lg font-semibold">
             {t('admin.brand')}
@@ -133,121 +125,139 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
       </header>
 
       <div className="mx-auto grid max-w-screen-2xl md:grid-cols-[15rem_1fr]">
-        <aside
-          id="admin-navigation"
-          className={cn(
-            'flex-col border-b bg-background p-4 md:flex md:min-h-[calc(100dvh-4rem)] md:border-r md:border-b-0',
-            isNavigationOpen ? 'flex' : 'hidden'
-          )}
-        >
-          <nav aria-label={t('admin.navigation')} className="flex flex-col gap-1">
-            <a
-              href="/admin"
-              aria-current={screen.name === 'dashboard' ? 'page' : undefined}
-              className={cn(
-                buttonVariants({ variant: 'ghost' }),
-                'justify-start',
-                screen.name === 'dashboard' && 'bg-sidebar-accent text-sidebar-accent-foreground'
-              )}
-            >
-              <LayoutDashboardIcon data-icon="inline-start" />
-              {t('admin.navigation.dashboard')}
-            </a>
-            <a
-              href="/admin/media"
-              aria-current={isMedia ? 'page' : undefined}
-              className={cn(
-                buttonVariants({ variant: 'ghost' }),
-                'justify-start',
-                isMedia && 'bg-sidebar-accent text-sidebar-accent-foreground'
-              )}
-            >
-              <ImagesIcon data-icon="inline-start" />
-              {t('admin.navigation.media')}
-            </a>
-            <a
-              href="/admin/posts"
-              aria-current={isPosts ? 'page' : undefined}
-              className={cn(
-                buttonVariants({ variant: 'ghost' }),
-                'justify-start',
-                isPosts && 'bg-sidebar-accent text-sidebar-accent-foreground'
-              )}
-            >
-              <FileTextIcon data-icon="inline-start" />
-              {t('admin.navigation.posts')}
-            </a>
-            <a
-              href="/admin/review"
-              aria-current={isReview ? 'page' : undefined}
-              className={cn(
-                buttonVariants({ variant: 'ghost' }),
-                'justify-start',
-                isReview && 'bg-sidebar-accent text-sidebar-accent-foreground'
-              )}
-            >
-              <SearchCheckIcon data-icon="inline-start" />
-              {t('admin.navigation.review')}
-            </a>
-            <a
-              href="/admin/collections"
-              aria-current={isCollections ? 'page' : undefined}
-              className={cn(
-                buttonVariants({ variant: 'ghost' }),
-                'justify-start',
-                isCollections && 'bg-sidebar-accent text-sidebar-accent-foreground'
-              )}
-            >
-              <BookOpenIcon data-icon="inline-start" />
-              {t('admin.navigation.collections')}
-            </a>
-            <a
-              href="/admin/authors"
-              aria-current={isAuthors ? 'page' : undefined}
-              className={cn(
-                buttonVariants({ variant: 'ghost' }),
-                'justify-start',
-                isAuthors && 'bg-sidebar-accent text-sidebar-accent-foreground'
-              )}
-            >
-              <UsersIcon data-icon="inline-start" />
-              {t('admin.navigation.authors')}
-            </a>
-          </nav>
-        </aside>
+        <AdminNavigation screen={screen} open={isNavigationOpen} />
 
         {/* Focused by the skip link only, so it draws no ring of its own. */}
         <main id="admin-main" tabIndex={-1} className="min-w-0 p-4 outline-none sm:p-6 lg:p-8">
-          <div className="mb-6 flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t(title)}</h1>
-            <p className="text-muted-foreground">{t(subtitle)}</p>
-          </div>
-          {/* Inert until hydration, so nothing can be typed that React would
-              discard. Unlike a disabled fieldset it leaves every control
-              looking as it will, so the screen does not flash on hydrating.
-              `contents` keeps it out of the layout. */}
-          <div inert={!isHydrated} className="contents">
-            {screen.name === 'dashboard' && <AdminDashboard />}
-            {screen.name === 'posts' && (
-              <AdminPostList posts={screen.posts} page={screen.page} total={screen.total} />
-            )}
-            {screen.name === 'new-post' && <AdminPostForm />}
-            {screen.name === 'editor' && <AdminEditor {...screen} />}
-            {screen.name === 'media' && (
-              <AdminMedia assets={screen.assets} page={screen.page} total={screen.total} />
-            )}
-            {screen.name === 'review' && <AdminReview {...screen} />}
-            {screen.name === 'authors' && (
-              <AdminAuthors authors={screen.authors} media={screen.media} />
-            )}
-            {screen.name === 'collections' && <AdminCollections collections={screen.collections} />}
-            {screen.name === 'collection-editor' && (
-              <AdminCollectionEditor collection={screen.collection} posts={screen.posts} />
-            )}
-            {screen.name === 'seo' && <AdminSeo {...screen} />}
-          </div>
+          <AdminScreenContent screen={screen} hydrated={isHydrated} />
         </main>
       </div>
     </div>
+  );
+}
+
+function AdminNavigation({ screen, open }: { screen: Screen; open: boolean }) {
+  const isPosts = ['posts', 'new-post', 'editor', 'seo'].includes(screen.name);
+  const isCollections = ['collections', 'collection-editor'].includes(screen.name);
+  const isCurrent = (name: Screen['name']) => screen.name === name;
+  return (
+    <aside
+      id="admin-navigation"
+      className={cn(
+        'flex-col border-b bg-background p-4 md:flex md:min-h-[calc(100dvh-4rem)] md:border-r md:border-b-0',
+        open ? 'flex' : 'hidden'
+      )}
+    >
+      <nav aria-label={t('admin.navigation')} className="flex flex-col gap-1">
+        <a
+          href="/admin"
+          aria-current={isCurrent('dashboard') ? 'page' : undefined}
+          className={cn(
+            buttonVariants({ variant: 'ghost' }),
+            'justify-start',
+            isCurrent('dashboard') && 'bg-sidebar-accent text-sidebar-accent-foreground'
+          )}
+        >
+          <LayoutDashboardIcon data-icon="inline-start" />
+          {t('admin.navigation.dashboard')}
+        </a>
+        <a
+          href="/admin/media"
+          aria-current={isCurrent('media') ? 'page' : undefined}
+          className={cn(
+            buttonVariants({ variant: 'ghost' }),
+            'justify-start',
+            isCurrent('media') && 'bg-sidebar-accent text-sidebar-accent-foreground'
+          )}
+        >
+          <ImagesIcon data-icon="inline-start" />
+          {t('admin.navigation.media')}
+        </a>
+        <a
+          href="/admin/posts"
+          aria-current={isPosts ? 'page' : undefined}
+          className={cn(
+            buttonVariants({ variant: 'ghost' }),
+            'justify-start',
+            isPosts && 'bg-sidebar-accent text-sidebar-accent-foreground'
+          )}
+        >
+          <FileTextIcon data-icon="inline-start" />
+          {t('admin.navigation.posts')}
+        </a>
+        <a
+          href="/admin/review"
+          aria-current={isCurrent('review') ? 'page' : undefined}
+          className={cn(
+            buttonVariants({ variant: 'ghost' }),
+            'justify-start',
+            isCurrent('review') && 'bg-sidebar-accent text-sidebar-accent-foreground'
+          )}
+        >
+          <SearchCheckIcon data-icon="inline-start" />
+          {t('admin.navigation.review')}
+        </a>
+        <a
+          href="/admin/collections"
+          aria-current={isCollections ? 'page' : undefined}
+          className={cn(
+            buttonVariants({ variant: 'ghost' }),
+            'justify-start',
+            isCollections && 'bg-sidebar-accent text-sidebar-accent-foreground'
+          )}
+        >
+          <BookOpenIcon data-icon="inline-start" />
+          {t('admin.navigation.collections')}
+        </a>
+        <a
+          href="/admin/authors"
+          aria-current={isCurrent('authors') ? 'page' : undefined}
+          className={cn(
+            buttonVariants({ variant: 'ghost' }),
+            'justify-start',
+            isCurrent('authors') && 'bg-sidebar-accent text-sidebar-accent-foreground'
+          )}
+        >
+          <UsersIcon data-icon="inline-start" />
+          {t('admin.navigation.authors')}
+        </a>
+      </nav>
+    </aside>
+  );
+}
+
+function AdminScreenContent({ screen, hydrated }: { screen: Screen; hydrated: boolean }) {
+  const [title, subtitle] = screenCopy[screen.name];
+  return (
+    <>
+      <div className="mb-6 flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t(title)}</h1>
+        <p className="text-muted-foreground">{t(subtitle)}</p>
+      </div>
+      {/* Inert until hydration, so nothing can be typed that React would
+          discard. Unlike a disabled fieldset it leaves every control
+          looking as it will, so the screen does not flash on hydrating.
+          `contents` keeps it out of the layout. */}
+      <div inert={!hydrated} className="contents">
+        {screen.name === 'dashboard' && <AdminDashboard />}
+        {screen.name === 'posts' && (
+          <AdminPostList posts={screen.posts} page={screen.page} total={screen.total} />
+        )}
+        {screen.name === 'new-post' && <AdminPostForm />}
+        {screen.name === 'editor' && <AdminEditor {...screen} />}
+        {screen.name === 'media' && (
+          <AdminMedia assets={screen.assets} page={screen.page} total={screen.total} />
+        )}
+        {screen.name === 'review' && <AdminReview {...screen} />}
+        {screen.name === 'authors' && (
+          <AdminAuthors authors={screen.authors} media={screen.media} />
+        )}
+        {screen.name === 'collections' && <AdminCollections collections={screen.collections} />}
+        {screen.name === 'collection-editor' && (
+          <AdminCollectionEditor collection={screen.collection} posts={screen.posts} />
+        )}
+        {screen.name === 'seo' && <AdminSeo {...screen} />}
+      </div>
+    </>
   );
 }

@@ -75,38 +75,34 @@ if (analysis.completionState) {
 }
 ---
 
-{
-  (game || facts.length > 0) && (
-    <dl class="grid gap-x-6 gap-y-3 border-t border-border pt-6 sm:grid-cols-3">
-      {/*
+{(game || facts.length > 0) && (
+  <dl class="grid gap-x-6 gap-y-3 border-t border-border pt-6 sm:grid-cols-3">
+    {/*
         First, and a link rather than a label: of everything in this panel it is
         the only fact that leads somewhere, and the game page collects every
         piece written about it.
       */}
-      {game && (
-        <div>
-          <dt class="text-xs tracking-wide text-muted-foreground uppercase">
-            {t('analysis.game')}
-          </dt>
-          <dd class="mt-1 text-sm">
-            <a
-              href={`/${locale}/${gameSegment}/${game.slug}`}
-              class="text-foreground transition-colors duration-150 hover:text-primary-text motion-reduce:transition-none"
-            >
-              {game.title}
-            </a>
-          </dd>
-        </div>
-      )}
+    {game && (
+      <div>
+        <dt class="text-xs tracking-wide text-muted-foreground uppercase">{t('analysis.game')}</dt>
+        <dd class="mt-1 text-sm">
+          <a
+            href={`/${locale}/${gameSegment}/${game.slug}`}
+            class="text-foreground transition-colors duration-150 hover:text-primary-text motion-reduce:transition-none"
+          >
+            {game.title}
+          </a>
+        </dd>
+      </div>
+    )}
 
-      {facts.map((fact) => (
-        <div>
-          <dt class="text-xs tracking-wide text-muted-foreground uppercase">{fact.label}</dt>
-          <dd class:list={['mt-1 text-sm text-foreground', fact.numeric && 'tabular-nums']}>
-            {fact.value}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
+    {facts.map((fact) => (
+      <div>
+        <dt class="text-xs tracking-wide text-muted-foreground uppercase">{fact.label}</dt>
+        <dd class:list={['mt-1 text-sm text-foreground', fact.numeric && 'tabular-nums']}>
+          {fact.value}
+        </dd>
+      </div>
+    ))}
+  </dl>
+)}

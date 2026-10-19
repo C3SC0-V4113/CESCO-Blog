@@ -26,22 +26,18 @@ const t = getTranslations(locale);
 ---
 
 <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-  {
-    authorName && (
-      <span>
-        {t('post.by')} {authorName}
-      </span>
-    )
-  }
+  {authorName && (
+    <span>
+      {t('post.by')} {authorName}
+    </span>
+  )}
   {authorName && publishedAt && <span aria-hidden="true">·</span>}
-  {
-    publishedAt && (
-      <span>
-        {t('post.publishedOn')}{' '}
-        <time datetime={publishedAt.replace(' ', 'T') + 'Z'} class="tabular-nums">
-          {formatDate(publishedAt, locale)}
-        </time>
-      </span>
-    )
-  }
+  {publishedAt && (
+    <span>
+      {t('post.publishedOn')}{' '}
+      <time datetime={publishedAt.replace(' ', 'T') + 'Z'} class="tabular-nums">
+        {formatDate(publishedAt, locale)}
+      </time>
+    </span>
+  )}
 </div>

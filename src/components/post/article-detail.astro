@@ -59,8 +59,7 @@ const trail = [
 ];
 ---
 
-{
-  /*
+{/*
   Block below `lg`, two columns from it. The article keeps its own measure — the
   reading column is a typographic decision, not a leftover of the page width —
   and the outline takes a track beside it rather than eating into it.
@@ -79,31 +78,24 @@ const trail = [
   pixels tall — and a sticky element can only travel inside its own container,
   so the outline unpinned and scrolled away almost immediately. Stretched, the
   column spans the article and the outline stays beside it the whole way down.
-*/
-}
+*/}
 <main class="px-6 pt-12 pb-20">
-  <div
-    class="mx-auto max-w-[34rem] lg:grid lg:max-w-[52rem] lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:gap-10"
-  >
-    {
-      post.toc.length > 0 && (
-        <aside class="sticky top-0 z-10 -mx-6 mb-10 bg-background px-6 py-2 lg:relative lg:top-auto lg:order-2 lg:mx-0 lg:mb-0 lg:px-0 lg:py-0">
-          <TableOfContents locale={locale} entries={post.toc} />
-        </aside>
-      )
-    }
+  <div class="mx-auto max-w-[34rem] lg:grid lg:max-w-[52rem] lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:gap-10">
+    {post.toc.length > 0 && (
+      <aside class="sticky top-0 z-10 -mx-6 mb-10 bg-background px-6 py-2 lg:relative lg:top-auto lg:order-2 lg:mx-0 lg:mb-0 lg:px-0 lg:py-0">
+        <TableOfContents locale={locale} entries={post.toc} />
+      </aside>
+    )}
 
     <article class="max-w-[34rem] lg:order-1">
       <BreadcrumbTrail locale={locale} trail={trail} current={post.title} />
 
-      {
-        /*
+      {/*
         The masthead of the piece. Merriweather at a size it can actually carry —
         a serif chosen for authority spends it at 1.875rem — with the section
         above it in the accent, which is the same signal the listing cards use.
         A reader who scanned a card and clicked meets the same colour on arrival.
-      */
-      }
+      */}
       <header class="mb-12">
         {series && <SeriesBadge locale={locale} series={series} />}
 
@@ -115,56 +107,46 @@ const trail = [
           {post.title}
         </h1>
 
-        {
-          post.cover && (
-            <img
-              src={mediaPath(post.cover.r2Key)}
-              alt={post.cover.alt ?? ''}
-              width={post.cover.width ?? undefined}
-              height={post.cover.height ?? undefined}
-              class="mt-7 aspect-[1200/628] w-full rounded-lg object-cover outline -outline-offset-1 outline-image-outline"
-              fetchpriority="high"
-            />
-          )
-        }
+        {post.cover && (
+          <img
+            src={mediaPath(post.cover.r2Key)}
+            alt={post.cover.alt ?? ''}
+            width={post.cover.width ?? undefined}
+            height={post.cover.height ?? undefined}
+            class="mt-7 aspect-[1200/628] w-full rounded-lg object-cover outline -outline-offset-1 outline-image-outline"
+            fetchpriority="high"
+          />
+        )}
 
-        {
-          post.excerpt && (
-            <p class="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
-              {post.excerpt}
-            </p>
-          )
-        }
+        {post.excerpt && (
+          <p class="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
+            {post.excerpt}
+          </p>
+        )}
 
-        {
-          /* A rule, not a gap: it separates the masthead from the credits without
-            adding another band of empty space to a page that already has air. */
-        }
+        {/* A rule, not a gap: it separates the masthead from the credits without
+            adding another band of empty space to a page that already has air. */}
         <div class="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-5">
           <Byline locale={locale} authorName={post.authorName} publishedAt={post.publishedAt} />
           <ReadingTime locale={locale} minutes={post.readingTimeMinutes} />
         </div>
 
-        {
-          analysis?.receivedReviewCopy && (
-            <div class="mt-6">
-              <DisclosureNotice locale={locale} provider={analysis.reviewCopyProvider} />
-            </div>
-          )
-        }
+        {analysis?.receivedReviewCopy && (
+          <div class="mt-6">
+            <DisclosureNotice locale={locale} provider={analysis.reviewCopyProvider} />
+          </div>
+        )}
       </header>
 
       <Prose>
         <ArticleBody doc={post.content} locale={locale} media={post.media} />
       </Prose>
 
-      {
-        analysis && (
-          <div class="mt-12">
-            <AnalysisMetaPanel locale={locale} analysis={analysis} game={post.game} />
-          </div>
-        )
-      }
+      {analysis && (
+        <div class="mt-12">
+          <AnalysisMetaPanel locale={locale} analysis={analysis} game={post.game} />
+        </div>
+      )}
     </article>
   </div>
 </main>

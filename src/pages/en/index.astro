@@ -43,19 +43,17 @@ const alternates = routeAlternates('home');
     totalPages={pageCount(total)}
   >
     <Fragment slot="lead">
-      {
-        featured && (
-          <section aria-labelledby="featured-heading" class="mb-10">
-            <h2
-              id="featured-heading"
-              class="mb-4 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
-            >
-              {t('listing.featured')}
-            </h2>
-            <PostCard locale={locale} post={featured} featured headingLevel={3} />
-          </section>
-        )
-      }
+      {featured && (
+        <section aria-labelledby="featured-heading" class="mb-10">
+          <h2
+            id="featured-heading"
+            class="mb-4 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
+          >
+            {t('listing.featured')}
+          </h2>
+          <PostCard locale={locale} post={featured} featured headingLevel={3} />
+        </section>
+      )}
     </Fragment>
   </PostList>
 </Layout>

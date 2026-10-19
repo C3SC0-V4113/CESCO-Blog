@@ -36,7 +36,7 @@ const webpWithChunks = (chunks: Uint8Array[]) => {
 const webpChunkKinds = (bytes: Uint8Array) => {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const kinds: string[] = [];
-  for (let offset = 12; offset < bytes.length; ) {
+  for (let offset = 12; offset < bytes.length;) {
     const size = view.getUint32(offset + 4, true);
     kinds.push(new TextDecoder().decode(bytes.subarray(offset, offset + 4)));
     offset += 8 + size + (size & 1);

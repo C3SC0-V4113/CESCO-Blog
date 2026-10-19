@@ -42,44 +42,40 @@ applyPageCachePolicy(
 ---
 
 <Layout>
-  {
-    resolution.kind === 'render' && (
-      <Fragment slot="head">
-        <SeoHead
-          locale={locale}
-          title={resolution.collection.title}
-          description={resolution.collection.description}
-          path={`/es/series/${slug}`}
-        />
-      </Fragment>
-    )
-  }
+  {resolution.kind === 'render' && (
+    <Fragment slot="head">
+      <SeoHead
+        locale={locale}
+        title={resolution.collection.title}
+        description={resolution.collection.description}
+        path={`/es/series/${slug}`}
+      />
+    </Fragment>
+  )}
 
-  {
-    resolution.kind === 'render' ? (
-      <main class="mx-auto max-w-3xl px-6 pt-12 pb-20">
-        <header class="mb-8">
-          <p class="text-xs tracking-wide text-muted-foreground uppercase">{t('nav.series')}</p>
-          <h1 class="mt-2 text-3xl leading-tight text-balance">{resolution.collection.title}</h1>
-          {resolution.collection.description && (
-            <p class="mt-3 leading-relaxed text-pretty text-muted-foreground">
-              {resolution.collection.description}
-            </p>
-          )}
-        </header>
-
-        {posts.length === 0 ? (
-          <p class="text-muted-foreground">{t('listing.empty')}</p>
-        ) : (
-          <div>
-            {posts.map((post) => (
-              <PostCard locale={locale} post={post} />
-            ))}
-          </div>
+  {resolution.kind === 'render' ? (
+    <main class="mx-auto max-w-3xl px-6 pt-12 pb-20">
+      <header class="mb-8">
+        <p class="text-xs tracking-wide text-muted-foreground uppercase">{t('nav.series')}</p>
+        <h1 class="mt-2 text-3xl leading-tight text-balance">{resolution.collection.title}</h1>
+        {resolution.collection.description && (
+          <p class="mt-3 leading-relaxed text-pretty text-muted-foreground">
+            {resolution.collection.description}
+          </p>
         )}
-      </main>
-    ) : (
-      <ErrorState locale={locale} status={resolution.kind === 'gone' ? 410 : 404} />
-    )
-  }
+      </header>
+
+      {posts.length === 0 ? (
+        <p class="text-muted-foreground">{t('listing.empty')}</p>
+      ) : (
+        <div>
+          {posts.map((post) => (
+            <PostCard locale={locale} post={post} />
+          ))}
+        </div>
+      )}
+    </main>
+  ) : (
+    <ErrorState locale={locale} status={resolution.kind === 'gone' ? 410 : 404} />
+  )}
 </Layout>

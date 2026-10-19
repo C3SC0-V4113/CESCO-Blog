@@ -76,45 +76,34 @@ const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.op
       </a>
     </Heading>
 
-    {
-      post.excerpt && (
-        <p class="mt-3 leading-relaxed text-pretty text-muted-foreground">{post.excerpt}</p>
-      )
-    }
+    {post.excerpt && (
+      <p class="mt-3 leading-relaxed text-pretty text-muted-foreground">{post.excerpt}</p>
+    )}
 
-    {
-      /*
+    {/*
     The metadata line is deliberately quieter than everything above it: smaller,
     wider-tracked and muted. It is what a reader checks *after* deciding the
     title is interesting, so it should not compete with the title for that
     decision.
-  */
-    }
-    <p
-      class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tracking-wide text-muted-foreground"
-    >
+  */}
+    <p class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tracking-wide text-muted-foreground">
       {post.authorName && <span>{post.authorName}</span>}
       {post.authorName && post.publishedAt && <span aria-hidden="true">·</span>}
-      {
-        post.publishedAt && (
-          <time datetime={post.publishedAt.replace(' ', 'T') + 'Z'} class="tabular-nums">
-            {formatDate(post.publishedAt, locale)}
-          </time>
-        )
-      }
+      {post.publishedAt && (
+        <time datetime={post.publishedAt.replace(' ', 'T') + 'Z'} class="tabular-nums">
+          {formatDate(post.publishedAt, locale)}
+        </time>
+      )}
       {post.readingTimeMinutes !== null && <span aria-hidden="true">·</span>}
-      {
-        post.readingTimeMinutes !== null && (
-          <span class="tabular-nums">
-            {post.readingTimeMinutes} {t('post.readingTime')}
-          </span>
-        )
-      }
+      {post.readingTimeMinutes !== null && (
+        <span class="tabular-nums">
+          {post.readingTimeMinutes} {t('post.readingTime')}
+        </span>
+      )}
     </p>
   </div>
 
-  {
-    /*
+  {/*
       The cover, at a tenth of its stored width.
       
       `loading="lazy"` and explicit dimensions together: the first reserves the
@@ -133,27 +122,24 @@ const sectionLabel = post.section === 'analysis' ? t('nav.analysis') : t('nav.op
       clip and it would vanish exactly while the card is being pointed at.
       The zoom stays small and quick — 2% over 200 ms — so it reads as the
       card answering, not the picture moving.
-    */
-  }
-  {
-    post.coverKey && (
-      <a
-        href={href}
-        tabindex="-1"
-        aria-hidden="true"
-        class="relative block self-start overflow-hidden rounded-md after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:outline after:-outline-offset-1 after:outline-image-outline sm:order-2"
-      >
-        <img
-          src={mediaPath(post.coverKey)}
-          alt=""
-          width={COVER_WIDTH}
-          height={COVER_HEIGHT}
-          loading={featured ? 'eager' : 'lazy'}
-          fetchpriority={featured ? 'high' : 'auto'}
-          decoding="async"
-          class="aspect-[1200/628] w-full object-cover transition-transform duration-200 ease-[var(--ease-out-quad)] group-hover:scale-[1.02] motion-reduce:transition-none"
-        />
-      </a>
-    )
-  }
+    */}
+  {post.coverKey && (
+    <a
+      href={href}
+      tabindex="-1"
+      aria-hidden="true"
+      class="relative block self-start overflow-hidden rounded-md after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:outline after:-outline-offset-1 after:outline-image-outline sm:order-2"
+    >
+      <img
+        src={mediaPath(post.coverKey)}
+        alt=""
+        width={COVER_WIDTH}
+        height={COVER_HEIGHT}
+        loading={featured ? 'eager' : 'lazy'}
+        fetchpriority={featured ? 'high' : 'auto'}
+        decoding="async"
+        class="aspect-[1200/628] w-full object-cover transition-transform duration-200 ease-[var(--ease-out-quad)] group-hover:scale-[1.02] motion-reduce:transition-none"
+      />
+    </a>
+  )}
 </article>

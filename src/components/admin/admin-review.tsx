@@ -124,6 +124,286 @@ function reviewUrl(page: number, selection?: ReviewDetail | ReviewQueueItem | nu
   return `/admin/review?${params}`;
 }
 
+function ReviewQueue({
+  items,
+  detail,
+  page,
+  pageSize,
+  total,
+}: Pick<Props, 'items' | 'detail' | 'page' | 'pageSize' | 'total'>) {
+  const firstItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastItem = Math.min(page * pageSize, total);
+  return (
+    <section
+      aria-label={t('admin.review.queue')}
+      className="order-last max-h-[70vh] overflow-auto rounded-xl border bg-background p-1.5 lg:order-first"
+    >
+      {items.length ? (
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
+          {items.map((item) => (
+            <li key={item.localizationId}>
+              <a
+                className="block rounded-md border p-3 outline-none focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:border-primary aria-[current=page]:bg-muted"
+                aria-current={detail?.localizationId === item.localizationId ? 'page' : undefined}
+                href={reviewUrl(page, item)}
+              >
+                <strong className="block truncate">{item.title}</strong>
+                <span className="text-sm text-muted-foreground">
+                  {item.locale.toUpperCase()} · {t(`admin.posts.locale.${item.status}`)}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="p-2.5">{t('admin.review.empty')}</p>
+      )}
+      {total > 0 && (
+        <p className="mt-1.5 px-2.5 text-sm text-muted-foreground tabular-nums">
+          {t('admin.review.showing')} {firstItem}–{lastItem} {t('admin.review.of')} {total}
+        </p>
+      )}
+      {total > pageSize && (
+        <nav
+          aria-label={t('listing.pagination')}
+          className="mt-1.5 flex justify-between gap-2 px-2.5 pb-1"
+        >
+          {page > 1 ? (
+            <a className={textLink} href={reviewUrl(page - 1, detail)}>
+              {t('listing.previous')}
+            </a>
+          ) : (
+            <span />
+          )}
+          {lastItem < total && (
+            <a className={textLink} href={reviewUrl(page + 1, detail)}>
+              {t('listing.next')}
+            </a>
+          )}
+        </nav>
+      )}
+    </section>
+  );
+}
+
+function ReviewSummary({ detail }: { detail: ReviewDetail }) {
+  return (
+    <>
+      <div>
+        <h2 className="text-xl font-semibold [overflow-wrap:anywhere]">
+          {detail.title || detail.slug}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {detail.locale.toUpperCase()} · {t(`admin.posts.locale.${detail.status}`)}
+        </p>
+      </div>
+      <dl className="grid gap-2 sm:grid-cols-2">
+        <div>
+          <dt>{t('admin.review.cover')}</dt>
+          <dd>{t(detail.coverAssetId ? 'admin.review.ready' : 'admin.review.missing')}</dd>
+        </div>
+        <div>
+          <dt>{t('admin.review.blocks')}</dt>
+          <dd className="tabular-nums">{detail.contentJson.content.length}</dd>
+        </div>
+        <div>
+          <dt>{t('admin.review.media')}</dt>
+          <dd className="tabular-nums">{detail.referencedMedia.length}</dd>
+        </div>
+        <div>
+          <dt>{t('admin.review.draft')}</dt>
+          <dd>{detail.draftToken ? t('admin.review.ready') : t('admin.review.missing')}</dd>
+        </div>
+      </dl>
+      <ReviewPreview detail={detail} />
+    </>
+  );
+}
+
+function RenameConfirmation({
+  acknowledgement,
+  renameConfirmed,
+  acknowledgementMissing,
+  onChange,
+}: {
+  acknowledgement: { current: HTMLButtonElement | null };
+  renameConfirmed: boolean;
+  acknowledgementMissing: boolean;
+  onChange(checked: boolean): void;
+}) {
+  return (
+    <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
+      <p>{t('admin.review.renameWarning')}</p>
+      <Field orientation="horizontal" className="items-start">
+        <Checkbox
+          id="review-rename-confirmation"
+          ref={acknowledgement}
+          name="acknowledgePermanentRedirect"
+          checked={renameConfirmed}
+          onCheckedChange={(checked) => onChange(checked === true)}
+          aria-invalid={acknowledgementMissing ? true : undefined}
+          aria-describedby={
+            acknowledgementMissing ? 'acknowledgePermanentRedirect-error' : undefined
+          }
+        />
+        <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
+          {t('admin.review.renameConfirm')}
+        </FieldLabel>
+      </Field>
+      {acknowledgementMissing && (
+        <FieldError id="acknowledgePermanentRedirect-error">
+          {t('admin.review.renameAcknowledgementError')}
+        </FieldError>
+      )}
+    </div>
+  );
+}
+
+function ReviewActions({
+  detail,
+  state,
+  running,
+  blocked,
+  renameBlocked,
+  onPublish,
+  onUnpublish,
+}: {
+  detail: ReviewDetail;
+  state: State;
+  running?: Action;
+  blocked: boolean;
+  renameBlocked: boolean;
+  onPublish(): void;
+  onUnpublish(): void;
+}) {
+  return (
+    <>
+      {blocked && (
+        <p id="publish-blocked" className="text-sm text-muted-foreground">
+          {t('admin.review.blocked')}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <PendingButton
+          type="button"
+          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+          pending={state === 'pending' && running === 'publish'}
+          disabled={blocked || state === 'pending'}
+          focusableWhenDisabled
+          aria-describedby={blocked ? 'publish-blocked' : undefined}
+          onClick={onPublish}
+        >
+          {t(detail.status === 'published' ? 'admin.review.republish' : 'admin.review.publish')}
+        </PendingButton>
+        <PendingButton
+          type="button"
+          variant="outline"
+          pending={state === 'pending' && running === 'unpublish'}
+          disabled={detail.status !== 'published' || state === 'pending'}
+          onClick={onUnpublish}
+        >
+          {t('admin.review.unpublish')}
+        </PendingButton>
+        {/* The form's only submit button, so Enter in the slug field renames. */}
+        <PendingButton
+          type="submit"
+          variant="outline"
+          pending={state === 'pending' && running === 'rename'}
+          disabled={renameBlocked}
+        >
+          {t('admin.review.rename')}
+        </PendingButton>
+      </div>
+      <FormStatus
+        message={state === 'pending' ? t('admin.review.pending') : undefined}
+        error={state === 'error' ? t('admin.review.error') : undefined}
+      />
+    </>
+  );
+}
+
+function ReviewDetailPanel({
+  detail,
+  state,
+  running,
+  acknowledgement,
+  renameConfirmed,
+  setRenameConfirmed,
+  needsAcknowledgement,
+  acknowledgementMissing,
+  blocked,
+  renameBlocked,
+  onRename,
+  onPublish,
+  onUnpublish,
+}: {
+  detail: ReviewDetail | null;
+  state: State;
+  running?: Action;
+  acknowledgement: { current: HTMLButtonElement | null };
+  renameConfirmed: boolean;
+  setRenameConfirmed(confirmed: boolean): void;
+  needsAcknowledgement: boolean;
+  acknowledgementMissing: boolean;
+  blocked: boolean;
+  renameBlocked: boolean;
+  onRename(form: HTMLFormElement): void;
+  onPublish(): void;
+  onUnpublish(): void;
+}) {
+  return (
+    <section
+      aria-label={t('admin.review.detail')}
+      className="order-first min-w-0 rounded-xl border bg-background p-4 lg:order-last"
+    >
+      {!detail ? (
+        <p>{t('admin.review.select')}</p>
+      ) : (
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void onRename(event.currentTarget);
+          }}
+        >
+          <ReviewSummary detail={detail} />
+          <Field className="gap-1">
+            <FieldLabel htmlFor="review-slug">{t('admin.posts.slug')}</FieldLabel>
+            <Input
+              id="review-slug"
+              name="slug"
+              defaultValue={detail.slug}
+              autoComplete="off"
+              required
+              spellCheck={false}
+              onChange={(event) => {
+                if (event.target.value === detail.slug) setRenameConfirmed(false);
+              }}
+            />
+          </Field>
+          {needsAcknowledgement && (
+            <RenameConfirmation
+              acknowledgement={acknowledgement}
+              renameConfirmed={renameConfirmed}
+              acknowledgementMissing={acknowledgementMissing}
+              onChange={setRenameConfirmed}
+            />
+          )}
+          <ReviewActions
+            detail={detail}
+            state={state}
+            running={running}
+            blocked={blocked}
+            renameBlocked={renameBlocked}
+            onPublish={onPublish}
+            onUnpublish={onUnpublish}
+          />
+        </form>
+      )}
+    </section>
+  );
+}
+
 export function AdminReview({ items, detail, page, pageSize, total, pendingPurges }: Props) {
   const [state, setState] = useState<State>('idle');
   const [running, setRunning] = useState<Action>();
@@ -191,205 +471,37 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
       reload();
     }
   };
-  const firstItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const lastItem = Math.min(page * pageSize, total);
+  const unpublish = () =>
+    void run('unpublish', () =>
+      callUnpublish({
+        ...mutation!,
+        publishedRevisionId: detail?.publishedRevisionId ?? undefined,
+      })
+    ).then((data) => {
+      if (data) reload();
+    });
 
   return (
     <div className="grid gap-6">
       {pendingPurges > 0 && <PendingPurgesNotice />}
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         {/* Concentric: the items' radius-md plus the 6px inset is radius-xl. */}
-        <section
-          aria-label={t('admin.review.queue')}
-          className="order-last max-h-[70vh] overflow-auto rounded-xl border bg-background p-1.5 lg:order-first"
-        >
-          {items.length ? (
-            <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
-              {items.map((item) => (
-                <li key={item.localizationId}>
-                  <a
-                    className="block rounded-md border p-3 outline-none focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:border-primary aria-[current=page]:bg-muted"
-                    aria-current={
-                      detail?.localizationId === item.localizationId ? 'page' : undefined
-                    }
-                    href={reviewUrl(page, item)}
-                  >
-                    <strong className="block truncate">{item.title}</strong>
-                    <span className="text-sm text-muted-foreground">
-                      {item.locale.toUpperCase()} · {t(`admin.posts.locale.${item.status}`)}
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="p-2.5">{t('admin.review.empty')}</p>
-          )}
-          {total > 0 && (
-            <p className="mt-1.5 px-2.5 text-sm text-muted-foreground tabular-nums">
-              {t('admin.review.showing')} {firstItem}–{lastItem} {t('admin.review.of')} {total}
-            </p>
-          )}
-          {total > pageSize && (
-            <nav
-              aria-label={t('listing.pagination')}
-              className="mt-1.5 flex justify-between gap-2 px-2.5 pb-1"
-            >
-              {page > 1 ? (
-                <a className={textLink} href={reviewUrl(page - 1, detail)}>
-                  {t('listing.previous')}
-                </a>
-              ) : (
-                <span />
-              )}
-              {lastItem < total && (
-                <a className={textLink} href={reviewUrl(page + 1, detail)}>
-                  {t('listing.next')}
-                </a>
-              )}
-            </nav>
-          )}
-        </section>
-        <section
-          aria-label={t('admin.review.detail')}
-          className="order-first min-w-0 rounded-xl border bg-background p-4 lg:order-last"
-        >
-          {!detail ? (
-            <p>{t('admin.review.select')}</p>
-          ) : (
-            <form
-              className="grid gap-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void rename(event.currentTarget);
-              }}
-            >
-              <div>
-                <h2 className="text-xl font-semibold [overflow-wrap:anywhere]">
-                  {detail.title || detail.slug}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {detail.locale.toUpperCase()} · {t(`admin.posts.locale.${detail.status}`)}
-                </p>
-              </div>
-              <dl className="grid gap-2 sm:grid-cols-2">
-                <div>
-                  <dt>{t('admin.review.cover')}</dt>
-                  <dd>{t(detail.coverAssetId ? 'admin.review.ready' : 'admin.review.missing')}</dd>
-                </div>
-                <div>
-                  <dt>{t('admin.review.blocks')}</dt>
-                  <dd className="tabular-nums">{detail.contentJson.content.length}</dd>
-                </div>
-                <div>
-                  <dt>{t('admin.review.media')}</dt>
-                  <dd className="tabular-nums">{detail.referencedMedia.length}</dd>
-                </div>
-                <div>
-                  <dt>{t('admin.review.draft')}</dt>
-                  <dd>{detail.draftToken ? t('admin.review.ready') : t('admin.review.missing')}</dd>
-                </div>
-              </dl>
-              <ReviewPreview detail={detail} />
-              <Field className="gap-1">
-                <FieldLabel htmlFor="review-slug">{t('admin.posts.slug')}</FieldLabel>
-                <Input
-                  id="review-slug"
-                  name="slug"
-                  defaultValue={detail.slug}
-                  autoComplete="off"
-                  required
-                  spellCheck={false}
-                  onChange={(event) => {
-                    if (event.target.value === detail.slug) setRenameConfirmed(false);
-                  }}
-                />
-              </Field>
-              {needsAcknowledgement && (
-                <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
-                  <p>{t('admin.review.renameWarning')}</p>
-                  <Field orientation="horizontal" className="items-start">
-                    <Checkbox
-                      id="review-rename-confirmation"
-                      ref={acknowledgement}
-                      name="acknowledgePermanentRedirect"
-                      checked={renameConfirmed}
-                      onCheckedChange={(checked) => setRenameConfirmed(checked === true)}
-                      aria-invalid={acknowledgementMissing ? true : undefined}
-                      aria-describedby={
-                        acknowledgementMissing ? 'acknowledgePermanentRedirect-error' : undefined
-                      }
-                    />
-                    <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
-                      {t('admin.review.renameConfirm')}
-                    </FieldLabel>
-                  </Field>
-                  {acknowledgementMissing && (
-                    <FieldError id="acknowledgePermanentRedirect-error">
-                      {t('admin.review.renameAcknowledgementError')}
-                    </FieldError>
-                  )}
-                </div>
-              )}
-              {/* A standing condition, not an event: it describes the button rather
-                  than interrupting on load. The button stays focusable, so the
-                  reason is read where the action is. */}
-              {blocked && (
-                <p id="publish-blocked" className="text-sm text-muted-foreground">
-                  {t('admin.review.blocked')}
-                </p>
-              )}
-              <div className="flex flex-wrap gap-2">
-                <PendingButton
-                  type="button"
-                  className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-                  pending={state === 'pending' && running === 'publish'}
-                  disabled={blocked || state === 'pending'}
-                  focusableWhenDisabled
-                  aria-describedby={blocked ? 'publish-blocked' : undefined}
-                  onClick={() => void publish()}
-                >
-                  {t(
-                    detail.status === 'published'
-                      ? 'admin.review.republish'
-                      : 'admin.review.publish'
-                  )}
-                </PendingButton>
-                <PendingButton
-                  type="button"
-                  variant="outline"
-                  pending={state === 'pending' && running === 'unpublish'}
-                  disabled={detail.status !== 'published' || state === 'pending'}
-                  onClick={() =>
-                    void run('unpublish', () =>
-                      callUnpublish({
-                        ...mutation!,
-                        publishedRevisionId: detail.publishedRevisionId ?? undefined,
-                      })
-                    ).then((data) => {
-                      if (data) reload();
-                    })
-                  }
-                >
-                  {t('admin.review.unpublish')}
-                </PendingButton>
-                {/* The form's only submit button, so Enter in the slug field renames. */}
-                <PendingButton
-                  type="submit"
-                  variant="outline"
-                  pending={state === 'pending' && running === 'rename'}
-                  disabled={renameBlocked}
-                >
-                  {t('admin.review.rename')}
-                </PendingButton>
-              </div>
-              <FormStatus
-                message={state === 'pending' ? t('admin.review.pending') : undefined}
-                error={state === 'error' ? t('admin.review.error') : undefined}
-              />
-            </form>
-          )}
-        </section>
+        <ReviewQueue items={items} detail={detail} page={page} pageSize={pageSize} total={total} />
+        <ReviewDetailPanel
+          detail={detail}
+          state={state}
+          running={running}
+          acknowledgement={acknowledgement}
+          renameConfirmed={renameConfirmed}
+          setRenameConfirmed={setRenameConfirmed}
+          needsAcknowledgement={needsAcknowledgement}
+          acknowledgementMissing={acknowledgementMissing}
+          blocked={blocked}
+          renameBlocked={renameBlocked}
+          onRename={(form) => void rename(form)}
+          onPublish={() => void publish()}
+          onUnpublish={unpublish}
+        />
       </div>
     </div>
   );

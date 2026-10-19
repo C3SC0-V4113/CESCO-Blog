@@ -28,7 +28,7 @@ export function stripWebpMetadata(bytes: Uint8Array): Uint8Array {
 
   const chunks: { start: number; end: number; kind: string; flags?: number }[] = [];
   let changed = false;
-  for (let offset = 12; offset < bytes.length; ) {
+  for (let offset = 12; offset < bytes.length;) {
     if (bytes.length - offset < 8) throw Error('invalid-webp');
     const kind = ascii(offset, 4);
     const size = view.getUint32(offset + 4, true);

@@ -38,7 +38,7 @@ const webp = (chunks: Uint8Array[]) => {
 const chunksOf = (bytes: Uint8Array) => {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const chunks: { kind: string; data: Uint8Array; bytes: Uint8Array }[] = [];
-  for (let offset = 12; offset < bytes.length; ) {
+  for (let offset = 12; offset < bytes.length;) {
     const size = view.getUint32(offset + 4, true);
     const end = offset + 8 + size + (size & 1);
     chunks.push({

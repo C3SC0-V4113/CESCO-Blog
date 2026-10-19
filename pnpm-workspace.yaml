@@ -11,15 +11,34 @@ blockExoticSubdeps: true
 
 minimumReleaseAge: 1440
 
-# Every advisory here reaches the project only through development tooling —
-# esbuild through drizzle-kit, undici through the Workers test pool, sharp
-# through miniflare's local image binding, which pins an exact version — so none
-# ever shipped in the deployed Worker. Drop an entry once the package that pulls
-# it in has moved past the patched version on its own.
+# These advisories reach the Worker only through development/build tooling:
+# shadcn, @astrojs/check, ESLint, Vitest/jsdom, drizzle-kit, and Miniflare's
+# local bindings.
+# They are not bundled into the deployed Worker. Keep each floor at the patched
+# version until its parent dependency supplies that version itself.
 overrides:
   esbuild@<=0.24.2: '>=0.25.0'
-  undici@>=7.0.0 <7.29.0: '>=7.29.0'
-  sharp@<0.35.4: '>=0.35.4'
+  fast-uri@<3.1.8: '>=3.1.8'
+  hono@<4.13.7: '>=4.13.7'
+  ip-address@<10.7.1: '>=10.7.1'
+  'minimatch@3>brace-expansion': '1.1.21'
+  'minimatch@10>brace-expansion': '5.0.12'
+  '@modelcontextprotocol/sdk@<1.31.0': '>=1.31.0'
+  postcss-selector-parser@<7.1.6: '>=7.1.6'
+  proxy-addr@<2.0.8: '>=2.0.8'
+  qs@<6.16.0: '>=6.16.0'
+  sharp@<0.35.5: '>=0.35.5'
+  source-map-js@<1.2.2: '>=1.2.2'
+  undici@>=7.0.0 <7.29.1: '7.29.1'
+
+# braces has no patched release (GHSA-vfj7-8cjw-p6xm: stack exhaustion on deeply
+# nested patterns). It arrives through fast-glob in eslint-plugin-astro's parser
+# and shadcn, which only expand globs written in this repository, never
+# untrusted input, and it is not bundled into the Worker. Drop this entry when a
+# patched braces exists, and override it to that version instead.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-vfj7-8cjw-p6xm
 
 trustPolicy: no-downgrade
 

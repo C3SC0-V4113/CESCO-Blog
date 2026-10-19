@@ -72,56 +72,52 @@ const alternates =
 ---
 
 <Layout alternates={alternates}>
-  {
-    resolution.kind === 'render' && (
-      <Fragment slot="head">
-        <SeoHead
-          locale={locale}
-          title={resolution.post.seo.title}
-          description={resolution.post.seo.description}
-          path={articlePath(locale, section, slug ?? '')}
-          alternates={alternates}
-          ogType="article"
-          ogTitle={resolution.post.seo.ogTitle}
-          ogDescription={resolution.post.seo.ogDescription}
-          image={
-            resolution.post.socialImage && {
-              ...resolution.post.socialImage,
-              src: mediaPath(resolution.post.socialImage.r2Key),
-            }
+  {resolution.kind === 'render' && (
+    <Fragment slot="head">
+      <SeoHead
+        locale={locale}
+        title={resolution.post.seo.title}
+        description={resolution.post.seo.description}
+        path={articlePath(locale, section, slug ?? '')}
+        alternates={alternates}
+        ogType="article"
+        ogTitle={resolution.post.seo.ogTitle}
+        ogDescription={resolution.post.seo.ogDescription}
+        image={
+          resolution.post.socialImage && {
+            ...resolution.post.socialImage,
+            src: mediaPath(resolution.post.socialImage.r2Key),
           }
-        />
-        <ArticleJsonLd
-          locale={locale}
-          headline={resolution.post.title}
-          description={resolution.post.seo.description}
-          canonical={absolute(
-            Astro.site?.toString() ?? Astro.url.origin,
-            articlePath(locale, section, slug ?? '')
-          )}
-          authorName={resolution.post.authorName}
-          publishedAt={resolution.post.publishedAt}
-          updatedAt={resolution.post.updatedAt}
-          image={
-            resolution.post.cover
-              ? absolute(
-                  Astro.site?.toString() ?? Astro.url.origin,
-                  mediaPath(resolution.post.cover.r2Key)
-                )
-              : null
-          }
-          authorWebsiteUrl={resolution.post.author?.websiteUrl}
-          authorSameAs={resolution.post.author?.sameAs}
-        />
-      </Fragment>
-    )
-  }
+        }
+      />
+      <ArticleJsonLd
+        locale={locale}
+        headline={resolution.post.title}
+        description={resolution.post.seo.description}
+        canonical={absolute(
+          Astro.site?.toString() ?? Astro.url.origin,
+          articlePath(locale, section, slug ?? '')
+        )}
+        authorName={resolution.post.authorName}
+        publishedAt={resolution.post.publishedAt}
+        updatedAt={resolution.post.updatedAt}
+        image={
+          resolution.post.cover
+            ? absolute(
+                Astro.site?.toString() ?? Astro.url.origin,
+                mediaPath(resolution.post.cover.r2Key)
+              )
+            : null
+        }
+        authorWebsiteUrl={resolution.post.author?.websiteUrl}
+        authorSameAs={resolution.post.author?.sameAs}
+      />
+    </Fragment>
+  )}
 
-  {
-    resolution.kind === 'render' ? (
-      <ArticleDetail locale={locale} post={resolution.post} series={series} />
-    ) : (
-      <ErrorState locale={locale} status={resolution.kind === 'gone' ? 410 : 404} />
-    )
-  }
+  {resolution.kind === 'render' ? (
+    <ArticleDetail locale={locale} post={resolution.post} series={series} />
+  ) : (
+    <ErrorState locale={locale} status={resolution.kind === 'gone' ? 410 : 404} />
+  )}
 </Layout>

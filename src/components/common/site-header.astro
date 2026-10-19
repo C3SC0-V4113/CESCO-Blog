@@ -85,21 +85,19 @@ const localeOptions = locales.map((option) => ({
       {SITE_NAME}
     </a>
 
-    {
-      navItems.length > 0 && (
-        <nav aria-label={t('nav.menu')} class="hidden items-center gap-4 sm:flex">
-          {navItems.map((item) => (
-            <a
-              href={item.href}
-              aria-current={isNavItemActive(item.href, pathname) ? 'page' : undefined}
-              class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground aria-[current]:font-medium aria-[current]:text-foreground motion-reduce:transition-none"
-            >
-              {t(item.key)}
-            </a>
-          ))}
-        </nav>
-      )
-    }
+    {navItems.length > 0 && (
+      <nav aria-label={t('nav.menu')} class="hidden items-center gap-4 sm:flex">
+        {navItems.map((item) => (
+          <a
+            href={item.href}
+            aria-current={isNavItemActive(item.href, pathname) ? 'page' : undefined}
+            class="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground aria-[current]:font-medium aria-[current]:text-foreground motion-reduce:transition-none"
+          >
+            {t(item.key)}
+          </a>
+        ))}
+      </nav>
+    )}
 
     <div class="ml-auto flex items-center gap-1">
       <LocaleSwitcher client:idle triggerLabel={t('locale.switch')} options={localeOptions} />
