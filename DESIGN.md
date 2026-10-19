@@ -42,7 +42,7 @@ in both themes without any per-component work.
 | `card` / `card-foreground`         | Raised surfaces: post cards, metadata panels      |
 | `popover` / `popover-foreground`   | Floating surfaces: menus, tooltips                |
 | `primary` / `secondary` / `accent` | Actions and emphasis                              |
-| `primary-text`                     | The accent as text and small glyphs               |
+| `brand`                            | The accent as text and small glyphs               |
 | `muted` / `muted-foreground`       | De-emphasized text: dates, reading time, captions |
 | `destructive`                      | Errors only                                       |
 | `border` / `input` / `ring`        | Edges and focus                                   |
@@ -50,7 +50,7 @@ in both themes without any per-component work.
 
 `--primary` is a **fill**: in dark it is chosen for light text on top of it, and
 as text it falls to 2.62:1 on the background. Text and small glyphs in the accent
-colour use `--primary-text` (`text-primary-text`, `hover:text-primary-text`)
+colour use `--brand` (`text-brand`, `hover:text-brand`)
 instead: `--primary` in light, `oklch(0.704 0.14 182.503)` in dark, at 8.14:1 on
 the background, 7.17:1 on card and 6.10:1 on muted. Buttons and other fills keep
 `--primary`.

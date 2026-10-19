@@ -38,7 +38,7 @@ const eslintConfig = defineConfig([
       'better-tailwindcss/no-deprecated-classes': 'warn',
       'better-tailwindcss/no-duplicate-classes': 'warn',
       'better-tailwindcss/no-restricted-classes': [
-        'warn',
+        'error',
         {
           restrict: [
             {

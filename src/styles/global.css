@@ -16,7 +16,7 @@
   --popover-foreground: oklch(0.148 0.004 228.8);
   --primary: oklch(0.511 0.096 186.391);
   --primary-foreground: oklch(0.984 0.014 180.72);
-  --primary-text: var(--primary);
+  --brand: var(--primary);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.963 0.002 197.1);
@@ -54,7 +54,7 @@
   --popover-foreground: oklch(0.987 0.002 197.1);
   --primary: oklch(0.437 0.078 188.216);
   --primary-foreground: oklch(0.984 0.014 180.72);
-  --primary-text: oklch(0.704 0.14 182.503);
+  --brand: oklch(0.704 0.14 182.503);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.275 0.011 216.9);
@@ -113,7 +113,7 @@
    * This token keeps the same hue and clears 4.5:1 on the background, card and
    * muted surfaces of both themes. Fills keep `--primary`.
    */
-  --color-primary-text: var(--primary-text);
+  --color-brand: var(--brand);
 
   /*
    * A hairline drawn inside an image's edge, so a pale cover does not bleed
