@@ -91,7 +91,7 @@
     "@types/node": "26.6.5",
     "@vitejs/plugin-react": "6.1.2",
     "@vitest/eslint-plugin": "1.6.27",
-    "devalue": "5.9.0",
+    "devalue": "5.9.3",
     "drizzle-kit": "^0.31.11",
     "eslint": "9.39.4",
     "eslint-config-prettier": "10.1.8",
