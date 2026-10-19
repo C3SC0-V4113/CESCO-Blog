@@ -21,7 +21,8 @@ export const newPostLocalizationId = newId;
 export const newPostRevisionId = newId;
 export const newAuthorId = newId;
 export const newSlugHistoryId = newId;
+export const newMediaAssetId = newId;
 
-// Wrappers for the remaining entities — media assets, games, tags, platforms,
+// Wrappers for the remaining entities — games, tags, platforms,
 // genres, collections — are added when their first insert site exists. An
 // exported name with no caller is maintenance surface, not preparation.

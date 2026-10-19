@@ -59,6 +59,9 @@ Serve `301` and `410` responses with a short TTL in addition to tagging them. A
 long-lived cached `410` survives republication and leaves a URL dead until manual
 purge.
 
+Unknown `404` slugs use `Cache-Control: no-store`; a URL visited before its first
+publication must become live as soon as it is published.
+
 The Workers Cache API (`caches.default.delete()`) only affects the data center
 executing the Worker. It is not a substitute for zone purge.
 

@@ -5,7 +5,7 @@ import PostCard from '@/components/post/post-card.astro';
 import { findGame, listPostsByGame } from '@/db/queries/taxonomy';
 import { getTranslations, resolveLocale } from '@/i18n/utils';
 import Layout from '@/layouts/main.astro';
-import { cacheTagHeader } from '@/lib/cache-tags';
+import { applyPageCachePolicy, gameTags } from '@/lib/cache-tags';
 import { getDb } from '@/lib/runtime';
 
 /**
@@ -28,15 +28,10 @@ const db = getDb();
 const game = slug ? await findGame(db, slug) : null;
 const posts = game ? await listPostsByGame(db, game.slug, locale) : [];
 
-if (game) {
-  Astro.response.headers.set(
-    'Cache-Tag',
-    cacheTagHeader([`game-${game.slug}`, `locale-${locale}`])
-  );
-} else {
-  Astro.response.status = 404;
-  Astro.response.headers.set('Cache-Control', 'public, max-age=300');
-}
+applyPageCachePolicy(
+  Astro.response,
+  game ? { kind: 'render', tags: gameTags(game.slug, locale) } : { kind: 'not-found' }
+);
 ---
 
 <Layout>

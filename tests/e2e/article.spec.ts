@@ -87,6 +87,9 @@ test('answers 404 for a slug that does not exist', async ({ page }) => {
   const response = await page.goto('/es/analisis/no-existe');
 
   expect(response?.status()).toBe(404);
+  // The error branch renders no SEO head, and an untitled tab is the first
+  // thing a screen reader announces about the page.
+  await expect(page).toHaveTitle('Esta página no existe');
 });
 
 test('does not serve an analysis from the opinion route', async ({ page }) => {
@@ -105,6 +108,15 @@ test('answers 410 for a withdrawn article, not 404', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Esta publicación ya no está disponible'
   );
+  await expect(page).toHaveTitle('Esta publicación ya no está disponible');
+});
+
+test('titles the fallback page for an address no route claims', async ({ page }) => {
+  // Astro's own 404, which has no page data to build an SEO head from at all.
+  const response = await page.goto('/no-existe-en-ninguna-parte');
+
+  expect(response?.status()).toBe(404);
+  await expect(page).toHaveTitle('Esta página no existe');
 });
 
 test('gives a retired address different copy from an unknown one', async ({ page }) => {
@@ -155,6 +167,11 @@ test('shows the byline, reading time and table of contents', async ({ page }) =>
 
   const toc = page.getByRole('navigation', { name: 'Contenido' });
   await expect(toc.getByRole('link', { name: 'El silencio como herramienta' })).toBeVisible();
+
+  // The landmark is already named, and the outline sits before the article in
+  // source order: a "Contenido" heading there would be the page's first
+  // heading, ahead of its h1.
+  await expect(toc.getByRole('heading')).toHaveCount(0);
 });
 
 test('anchors the table of contents at block ids, not heading text', async ({ page }) => {
@@ -213,14 +230,10 @@ test.describe('breadcrumb', () => {
   });
 
   test('marks the page you are on as current rather than navigable', async ({ page }) => {
-    // The registry marks the last crumb `role="link"` with `aria-disabled` and
-    // `aria-current="page"`, which is the conventional pattern: it stays in the
-    // list of links a screen reader walks, and announces itself as where you
-    // already are.
-    //
-    // So the contract to assert is that it does not *navigate*, not that it
-    // carries no role. An earlier version of this test asserted the role and
-    // failed against markup that was correct.
+    // The last crumb is plain text carrying `aria-current="page"`. The registry
+    // also gave it `role="link"` with `aria-disabled`, which put a link that
+    // goes nowhere into the list a screen reader walks; `aria-current` alone
+    // already announces it as where you are.
     await page.goto(ES_ARTICLE);
 
     const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
@@ -228,8 +241,9 @@ test.describe('breadcrumb', () => {
 
     await expect(current).toBeVisible();
     await expect(current).toHaveAttribute('aria-current', 'page');
-    await expect(current).toHaveAttribute('aria-disabled', 'true');
+    await expect(current).not.toHaveAttribute('role', /./);
     await expect(current).not.toHaveAttribute('href', /./);
+    await expect(trail.getByRole('link', { name: /El peso del silencio/ })).toHaveCount(0);
   });
 
   test('leads back to the section listing', async ({ page }) => {

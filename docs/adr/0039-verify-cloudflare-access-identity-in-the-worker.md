@@ -32,6 +32,9 @@ only checks its signature.
 `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`, or every admin request answers 503. Signing
 keys are fetched once per isolate and cached by `jose`. The Access application
 should still cover `/admin`, `/admin/*`, and `/_actions/admin.*`, so sign-in
-happens at the edge.
+happens at the edge. The generated production Wrangler config disables
+`workers_dev` and version preview URLs: Access protects the custom domain, while
+those alternate hosts would expose duplicate public pages and old versions;
+admin routes remain protected by the Worker JWT check.
 
 **Related:** [ADR-0003](0003-protect-admin-with-cloudflare-access.md), [ADR-0031](0031-layer-the-data-path-by-effect-and-testability.md), and [ADR-0034](0034-protect-admin-actions-with-cloudflare-access.md).

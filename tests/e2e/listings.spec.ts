@@ -94,6 +94,22 @@ test('marks the page you are on for a screen reader, not just visually', async (
   await expect(current).toHaveAttribute('aria-current', 'page');
 });
 
+test('gives every page link a 40px target', async ({ page }) => {
+  // The registry drew these at 32px. A page link is a primary navigation target
+  // on a touch screen, so it takes the 40px the header controls have, and the
+  // previous and next links keep that height while growing with their label.
+  await page.goto('/es/blog?page=2');
+
+  const links = page.getByRole('navigation', { name: 'Paginación' }).getByRole('link');
+  await expect(links.first()).toBeVisible();
+
+  for (const link of await links.all()) {
+    const box = await link.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(40);
+    expect(box?.width).toBeGreaterThanOrEqual(40);
+  }
+});
+
 test('ships the pagination without hydrating it', async ({ page }) => {
   // The component is built from React primitives, and that is *not* the same as
   // shipping React: with no `client:*` directive Astro renders it to HTML on the

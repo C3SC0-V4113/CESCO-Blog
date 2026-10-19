@@ -11,7 +11,7 @@ async function createPost(page: Page) {
   await page.goto('/admin/posts/new');
   await page.getByLabel('Slug').fill(slug);
   await page.getByRole('button', { name: 'Crear publicación' }).click();
-  return page.getByRole('row').filter({ has: page.getByRole('cell', { name: slug }) });
+  return page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: slug }) });
 }
 
 test('edits one localization with durable autosave and preserves conflicts', async ({
@@ -35,19 +35,22 @@ test('edits one localization with durable autosave and preserves conflicts', asy
   await other.goto(page.url());
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Editor');
   const locales = page.getByRole('group', { name: 'Localización' });
-  await expect(locales.getByRole('button', { name: 'Español (actual)' })).toBeDisabled();
-  await expect(locales.getByRole('button', { name: 'Inglés (no disponible)' })).toBeDisabled();
+  await expect(locales.getByText('Español (actual)')).toHaveAttribute('aria-current', 'page');
+  await expect(locales.getByText('Inglés (no disponible)')).toBeVisible();
+  // Neither is a control: there is nothing to do with either.
+  await expect(locales.getByRole('button')).toHaveCount(0);
   const title = page.getByLabel('Título');
   await expect(title).toHaveAttribute('maxlength', '300');
   await expect(page.getByLabel('Resumen')).toHaveAttribute('maxlength', '1000');
   await title.focus();
   await page.keyboard.insertText('x'.repeat(301));
   await expect(title).toHaveValue('x'.repeat(300));
+  await expect(page.getByRole('status')).toHaveText('Guardado');
   await page.reload();
 
   await page.route(saveRoute, (route) => route.abort());
   await page.getByLabel('Título').fill('Fallo local');
-  await expect(page.getByRole('status')).toContainText('No se pudo guardar');
+  await expect(page.getByRole('alert')).toContainText('No se pudo guardar');
   await page.unroute(saveRoute);
   const saved = page.waitForResponse((response) =>
     response.url().includes('/_actions/admin.saveDraft')
@@ -68,7 +71,7 @@ test('edits one localization with durable autosave and preserves conflicts', asy
   const blockId = await block.evaluate((element) => element.getAttribute('data-blockid'));
 
   await other.getByLabel('Título').fill('Contenido local en conflicto');
-  await expect(other.getByRole('status')).toContainText('Recarga para continuar');
+  await expect(other.getByRole('alert')).toContainText('Recarga para continuar');
   await expect(other.getByLabel('Título')).toHaveValue('Contenido local en conflicto');
   await page.reload();
   await expect(page.getByLabel('Título')).toHaveValue('Borrador guardado');
@@ -83,7 +86,7 @@ test('flushes before switching existing localizations and blocks a failed switch
   await page.goto(esUrl);
   const locales = page.getByRole('group', { name: 'Localización' });
   // The current localization is this page, so it is not offered as a link.
-  await expect(locales.getByRole('button', { name: 'Español (actual)' })).toBeDisabled();
+  await expect(locales.getByText('Español (actual)')).toHaveAttribute('aria-current', 'page');
   await expect(locales.getByRole('link', { name: /Español/ })).toHaveCount(0);
   await expect(locales.getByRole('link', { name: 'Inglés' })).toHaveAttribute(
     'href',
@@ -106,7 +109,7 @@ test('flushes before switching existing localizations and blocks a failed switch
   await page.route(saveRoute, (route) => route.abort());
   await page.getByLabel('Título').fill('Edición local sin guardar');
   await page.getByRole('link', { name: 'Inglés' }).click();
-  await expect(page.getByRole('status')).toContainText('No se pudo guardar');
+  await expect(page.getByRole('alert')).toContainText('No se pudo guardar');
   await expect(page).toHaveURL(new RegExp(`localization=${SEEDED_ES}$`));
   await expect(page.getByLabel('Título')).toHaveValue('Edición local sin guardar');
   await page.unroute(saveRoute);
@@ -127,7 +130,7 @@ test('keeps saving after a save lands but its response is lost', async ({ page }
     await route.abort();
   });
   await page.getByLabel('Título').fill('Guardado sin respuesta');
-  await expect(page.getByRole('status')).toContainText('No se pudo guardar');
+  await expect(page.getByRole('alert')).toContainText('No se pudo guardar');
   await page.unroute(saveRoute);
   await page.getByLabel('Título').fill('Reintento aceptado');
   // A conflict is terminal, so reaching "Guardado" proves the retry was a replay.

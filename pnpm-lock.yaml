@@ -47,6 +47,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.1))
+      '@tiptap/core':
+        specifier: ^3.31.4
+        version: 3.31.4(@tiptap/pm@3.31.4)
       '@tiptap/extension-unique-id':
         specifier: ^3.31.4
         version: 3.31.4(@tiptap/core@3.31.4(@tiptap/pm@3.31.4))(@tiptap/pm@3.31.4)
@@ -95,6 +98,9 @@ importers:
       react-hook-form:
         specifier: ^7.89.0
         version: 7.89.0(@types/react@19.3.0)(react@19.3.0)
+      shiki:
+        specifier: 4.4.1
+        version: 4.4.1
       tailwind-merge:
         specifier: ^3.7.0
         version: 3.7.0
@@ -114,6 +120,9 @@ importers:
       '@astrojs/check':
         specifier: 0.9.10
         version: 0.9.10(prettier-plugin-astro@1.1.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(prettier@3.9.10))(prettier@3.9.10)(typescript@6.0.3)
+      '@axe-core/playwright':
+        specifier: 4.13.0
+        version: 4.13.0(playwright-core@1.64.0)
       '@cloudflare/vitest-plugin':
         specifier: 1.4.0
         version: 1.4.0(@cloudflare/workers-types@5.20261010.1)(@types/node@26.6.5)(vitest@5.0.3(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(jsdom@29.1.1)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.1)))
@@ -147,6 +156,9 @@ importers:
       '@vitest/eslint-plugin':
         specifier: 1.6.27
         version: 1.6.27(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@9.39.4(jiti@2.7.0))(typescript@6.0.3))(eslint@9.39.4(jiti@2.7.0))(typescript@6.0.3))(eslint@9.39.4(jiti@2.7.0))(typescript@6.0.3)(vitest@5.0.3(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(jsdom@29.1.1)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.1)))
+      devalue:
+        specifier: 5.9.0
+        version: 5.9.0
       drizzle-kit:
         specifier: ^0.31.11
         version: 0.31.11
@@ -452,6 +464,11 @@ packages:
 
   '@astrojs/yaml2ts@0.2.4':
     resolution: {integrity: sha512-8oddpOae35pJsXPQXhTkM0ypfKPskVsh2bCxRtbf7e+/Epw2nReakFYpLKjZMEr75CsoF203PMnCocpfz0s69A==}
+
+  '@axe-core/playwright@4.13.0':
+    resolution: {integrity: sha512-6YLx+kxXu5GJceG4ozFg+33a2EMTdjYwWGloJ3sb9Kta5pp+ZNS53uxGVog5JetIY8s++P5UrtX+cri+u0VAVg==}
+    peerDependencies:
+      playwright-core: '>= 1.0.0'
 
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
@@ -2504,28 +2521,56 @@ packages:
     resolution: {integrity: sha512-8mpfsoPeRhesY3pOrzNZBL8uG6N5GVX1EHLBYbd4gzKs+c7vaEIqpTNK5VrffU33qQN4cwpP2v3u4aPPBU32sw==}
     engines: {node: '>=16'}
 
+  '@shikijs/core@4.4.1':
+    resolution: {integrity: sha512-VeR2CY6Nn9/WbisoYLOQZ7HZOnwTrpBuOw4wExjqLnBCi62BNWynBUO6K2uPIASPFJwAv7cX1fUu+LrPlSstcw==}
+    engines: {node: '>=20'}
+
   '@shikijs/core@4.5.0':
     resolution: {integrity: sha512-6CIgwq+bt2JZ3OSjb/nBkkwEf/CfpHcbam+Mg5Pllco7HAGRQ2/EFhZrrJtbyNTgKwknfVS+llsXGygiDGwJWw==}
+    engines: {node: '>=20'}
+
+  '@shikijs/engine-javascript@4.4.1':
+    resolution: {integrity: sha512-6U4lJBh8LTvIkEVqRHv/rr3ruwtO6IweFQt1ME1ntHJMGHS+6N86vfYGO1o8c/DtOCTia2lfhdQBtBrps1sDfQ==}
     engines: {node: '>=20'}
 
   '@shikijs/engine-javascript@4.5.0':
     resolution: {integrity: sha512-Ed6UdEj84LyYkwnxM5CvSMWAD+id9ExTYri0/+x41U9zrgNifPSS9lZm0JqBP0VfYI8yr8tY5nbNq9+p9R0kFA==}
     engines: {node: '>=20'}
 
+  '@shikijs/engine-oniguruma@4.4.1':
+    resolution: {integrity: sha512-p23RugMKss0r5DAtRJW1yAXUDl60JvhQYV20yuxei//26JyDSJefV3umyWzzwep2weblMnJGDYahuti6XkcMgA==}
+    engines: {node: '>=20'}
+
   '@shikijs/engine-oniguruma@4.5.0':
     resolution: {integrity: sha512-dKVmbJecVdB9recl8a/CU4jdpNXyjJQrIcesIkpS70s5HS02ohpnCSpMUbotPnEUzbAcLQ+S4hwZYbkBBiTcJw==}
+    engines: {node: '>=20'}
+
+  '@shikijs/langs@4.4.1':
+    resolution: {integrity: sha512-xb2kCMloBCIraIy2fS5MW0t/BxVY3q2nDyQKBoeSeq6KNrQbShHetCFlw2n35fGIJ6t3+hXDLQogP5ir9O9bvA==}
     engines: {node: '>=20'}
 
   '@shikijs/langs@4.5.0':
     resolution: {integrity: sha512-wwBTqwduXSz0X4v9Qa2EWeFaYJEw1clCncWjoRNQRbVDu3SPRTRWucnouYapKj3b8Q+sk/41Vbc4B5c8nuYzLA==}
     engines: {node: '>=20'}
 
+  '@shikijs/primitive@4.4.1':
+    resolution: {integrity: sha512-ko2OfDoG89YuQ7xL5LtcQiWKb7NIv1Ephb7g48TVU198OzAMLC8lXVEwaJGHK4sUMYrfAGJDqYmNLOLiW/Kz8w==}
+    engines: {node: '>=20'}
+
   '@shikijs/primitive@4.5.0':
     resolution: {integrity: sha512-UM7ShlA8oz0OWxLLO8BmO9Ip6fVqdkt8yF0EH7nOCqHfrx1eEAzF0ZUVK7L+I8NEgeu1PEWSRlxaiPPeCb4iDg==}
     engines: {node: '>=20'}
 
+  '@shikijs/themes@4.4.1':
+    resolution: {integrity: sha512-wudOaoFro+/Zl9gQv2W1Ur5XlVduqvTuYLI483Xi0wgc1A+cy1hfB2r6ac6ufBgF+ID7KJEW7L41MHrzQ4wH+w==}
+    engines: {node: '>=20'}
+
   '@shikijs/themes@4.5.0':
     resolution: {integrity: sha512-zGb87H3UBbpuI4yoh5UguB1XbU+2BDU3kflM7UfZ+Cy2hWo9lBtqjSVK20gmLY6ukYl040hAypGXMgud9vul8Q==}
+    engines: {node: '>=20'}
+
+  '@shikijs/types@4.4.1':
+    resolution: {integrity: sha512-GOwCLQDHM5EjGUWNPrhzJbr6JP8V/Dx/CDVkWvbZ1Avw5JFnNUckrgbLmE07qtg4WlW7Q7QFndhjIkeU9XMPvw==}
     engines: {node: '>=20'}
 
   '@shikijs/types@4.5.0':
@@ -3362,6 +3407,10 @@ packages:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
 
+  axe-core@4.13.0:
+    resolution: {integrity: sha512-UzGt8zg7Ny8djbYMhxl2zuEevVa7r2gJjYY5Lwr1xM7+XU2nd6CkIWFTVcCIbAP63vSz71NaVyyuSk9lHKcy0A==}
+    engines: {node: '>=4'}
+
   axobject-query@4.1.0:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
     engines: {node: '>= 0.4'}
@@ -3756,6 +3805,9 @@ packages:
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
+
+  devalue@5.9.0:
+    resolution: {integrity: sha512-RWrqdArjvPbsATEhOPUo6Wndc/iWnkWKlhIrdlF3zMMYo/c3CVtoaVAyLtWxz5h8nSlkHzxnzV2uLydPXmtF+A==}
 
   devalue@5.9.4:
     resolution: {integrity: sha512-sPAT4pztbu6586/hrhOnMKS17IJrvg12mXiSPSS3W5qDeN2RGgvZ0diZCm31dBbnevfVmujNO3IM2wrS4Y2Rhg==}
@@ -5870,6 +5922,10 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
+  shiki@4.4.1:
+    resolution: {integrity: sha512-rFP+iYKzjLEIqiMiKANhARqiAbk4deDhWnBtnUO/K0D0dPxMGDH4N0FVfBY/VeI+lPrV4wNGCHQZp7EOr7NNBw==}
+    engines: {node: '>=20'}
+
   shiki@4.5.0:
     resolution: {integrity: sha512-OcRW72ngQvc+MSVWBRIovC/BTW589iUE/Vxav7VeM4RcY9MUjqB+IR6ILG1k9nuW6LiG/nct9uma4/MBtnZbmQ==}
     engines: {node: '>=20'}
@@ -6959,7 +7015,7 @@ snapshots:
       '@types/mdast': 4.0.4
       picomatch: 4.0.7
       retext-smartypants: 6.2.0
-      shiki: 4.5.0
+      shiki: 4.4.1
       smol-toml: 1.9.1
       unified: 11.0.5
       yaml: 2.9.1
@@ -7046,6 +7102,11 @@ snapshots:
   '@astrojs/yaml2ts@0.2.4':
     dependencies:
       yaml: 2.9.1
+
+  '@axe-core/playwright@4.13.0(playwright-core@1.64.0)':
+    dependencies:
+      axe-core: 4.13.0
+      playwright-core: 1.64.0
 
   '@babel/code-frame@7.29.7':
     dependencies:
@@ -8610,6 +8671,14 @@ snapshots:
 
   '@shaderfrog/glsl-parser@7.0.1': {}
 
+  '@shikijs/core@4.4.1':
+    dependencies:
+      '@shikijs/primitive': 4.4.1
+      '@shikijs/types': 4.4.1
+      '@shikijs/vscode-textmate': 10.0.2
+      '@types/hast': 3.0.5
+      hast-util-to-html: 9.0.5
+
   '@shikijs/core@4.5.0':
     dependencies:
       '@shikijs/primitive': 4.5.0
@@ -8618,20 +8687,41 @@ snapshots:
       '@types/hast': 3.0.5
       hast-util-to-html: 9.0.5
 
+  '@shikijs/engine-javascript@4.4.1':
+    dependencies:
+      '@shikijs/types': 4.4.1
+      '@shikijs/vscode-textmate': 10.0.2
+      oniguruma-to-es: 4.3.6
+
   '@shikijs/engine-javascript@4.5.0':
     dependencies:
       '@shikijs/types': 4.5.0
       '@shikijs/vscode-textmate': 10.0.2
       oniguruma-to-es: 4.3.6
 
+  '@shikijs/engine-oniguruma@4.4.1':
+    dependencies:
+      '@shikijs/types': 4.4.1
+      '@shikijs/vscode-textmate': 10.0.2
+
   '@shikijs/engine-oniguruma@4.5.0':
     dependencies:
       '@shikijs/types': 4.5.0
       '@shikijs/vscode-textmate': 10.0.2
 
+  '@shikijs/langs@4.4.1':
+    dependencies:
+      '@shikijs/types': 4.4.1
+
   '@shikijs/langs@4.5.0':
     dependencies:
       '@shikijs/types': 4.5.0
+
+  '@shikijs/primitive@4.4.1':
+    dependencies:
+      '@shikijs/types': 4.4.1
+      '@shikijs/vscode-textmate': 10.0.2
+      '@types/hast': 3.0.5
 
   '@shikijs/primitive@4.5.0':
     dependencies:
@@ -8639,9 +8729,18 @@ snapshots:
       '@shikijs/vscode-textmate': 10.0.2
       '@types/hast': 3.0.5
 
+  '@shikijs/themes@4.4.1':
+    dependencies:
+      '@shikijs/types': 4.4.1
+
   '@shikijs/themes@4.5.0':
     dependencies:
       '@shikijs/types': 4.5.0
+
+  '@shikijs/types@4.4.1':
+    dependencies:
+      '@shikijs/vscode-textmate': 10.0.2
+      '@types/hast': 3.0.5
 
   '@shikijs/types@4.5.0':
     dependencies:
@@ -9567,6 +9666,8 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.1.0
 
+  axe-core@4.13.0: {}
+
   axobject-query@4.1.0: {}
 
   bail@2.0.2: {}
@@ -9925,6 +10026,8 @@ snapshots:
   destr@2.0.5: {}
 
   detect-libc@2.1.2: {}
+
+  devalue@5.9.0: {}
 
   devalue@5.9.4: {}
 
@@ -12247,6 +12350,17 @@ snapshots:
       shebang-regex: 3.0.0
 
   shebang-regex@3.0.0: {}
+
+  shiki@4.4.1:
+    dependencies:
+      '@shikijs/core': 4.4.1
+      '@shikijs/engine-javascript': 4.4.1
+      '@shikijs/engine-oniguruma': 4.4.1
+      '@shikijs/langs': 4.4.1
+      '@shikijs/themes': 4.4.1
+      '@shikijs/types': 4.4.1
+      '@shikijs/vscode-textmate': 10.0.2
+      '@types/hast': 3.0.5
 
   shiki@4.5.0:
     dependencies:

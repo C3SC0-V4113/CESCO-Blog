@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { contentDocSchema, parseContentDoc } from '@/lib/content/schema';
+import { contentDocSchema, parseContentDoc, parsePublishedContentDoc } from '@/lib/content/schema';
 
 /**
  * The contract between the three producers and consumers of `content_json`
@@ -106,5 +106,26 @@ describe('content_json schema', () => {
     });
 
     expect(doc.content[0]?.attrs.blockId).toBe(blockId);
+  });
+
+  it('accepts only Shiki hex colors in persisted highlighted tokens', () => {
+    const published = (color: string) => ({
+      type: 'doc',
+      content: [
+        {
+          type: 'codeBlock',
+          attrs: {
+            blockId,
+            language: 'ts',
+            highlighted: [[{ content: 'const', color }]],
+          },
+          content: [{ type: 'text', text: 'const' }],
+        },
+      ],
+    });
+
+    expect(() => parsePublishedContentDoc(published('#CF222E'))).not.toThrow();
+    expect(() => parsePublishedContentDoc(published('#CF222E80'))).not.toThrow();
+    expect(() => parsePublishedContentDoc(published('red;background:url(javascript:1)'))).toThrow();
   });
 });

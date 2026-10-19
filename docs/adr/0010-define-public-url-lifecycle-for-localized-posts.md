@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted (partially superseded by ADR-0038)
 
 ## Date
 
@@ -64,6 +64,11 @@ For slugs:
 - Renaming A to B and later B to C rewrites every history row that pointed at B
   so it points at C. A retired slug always resolves in a single hop; redirect
   chains are not allowed.
+
+> [ADR-0038](0038-keep-retired-post-slugs-append-only.md) supersedes only that
+> rewrite mechanic. History rows are append-only and point to the localization;
+> resolution joins its current slug, preserving the same one-hop outcome. The
+> lifecycle, timestamp, reservation, and collection decisions remain accepted.
 
 Permanent slug reservation is an **application invariant, not a database
 constraint**. SQLite cannot express uniqueness spanning `post_localizations` and

@@ -1,0 +1,20 @@
+---
+import { AdminApp } from '@/components/admin/admin-app';
+import { listAdminMedia } from '@/db/queries/admin-media';
+import { getTranslations } from '@/i18n/utils';
+import AdminLayout from '@/layouts/admin.astro';
+import { readPageWindow } from '@/lib/pagination';
+import { getDb } from '@/lib/runtime';
+const t = getTranslations('es');
+const { page, limit, offset } = readPageWindow(Astro.url.searchParams.get('page'), 20);
+const listing = await listAdminMedia(getDb(), { limit, offset });
+const lastPage = Math.max(1, Math.ceil(listing.total / limit));
+if (page > lastPage) return Astro.redirect(`/admin/media?page=${lastPage}`);
+---
+
+<AdminLayout title={`${t('admin.media.title')} | ${t('admin.brand')}`}>
+  <AdminApp
+    screen={{ name: 'media', assets: listing.assets, page, total: listing.total }}
+    client:load
+  />
+</AdminLayout>

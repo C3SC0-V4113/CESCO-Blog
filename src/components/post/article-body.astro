@@ -1,56 +1,103 @@
 ---
-import type { ContentDoc } from '@/lib/content/schema';
+import { getTranslations } from '@/i18n/utils';
+import { mediaPath, safeExternalUrl } from '@/lib/media';
 
-/**
- * Renders a validated `content_json` document as markup (ADR-0019).
- *
- * No island. The article body is the least interactive surface on the site, so
- * it ships as server-rendered HTML and costs the reader no JavaScript at all.
- *
- * Every block carries its `blockId` as the element `id`. Those are the same
- * identifiers the table of contents anchors to and that `post_revision_media`
- * keys placements by, so a deep link survives a heading being reworded
- * (ADR-0012).
- */
+import type { PublishedMedia } from '@/db/queries/posts';
+import type { Locale } from '@/i18n/locales';
+import type { PublishedContentDoc } from '@/lib/content/schema';
 
 interface Props {
-  doc: ContentDoc;
+  doc: PublishedContentDoc;
+  locale: Locale;
+  media: PublishedMedia[];
 }
 
-const { doc } = Astro.props;
+const { doc, locale, media } = Astro.props;
+const t = getTranslations(locale);
 
-// Images need the `media_assets` row behind `mediaAssetId` and a route that
-// serves R2 objects, neither of which exists yet (ADR-0028). Failing here is
-// deliberate: rendering the document without them would drop content silently,
-// and a missing image in a published article is worth an error rather than a
-// gap nobody notices. Nothing can currently produce one — the seed script is
-// the only writer (ADR-0017) and it emits no image nodes.
-const unsupported = doc.content.find((block) => block.type === 'image');
-
-if (unsupported) {
-  throw new Error(
-    `Cannot render an image node yet (blockId ${unsupported.attrs.blockId}). ` +
-      `Inline media rendering arrives with the media upload pipeline.`
-  );
-}
+/*
+ * Stored headings may be any level from 1 to 6, and that stays: the schema in
+ * `@/lib/content/schema` is the content contract (ADR-0024), not a place to
+ * encode what this page can show. The page can show two. Its title is the only
+ * `h1`, and the outline stops at `h3`, so a stray level is clamped here rather
+ * than rejected on save or rendered as a second title.
+ */
+const headingLevel = (level: number) => Math.min(Math.max(level, 2), 3);
 ---
 
 {doc.content.map((block) => {
   if (block.type === 'heading') {
-    const Heading = `h${block.attrs.level}` as 'h1';
+    const Heading = `h${headingLevel(block.attrs.level)}` as 'h2' | 'h3';
     return <Heading id={block.attrs.blockId}>{block.content.map((node) => node.text)}</Heading>;
   }
 
   if (block.type === 'codeBlock') {
-    return <pre id={block.attrs.blockId}>
+    // Focusable because it scrolls sideways: without a tab stop a keyboard
+    // cannot reach the end of a long line (WCAG 2.1.1). Once it is a stop it
+    // needs a name, and a group is the role that carries one without adding a
+    // landmark per sample. The ring comes from the base `:focus-visible`.
+    const label = block.attrs.language
+      ? `${t('post.codeSample')}: ${block.attrs.language}`
+      : t('post.codeSample');
+    return <pre id={block.attrs.blockId} tabindex="0" role="group" aria-label={label}>
           <code class={block.attrs.language ? `language-${block.attrs.language}` : undefined}>
-            {block.content.map((node) => node.text)}
+            {block.attrs.highlighted
+              ? block.attrs.highlighted.map((line, lineIndex) => (
+                  <Fragment>
+                    {line.map((token) => (
+                      <span style={token.color ? `color:${token.color}` : undefined}>
+                        {token.content}
+                      </span>
+                    ))}
+                    {lineIndex < block.attrs.highlighted!.length - 1 ? '\n' : ''}
+                  </Fragment>
+                ))
+              : block.content.map((node) => node.text)}
           </code>
         </pre>;
   }
 
-  if (block.type === 'paragraph') {
+  if (block.type === 'paragraph')
     return <p id={block.attrs.blockId}>{block.content.map((node) => node.text)}</p>;
+
+  if (block.type === 'image') {
+    const asset = media.find((item) => item.blockId === block.attrs.blockId);
+    if (!asset) throw Error(`Published media placement missing: ${block.attrs.blockId}`);
+    const sourceUrl = safeExternalUrl(asset.sourceUrl);
+    const licenseUrl = safeExternalUrl(asset.licenseUrl);
+    return (
+      <figure id={block.attrs.blockId}>
+        <img
+          src={mediaPath(asset.r2Key)}
+          width={asset.width ?? undefined}
+          height={asset.height ?? undefined}
+          alt={asset.altText ?? ''}
+        />
+        {(asset.caption || asset.credit || sourceUrl || asset.licenseLabel) && (
+          <figcaption>
+            {asset.caption && <span>{asset.caption}</span>}
+            {asset.credit && (
+              <span>
+                {' '}
+                {t('post.media.by')} {asset.credit}
+              </span>
+            )}
+            {sourceUrl && (
+              <span>
+                {' '}
+                <a href={sourceUrl}>{t('post.media.source')}</a>
+              </span>
+            )}
+            {asset.licenseLabel && (
+              <span>
+                {' '}
+                {licenseUrl ? <a href={licenseUrl}>{asset.licenseLabel}</a> : asset.licenseLabel}
+              </span>
+            )}
+          </figcaption>
+        )}
+      </figure>
+    );
   }
 
   return null;

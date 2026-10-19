@@ -24,10 +24,10 @@ test('refuses admin actions outside the protected path and writes nothing', asyn
   await page.getByLabel('Slug').fill(slug);
   await page.getByRole('button', { name: 'Crear publicación' }).click();
   await expect(page).toHaveURL(/\/admin\/posts$/);
-  await expect(page.getByRole('cell', { name: slug })).toBeVisible();
+  await expect(page.getByRole('rowheader', { name: slug })).toBeVisible();
 });
 
-test('lists post aggregates and keeps only the posts destination live', async ({ page }) => {
+test('lists post aggregates and keeps implemented destinations live', async ({ page }) => {
   await page.goto('/admin/posts');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Publicaciones');
   await expect(page.getByRole('link', { name: 'Publicaciones', exact: true })).toHaveAttribute(
@@ -38,8 +38,22 @@ test('lists post aggregates and keeps only the posts destination live', async ({
     'href',
     '/admin/posts/new'
   );
-  for (const label of ['Multimedia', 'Revisión', 'Series', 'Autores'])
-    await expect(page.getByRole('button', { name: label })).toBeDisabled();
+  await expect(page.getByRole('link', { name: 'Multimedia' })).toHaveAttribute(
+    'href',
+    '/admin/media'
+  );
+  await expect(page.getByRole('link', { name: 'Revisión' })).toHaveAttribute(
+    'href',
+    '/admin/review'
+  );
+  await expect(page.getByRole('link', { name: 'Series' })).toHaveAttribute(
+    'href',
+    '/admin/collections'
+  );
+  await expect(page.getByRole('link', { name: 'Autores' })).toHaveAttribute(
+    'href',
+    '/admin/authors'
+  );
 });
 
 test('sends a page past the end of the list to its last page', async ({ page }) => {
@@ -64,7 +78,7 @@ test('creates only the first localization and returns to the aggregate list', as
   await page.getByLabel('Slug').fill(slug);
   await page.getByRole('button', { name: 'Crear publicación' }).click();
   await expect(page).toHaveURL(/\/admin\/posts$/);
-  const row = page.getByRole('row').filter({ has: page.getByRole('cell', { name: slug }) });
+  const row = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: slug }) });
   await expect(row).toContainText(/Opiniones.*Sin crear.*Borrador/);
 });
 

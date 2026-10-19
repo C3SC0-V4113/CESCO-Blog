@@ -1,22 +1,39 @@
 ---
 import { AdminApp } from '@/components/admin/admin-app';
+import { findAdminMedia, listAdminMedia } from '@/db/queries/admin-media';
 import { loadEditorDraft, loadEditorLocalizations } from '@/db/queries/editor-drafts';
 import { getTranslations } from '@/i18n/utils';
 import AdminLayout from '@/layouts/admin.astro';
+import { mediaAssetIds } from '@/lib/media';
 import { getDb } from '@/lib/runtime';
 const t = getTranslations('es');
 const id = Astro.params.id!,
   localizationId = Astro.url.searchParams.get('localization');
 const db = getDb();
-const [draft, localizations] = localizationId
-  ? await Promise.all([loadEditorDraft(db, id, localizationId), loadEditorLocalizations(db, id)])
-  : [null, {}];
+const [draft, localizations, media] = localizationId
+  ? await Promise.all([
+      loadEditorDraft(db, id, localizationId),
+      loadEditorLocalizations(db, id),
+      listAdminMedia(db, { limit: 20, offset: 0 }),
+    ])
+  : [null, {}, { assets: [] }];
 if (!draft || !localizationId) return Astro.redirect('/admin/posts');
+const referencedIds = mediaAssetIds(draft.contentJson);
+const referenced = await findAdminMedia(db, referencedIds);
 ---
 
 <AdminLayout title={`${t('admin.editor.title')} | ${t('admin.brand')}`}>
   <AdminApp
-    screen={{ name: 'editor', postId: id, localizationId, localizations, draft }}
+    screen={{
+      name: 'editor',
+      postId: id,
+      localizationId,
+      localizations,
+      draft,
+      mediaAssets: media.assets,
+      referencedAssets: referenced,
+      mediaTotal: media.total,
+    }}
     client:load
   />
 </AdminLayout>

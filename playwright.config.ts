@@ -65,8 +65,8 @@ export default defineConfig({
     // work around, stops mattering: `wrangler dev` stays in the foreground.
     //
     // The command clears and prepares a disposable `.wrangler/e2e` D1/R2 store,
-    // then builds and boots the Worker against it. Developer data in
-    // `.wrangler/state` is left untouched, and no manual setup is needed.
+    // applies the seed and legacy snapshot fixture, then builds and boots the
+    // Worker against it. Developer data in `.wrangler/state` stays untouched.
     command: 'pnpm run e2e:serve',
     url: baseUrl,
     // Never reuse a server someone left running: it may be an `astro dev` on

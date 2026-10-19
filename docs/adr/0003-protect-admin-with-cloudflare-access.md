@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted (partially superseded by ADR-0038)
 
 ## Context
 
@@ -48,6 +48,11 @@ Changing the slug of a published localization is **not a plain update**. Per
 to `post_localization_slug_history` and rewrite existing history rows so retired
 slugs resolve in a single hop. It is an admin action with rules, not a form
 field, and the interface must present it as such.
+
+> [ADR-0038](0038-keep-retired-post-slugs-append-only.md) supersedes only the
+> rewrite mechanic in the paragraph above. History is append-only and public
+> resolution joins each retired slug to the localization's current slug. The
+> Access boundary and admin-action classification remain accepted.
 
 The admin's rendering model is defined by
 [ADR-0023](0023-treat-the-admin-as-a-client-rendered-application.md).

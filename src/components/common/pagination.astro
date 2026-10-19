@@ -80,6 +80,7 @@ const items = paginationItems(page, totalPages);
               href={hrefFor(item)}
               isActive={item === page}
               aria-label={`${t('listing.goToPage')} ${item}`}
+              className="tabular-nums"
             >
               {item}
             </PaginationLink>

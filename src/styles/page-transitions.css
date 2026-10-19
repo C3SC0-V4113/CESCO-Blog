@@ -1,0 +1,29 @@
+/*
+ * Cross-document page transitions (ADR-0022).
+ *
+ * The native CSS form, deliberately not Astro's `<ClientRouter />`: this needs
+ * no JavaScript at all and degrades to an ordinary navigation where it is
+ * unsupported, while the router would ship a client runtime and contradict
+ * ADR-0019.
+ *
+ * Imported by the public layout only, not from `global.css`. A cross-document
+ * transition runs only when both documents opt in, so the admin — whose queue,
+ * pagination and post-save reloads should snap, not cross-fade — opts out by
+ * never loading this file. That is order-independent in a way a competing
+ * `navigation: none` rule in the admin layout would not be: two
+ * `@view-transition` rules resolve by bundle order, which nothing here controls.
+ */
+@view-transition {
+  navigation: auto;
+}
+
+/*
+ * ADR-0022 requires every animation to carry its own reduced-motion block, with
+ * no exceptions. A view transition is an animation the browser runs on our
+ * behalf, so opting out has to be explicit.
+ */
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}

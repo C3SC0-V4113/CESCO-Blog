@@ -14,16 +14,28 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
 import { cn } from '@/lib/utils';
 
+import { AdminAuthors } from './admin-authors';
+import { AdminCollectionEditor, AdminCollections } from './admin-collections';
 import { AdminDashboard } from './admin-dashboard';
 import { AdminEditor } from './admin-editor';
 import { useHydrated } from './admin-hydration';
+import { AdminMedia } from './admin-media';
 import { AdminPostForm } from './admin-post-form';
 import { AdminPostList } from './admin-post-list';
+import { AdminReview } from './admin-review';
+import { AdminSeo } from './admin-seo';
 
+import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { AdminPostSummary } from '@/db/queries/admin-posts';
-import type { UiKey } from '@/i18n/ui';
+import type { ReviewDetail, ReviewQueueItem } from '@/db/queries/admin-review';
+import type {
+  AdminAuthor,
+  AdminCollectionDetail,
+  AdminCollectionSummary,
+  AdminMembershipPost,
+  AdminSeoState,
+} from '@/db/queries/admin-taxonomy';
 import type { EditorDraft, EditorLocalizations } from '@/lib/drafts';
-import type { LucideIcon } from 'lucide-react';
 
 const t = getTranslations('es');
 
@@ -31,25 +43,48 @@ type Screen =
   | { name: 'dashboard' }
   | { name: 'posts'; posts: AdminPostSummary[]; page: number; total: number }
   | { name: 'new-post' }
+  | { name: 'authors'; authors: AdminAuthor[]; media: AdminMediaAsset[] }
+  | { name: 'collections'; collections: AdminCollectionSummary[] }
+  | { name: 'collection-editor'; collection: AdminCollectionDetail; posts: AdminMembershipPost[] }
+  | {
+      name: 'seo';
+      seo: AdminSeoState;
+      authors: AdminAuthor[];
+      media: AdminMediaAsset[];
+      canonical: string;
+    }
+  | { name: 'media'; assets: AdminMediaAsset[]; page: number; total: number }
+  | {
+      name: 'review';
+      items: ReviewQueueItem[];
+      detail: ReviewDetail | null;
+      page: number;
+      pageSize: number;
+      total: number;
+      pendingPurges: number;
+    }
   | {
       name: 'editor';
       postId: string;
       localizationId: string;
       localizations: EditorLocalizations;
       draft: EditorDraft;
+      mediaAssets: AdminMediaAsset[];
+      referencedAssets: AdminMediaAsset[];
+      mediaTotal: number;
     };
 
-const laterDestinations: Array<{ label: UiKey; icon: LucideIcon }> = [
-  { label: 'admin.navigation.media', icon: ImagesIcon },
-  { label: 'admin.navigation.review', icon: SearchCheckIcon },
-  { label: 'admin.navigation.collections', icon: BookOpenIcon },
-  { label: 'admin.navigation.authors', icon: UsersIcon },
-];
 const screenCopy = {
   dashboard: ['admin.title', 'admin.subtitle'],
   posts: ['admin.posts.title', 'admin.posts.subtitle'],
   'new-post': ['admin.posts.new', 'admin.posts.newSubtitle'],
   editor: ['admin.editor.title', 'admin.editor.subtitle'],
+  media: ['admin.media.title', 'admin.media.subtitle'],
+  review: ['admin.review.title', 'admin.review.subtitle'],
+  authors: ['admin.authors.title', 'admin.authors.subtitle'],
+  collections: ['admin.collections.title', 'admin.collections.subtitle'],
+  'collection-editor': ['admin.collections.editTitle', 'admin.collections.editSubtitle'],
+  seo: ['admin.seo.pageTitle', 'admin.seo.pageSubtitle'],
 } as const;
 
 export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }) {
@@ -59,11 +94,22 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
     ? t('admin.navigation.close')
     : t('admin.navigation.open');
   const NavigationIcon = isNavigationOpen ? XIcon : MenuIcon;
-  const isPosts = screen.name !== 'dashboard';
+  const isPosts = ['posts', 'new-post', 'editor', 'seo'].includes(screen.name);
+  const isMedia = screen.name === 'media';
+  const isReview = screen.name === 'review';
+  const isCollections = ['collections', 'collection-editor'].includes(screen.name);
+  const isAuthors = screen.name === 'authors';
   const [title, subtitle] = screenCopy[screen.name];
 
   return (
     <div className="min-h-dvh bg-muted/30">
+      {/* The first stop on every screen, past the header and the navigation. */}
+      <a
+        href="#admin-main"
+        className="sr-only bg-background text-foreground focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:px-4 focus:py-2 focus:ring-3 focus:ring-ring"
+      >
+        {t('nav.skipToContent')}
+      </a>
       <header className="border-b bg-background">
         <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-3 px-4 sm:px-6">
           <Button
@@ -79,7 +125,9 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
           >
             <NavigationIcon aria-hidden="true" />
           </Button>
-          <span className="font-heading text-lg font-semibold">{t('admin.brand')}</span>
+          <a href="/admin" className="font-heading text-lg font-semibold">
+            {t('admin.brand')}
+          </a>
           <span className="text-sm text-muted-foreground">{t('admin.navigation')}</span>
         </div>
       </header>
@@ -106,6 +154,18 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
               {t('admin.navigation.dashboard')}
             </a>
             <a
+              href="/admin/media"
+              aria-current={isMedia ? 'page' : undefined}
+              className={cn(
+                buttonVariants({ variant: 'ghost' }),
+                'justify-start',
+                isMedia && 'bg-sidebar-accent text-sidebar-accent-foreground'
+              )}
+            >
+              <ImagesIcon data-icon="inline-start" />
+              {t('admin.navigation.media')}
+            </a>
+            <a
               href="/admin/posts"
               aria-current={isPosts ? 'page' : undefined}
               className={cn(
@@ -117,33 +177,75 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
               <FileTextIcon data-icon="inline-start" />
               {t('admin.navigation.posts')}
             </a>
-            {laterDestinations.map(({ label, icon: Icon }) => (
-              <Button
-                key={label}
-                type="button"
-                variant="ghost"
-                className="justify-start"
-                disabled
-                title={t('admin.navigation.pending')}
-              >
-                <Icon data-icon="inline-start" aria-hidden="true" />
-                {t(label)}
-              </Button>
-            ))}
+            <a
+              href="/admin/review"
+              aria-current={isReview ? 'page' : undefined}
+              className={cn(
+                buttonVariants({ variant: 'ghost' }),
+                'justify-start',
+                isReview && 'bg-sidebar-accent text-sidebar-accent-foreground'
+              )}
+            >
+              <SearchCheckIcon data-icon="inline-start" />
+              {t('admin.navigation.review')}
+            </a>
+            <a
+              href="/admin/collections"
+              aria-current={isCollections ? 'page' : undefined}
+              className={cn(
+                buttonVariants({ variant: 'ghost' }),
+                'justify-start',
+                isCollections && 'bg-sidebar-accent text-sidebar-accent-foreground'
+              )}
+            >
+              <BookOpenIcon data-icon="inline-start" />
+              {t('admin.navigation.collections')}
+            </a>
+            <a
+              href="/admin/authors"
+              aria-current={isAuthors ? 'page' : undefined}
+              className={cn(
+                buttonVariants({ variant: 'ghost' }),
+                'justify-start',
+                isAuthors && 'bg-sidebar-accent text-sidebar-accent-foreground'
+              )}
+            >
+              <UsersIcon data-icon="inline-start" />
+              {t('admin.navigation.authors')}
+            </a>
           </nav>
         </aside>
 
-        <main className="min-w-0 p-4 sm:p-6 lg:p-8">
+        {/* Focused by the skip link only, so it draws no ring of its own. */}
+        <main id="admin-main" tabIndex={-1} className="min-w-0 p-4 outline-none sm:p-6 lg:p-8">
           <div className="mb-6 flex flex-col gap-1">
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t(title)}</h1>
             <p className="text-muted-foreground">{t(subtitle)}</p>
           </div>
-          {screen.name === 'dashboard' && <AdminDashboard />}
-          {screen.name === 'posts' && (
-            <AdminPostList posts={screen.posts} page={screen.page} total={screen.total} />
-          )}
-          {screen.name === 'new-post' && <AdminPostForm />}
-          {screen.name === 'editor' && <AdminEditor {...screen} />}
+          {/* Inert until hydration, so nothing can be typed that React would
+              discard. Unlike a disabled fieldset it leaves every control
+              looking as it will, so the screen does not flash on hydrating.
+              `contents` keeps it out of the layout. */}
+          <div inert={!isHydrated} className="contents">
+            {screen.name === 'dashboard' && <AdminDashboard />}
+            {screen.name === 'posts' && (
+              <AdminPostList posts={screen.posts} page={screen.page} total={screen.total} />
+            )}
+            {screen.name === 'new-post' && <AdminPostForm />}
+            {screen.name === 'editor' && <AdminEditor {...screen} />}
+            {screen.name === 'media' && (
+              <AdminMedia assets={screen.assets} page={screen.page} total={screen.total} />
+            )}
+            {screen.name === 'review' && <AdminReview {...screen} />}
+            {screen.name === 'authors' && (
+              <AdminAuthors authors={screen.authors} media={screen.media} />
+            )}
+            {screen.name === 'collections' && <AdminCollections collections={screen.collections} />}
+            {screen.name === 'collection-editor' && (
+              <AdminCollectionEditor collection={screen.collection} posts={screen.posts} />
+            )}
+            {screen.name === 'seo' && <AdminSeo {...screen} />}
+          </div>
         </main>
       </div>
     </div>

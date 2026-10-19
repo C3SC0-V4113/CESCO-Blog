@@ -42,9 +42,28 @@ in both themes without any per-component work.
 | `card` / `card-foreground`         | Raised surfaces: post cards, metadata panels      |
 | `popover` / `popover-foreground`   | Floating surfaces: menus, tooltips                |
 | `primary` / `secondary` / `accent` | Actions and emphasis                              |
+| `primary-text`                     | The accent as text and small glyphs               |
 | `muted` / `muted-foreground`       | De-emphasized text: dates, reading time, captions |
 | `destructive`                      | Errors only                                       |
 | `border` / `input` / `ring`        | Edges and focus                                   |
+| `image-outline`                    | Inset hairline on covers and body figures         |
+
+`--primary` is a **fill**: in dark it is chosen for light text on top of it, and
+as text it falls to 2.62:1 on the background. Text and small glyphs in the accent
+colour use `--primary-text` (`text-primary-text`, `hover:text-primary-text`)
+instead: `--primary` in light, `oklch(0.704 0.14 182.503)` in dark, at 8.14:1 on
+the background, 7.17:1 on card and 6.10:1 on muted. Buttons and other fills keep
+`--primary`.
+
+`--image-outline` is pure black in light and pure white in dark, both at 10%,
+drawn as a 1px outline offset by -1px so it sits inside the image's edge
+(`outline -outline-offset-1 outline-image-outline`). It replaces a layout border
+on covers and body figures. Where the image scales on hover, the outline goes on
+a pseudo-element of the clipping frame so the zoom cannot carry it past the clip.
+
+`--muted-foreground` is set for the darkest surface it sits on, not for white:
+in light it clears 4.91:1 on `--muted` and 5.46:1 on white, so de-emphasized
+text stays at AA in table heads, disclosures and the admin's tinted canvas.
 
 The radius scale derives from a single `--radius` (`0.625rem`), exposed as
 `--radius-sm` through `--radius-4xl`. Use the scale; do not write pixel radii.
@@ -61,8 +80,8 @@ Governed by
 | `h1`–`h3`, post card titles | Merriweather | `--font-heading` |
 | Body copy, UI, navigation   | Figtree      | `--font-sans`    |
 
-Both are already installed and imported. The heading rule is specified but **not
-yet applied** — `global.css` currently sends everything through `font-sans`.
+Both are installed and imported, and `@layer base` in `global.css` applies
+`font-heading` to headings.
 
 ---
 
@@ -390,17 +409,18 @@ in `src/components/admin/` and are `.tsx`.
 Routes from [ADR-0003](docs/adr/0003-protect-admin-with-cloudflare-access.md),
 including its route-model extension.
 
-| Route                    | Purpose                                                             | Writes                                                                       |
-| ------------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `/admin`                 | Dashboard: drafts in progress, unpublished locales, recent activity | —                                                                            |
-| `/admin/posts`           | Post list with locale status per row, featuring controls            | `post_localizations.featured_at`, `posts.editorial_state`                    |
-| `/admin/posts/new`       | Create the aggregate and its first localization                     | `posts`, `post_localizations`                                                |
-| `/admin/posts/[id]/edit` | Rich text draft editing — see below                                 | `post_drafts`                                                                |
-| `/admin/posts/[id]/seo`  | SEO and social metadata — see below                                 | `post_drafts` SEO/OG fields                                                  |
-| `/admin/media`           | R2-backed asset library with attribution fields                     | `media_assets`                                                               |
-| `/admin/review`          | Draft review before publishing; publish action                      | `post_localizations` status and timestamps, `post_localization_slug_history` |
-| `/admin/collections`     | Series list and ordering                                            | `collections`, `collection_localizations`, `collection_posts`                |
-| `/admin/authors`         | Author profiles for bylines and structured data                     | `authors`                                                                    |
+| Route                     | Purpose                                                             | Writes                                                                       |
+| ------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `/admin`                  | Dashboard: drafts in progress, unpublished locales, recent activity | —                                                                            |
+| `/admin/posts`            | Post list with locale status per row, featuring controls            | `post_localizations.featured_at`, `posts.editorial_state`                    |
+| `/admin/posts/new`        | Create the aggregate and its first localization                     | `posts`, `post_localizations`                                                |
+| `/admin/posts/[id]/edit`  | Rich text draft editing — see below                                 | `post_drafts`                                                                |
+| `/admin/posts/[id]/seo`   | SEO, social preview, cover, and author assignment — see below       | `post_drafts` SEO/OG fields, `posts.cover_media_id`, `posts.author_id`       |
+| `/admin/media`            | R2-backed asset library with attribution fields                     | `media_assets`                                                               |
+| `/admin/review`           | Draft review before publishing; publish action                      | `post_localizations` status and timestamps, `post_localization_slug_history` |
+| `/admin/collections`      | Series list and creation                                            | `collections`                                                                |
+| `/admin/collections/[id]` | Bilingual metadata, lifecycle, membership, and authored ordering    | `collections`, `collection_localizations`, `collection_posts`                |
+| `/admin/authors`          | Author profiles for bylines and structured data                     | `authors`                                                                    |
 
 Admin forms use shadcn field primitives on Base UI: `Field` and `FieldGroup`
 compose labels, validation, and controls; text controls use `Input`; predefined
@@ -417,6 +437,8 @@ The editor is governed by
 [ADR-0024](docs/adr/0024-adopt-tiptap-for-the-editorial-content-pipeline.md),
 [ADR-0032](docs/adr/0032-separate-drafts-from-revisions.md), and
 [ADR-0035](docs/adr/0035-coordinate-draft-autosave-with-compare-and-swap.md).
+Media normalization, bounded upload, and R2/D1 compensation follow
+[ADR-0036](docs/adr/0036-bound-media-normalization-and-storage.md).
 
 | Component              | Role                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -429,13 +451,19 @@ The editor is governed by
 | `SlugField`            | Editing a **published** slug triggers the history flow, not a plain update                             |
 
 Core autosave mutates one `post_drafts` row with token compare-and-swap; it never
-creates revisions or media placements. Media walking, reading time, and TOC are
-publish-time work delivered by later plan items.
+creates revisions or media placements. Publishing validates the exact reviewed
+draft token, creates the immutable revision and media placements atomically, and
+derives reading time, TOC, and structured Shiki tokens once. Placements snapshot
+the R2 address, dimensions, and visible attribution so mutable asset metadata
+cannot rewrite published output (ADR-0037).
 
 ### `/admin/posts/[id]/seo`
 
-Long form: SEO title and description, canonical URL, OG title and description,
-OG image selector against `media_assets`, and a **social card preview**.
+Long form: SEO title and description, the generated current-localization
+canonical URL as a read-only value, OG title and description, OG image selector
+against `media_assets`, clean cover and author assignment, and a **social card
+preview**. The preview is editorial feedback only; it does not generate an
+image or mutate the canonical URL.
 
 The form must make the distinction from
 [ADR-0015](docs/adr/0015-separate-social-card-from-editorial-cover-image.md)
@@ -443,8 +471,8 @@ visible, because it is the one place a person could get it wrong:
 
 - `posts.cover_media_id` is the clean editorial image. It feeds JSON-LD `image`,
   the article hero, and Google Discover.
-- `post_revisions.og_image_media_id` is the composed card with burned-in text. It
-  feeds `og:image` only.
+- `post_revisions.og_image_media_id` is the optional social image. It feeds
+  `og:image` only and falls back to the clean cover when absent.
 - **Publishing is blocked without a cover.** The OG card is optional and falls
   back to the cover.
 
@@ -459,6 +487,36 @@ The publish surface, and the one with the most rules behind a single button:
   [ADR-0011](docs/adr/0011-invalidate-cloudflare-cache-by-cache-tag.md) —
   including the **other locale's** page, whose `hreflang` just changed
 - Refuses to publish a post with no cover image
+- Commits D1 before cache invalidation and reports a truthful cache-warning
+  outcome; the change's tags are recorded with the commit and stay pending until
+  a later purge or the review queue's retry drains them (ADR-0037)
+- Appends retired slug history without rewriting it; redirect reads join the
+  localization's current slug, so A→B→C resolves in one hop (ADR-0038)
+- Loads at most eight distinct supported Shiki grammars per publication;
+  unknown language names render as plain text and a ninth grammar is rejected
+  before highlighting
+
+Production deploys never edit or commit binding identifiers. Operators and CI
+provide `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`,
+`CLOUDFLARE_KV_NAMESPACE_ID`, `CLOUDFLARE_R2_BUCKET_NAME`,
+`CLOUDFLARE_ZONE_ID`, and the Cloudflare Access `ACCESS_TEAM_DOMAIN` (a bare
+`*.cloudflareaccess.com` hostname) and `ACCESS_AUD` (ADR-0039); the deployment
+script rejects missing, malformed, and all-zero values before adapting Astro's
+generated Worker config into the ignored `dist/server/wrangler.production.json`,
+which sets `ACCESS_MODE` to `cloudflare`.
+Provision the purge credential as a remote Worker secret, never a Wrangler var:
+
+```sh
+pnpm run config:production
+pnpm exec wrangler secret put CLOUDFLARE_CACHE_PURGE_TOKEN --config dist/server/wrangler.production.json
+pnpm run deploy:production
+```
+
+`deploy:production` rebuilds the site, regenerates and validates the config,
+checks the remote secret list by name without reading its value, applies D1
+migrations through that config, and only then deploys. Wrangler authentication
+is supplied through the operator or CI environment. Missing identifiers or
+purge secret fail closed before remote mutation.
 
 ---
 
@@ -477,7 +535,7 @@ matching the design system.
 | Admin        | `react-hook-form`, `@hookform/resolvers` | Form state and per-field errors. shadcn's `form` component already assumes this pairing                                                                                                                                   |
 | Shared       | `content_json` Zod schema                | The contract between the editor, the seed script, and `ArticleBody`. Ours to write; lives outside `admin/` so all three can import it                                                                                     |
 | Shared       | Reading time + TOC module                | Derived at publish, per [ADR-0012](docs/adr/0012-extend-editorial-schema-for-authors-series-and-analysis.md) and [ADR-0017](docs/adr/0017-bootstrap-content-with-seed-script.md). Shared by the seed script and the admin |
-| Admin        | Browser canvas APIs                      | Resize and convert to WebP before upload ([ADR-0028](docs/adr/0028-normalize-and-validate-media-uploads-before-storage.md)). Native; no package                                                                           |
+| Admin        | Browser canvas APIs                      | Resize and convert to static WebP before upload ([ADR-0036](docs/adr/0036-bound-media-normalization-and-storage.md)). Native; no package                                                                                  |
 | Shared       | `src/i18n/`                              | Typed string dictionary, no dependency ([ADR-0027](docs/adr/0027-localize-ui-strings-with-a-typed-dictionary.md)). English is typed against Spanish, so a missing key is a compile error                                  |
 | Shared       | `src/lib/ids.ts`                         | `crypto.randomUUID()` wrappers ([ADR-0026](docs/adr/0026-generate-identifiers-with-crypto-randomuuid.md)). Native in Worker, Node, and browser                                                                            |
 | Shared       | `src/lib/timestamps.ts`                  | Canonical date format for text columns ([ADR-0029](docs/adr/0029-store-timestamps-in-sqlite-current-timestamp-format.md)). Deliberately not ISO                                                                           |
@@ -516,6 +574,78 @@ is a change to that ADR, not a styling choice.
 
 ---
 
+## Interaction and accessibility
+
+The interface targets WCAG 2.2 AA in both themes.
+`tests/e2e/accessibility.spec.ts` runs axe with the `wcag2a`, `wcag2aa`,
+`wcag21a`, `wcag21aa` and `wcag22aa` tags over the homes, an article, the
+listings, the series index, a tag page, the 404 and the main admin screens, in
+light and dark, and expects no violations. A violation is fixed in source, not
+silenced by disabling a rule.
+
+### Focus
+
+A base `:focus-visible` rule draws a 2px `--ring` outline offset by 2px on every
+focusable element. `--ring` is the teal of `--primary` in light (5.39:1 on white,
+4.84:1 on muted) and the brighter teal in dark (8.14:1 on the background, 7.17:1
+on card), so it clears the 3:1 of WCAG 1.4.11 on every surface it sits on.
+Components that draw their own ring, such as Button and the admin fields, keep it
+at full `ring-ring` and set `outline-none`; a ring at a fraction of `--ring` does
+not clear 3:1. Never remove an outline without drawing a ring in its place.
+
+### Hit areas
+
+| Control                                       | Minimum |
+| --------------------------------------------- | ------- |
+| Header controls, header section links         | 40px    |
+| Pagination links, previous, next and ellipsis | 40px    |
+| Footer links and admin text actions           | 24px    |
+| Inline links in running text                  | exempt  |
+
+Grow a target inside space the row already has (`min-h-10`, `size-10`) rather
+than by changing the layout around it.
+
+### Admin forms
+
+Admin forms use the shadcn field primitives backed by Base UI in
+`src/components/ui/field.tsx`, `input.tsx`, `textarea.tsx` and `select.tsx`.
+Compose controls with `Field`, `FieldGroup` and `FieldLabel`; use the primitive's
+`data-invalid` state for invalid-field styling. Set `aria-invalid` on the
+control and point `aria-describedby` at the matching shadcn `FieldError` id so
+the error is announced with its field and focus can move to the first invalid
+control. Keep labels explicitly associated with a unique control id, including
+controls rendered in repeated rows. The primitives own shared focus, contrast,
+disabled and reduced-motion styles.
+
+- **Native submit.** Each form has an `onSubmit` that prevents navigation and
+  runs its save; the primary action is its one `type="submit"` button and every
+  other action is `type="button"`. Enter and `required` therefore work.
+- **Stable status regions.** `FormStatus` keeps an always-rendered polite region
+  for progress and success and inserts an alert only when something fails.
+  Neither region changes role. Field errors stay beside their controls.
+- **Pending actions.** `PendingButton` disables the running action, adds a
+  spinner hidden from assistive technology and held still under reduced motion,
+  and keeps its label.
+- **Hydration gate.** The shared `useHydrated` hook in
+  `src/components/admin/admin-hydration.ts` reports when React has committed.
+  The shell keeps its content `inert` and disables interactive controls outside
+  that region until then, so actions on server-rendered markup are not lost
+  (ADR-0023).
+
+The admin shell opens with a skip link to a `main` landmark that takes focus
+without joining the tab order.
+
+### Strings with values
+
+A translated string that carries a value uses named placeholders filled by
+`interpolate` from `src/i18n/utils.ts` (`'Subir «{title}»'`), never
+concatenation, so each locale keeps its own word order
+([ADR-0027](docs/adr/0027-localize-ui-strings-with-a-typed-dictionary.md)). An
+accessible name that differs from the visible text still contains it, first
+where the sentence allows (WCAG 2.5.3).
+
+---
+
 ## Motion
 
 Governed by
@@ -537,20 +667,36 @@ Rules that apply everywhere:
 - Nothing exceeds 300 ms; exits run ~20% faster than entrances.
 - Paired elements share identical easing and duration.
 - Enter from `scale(0.95)`, never `scale(0)`.
-- Every animation carries `@media (prefers-reduced-motion: reduce)`.
+- Every animation carries its reduced-motion opt-out:
+  `motion-reduce:transition-none` or `motion-reduce:animate-none`. Motion stays
+  on for everyone else, and reduced motion gets no motion rather than an
+  opacity-only stand-in.
 - Hover effects sit inside `@media (hover: hover) and (pointer: fine)`.
-- High-frequency controls — primary nav, body links — are not animated.
+- High-frequency controls — primary nav, body links — do not move. A colour
+  transition of 150 ms or less is allowed.
+- Press feedback is the `--scale-press` token (`0.96`), applied as
+  `active:scale-press`. Never write the scale inline.
 
 Where motion is used:
 
-| Surface                | Motion                                                                |
-| ---------------------- | --------------------------------------------------------------------- |
-| Mobile nav             | Drawer slide + overlay fade, shared timing                            |
-| Dropdowns, tooltips    | Fade + `scale(0.95)` from the trigger's `transform-origin`            |
-| Theme toggle           | Icon crossfade only                                                   |
-| Post card hover        | Subtle cover scale, desktop pointers only                             |
-| Page navigation        | Native CSS View Transitions, `@view-transition { navigation: auto; }` |
-| Article body, listings | **None.** Content does not animate in.                                |
+| Surface                | Motion                                                              |
+| ---------------------- | ------------------------------------------------------------------- |
+| Mobile nav             | Drawer slide + overlay fade, shared timing                          |
+| Dropdowns, tooltips    | Fade + `scale(0.95)` from the trigger's `transform-origin`          |
+| Buttons                | Press to `--scale-press`; colour, border and ring changes at 150 ms |
+| Theme toggle           | Icon crossfade only                                                 |
+| Post card hover        | Subtle cover scale, desktop pointers only                           |
+| Page navigation        | Native CSS View Transitions, public layout only                     |
+| Article body, listings | **None.** Content does not animate in.                              |
+
+Two exceptions, both recorded in the ADR-0022 amendment:
+
+- **Theme swaps suppress transitions for one frame**, so the page snaps to the
+  new palette instead of animating every colour across. That is a rendering fix,
+  not a motion preference.
+- **The admin has no view transitions.** `src/styles/page-transitions.css` holds
+  the `@view-transition` rule and is imported by the public layout only; both
+  documents must opt in, so the admin's reloads snap.
 
 ---
 
@@ -585,9 +731,6 @@ Resolved in the pre-implementation phase: component folders now exist and
 `home-hero.tsx` sits in `common/`; identifiers, UI strings, timestamps, runtime
 access, and the D1 test harness are in place.
 
-- **`--font-heading` is still inert.** Merriweather is installed and tokenized,
-  but no selector consumes it; everything renders in Figtree until the rule lands
-  in `@layer base`.
 - **`chanhdai` TOC Minimap: audited and rejected.** Its registry entry declares
   `registryDependencies: ["hover-card", "@soundcn/u-mini-map-open"]` — the second
   is a **sound**, played through `useSound` when the card opens. Independently of
@@ -604,21 +747,7 @@ access, and the D1 test harness are in place.
   performance requirement and
   [ADR-0019](docs/adr/0019-render-astro-first-with-react-islands-for-behavior.md)
   should be amended.
-- **Dark mode has no toggle yet.** The `.dark` variant and its full token set
-  exist in `global.css`; nothing activates them.
-- **Reading-time and TOC generation is unwritten.** The columns exist
-  ([schema](docs/database/schema.md)); the shared module that fills them is part
-  of the seed script work in
-  [ADR-0017](docs/adr/0017-bootstrap-content-with-seed-script.md).
 - **Editor autosave is conflict-safe.** One mutable draft per localization uses
   serialized, debounced compare-and-swap saves; see ADR-0032 and ADR-0035.
-- **No bundle guard.** Nothing detects an admin import leaking into a public
-  route. That boundary is currently a convention, and a size check on the public
-  bundles would make it enforceable.
-- **The slug-change flow has no interface.** The rules exist
-  ([ADR-0010](docs/adr/0010-define-public-url-lifecycle-for-localized-posts.md))
-  but no surface presents them: renaming a published slug must write history,
-  rewrite prior rows, and warn that the old URL becomes a redirect.
-- **Shiki theming is a one-way door.** Highlighted output is stored inside
-  `content_json`, so changing the theme later means reprocessing published
-  revisions.
+- **Shiki theming is a one-way door.** Trust-safe structured tokens are stored
+  inside published `content_json`, so changing the theme requires republishing.
