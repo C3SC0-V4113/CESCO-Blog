@@ -130,8 +130,7 @@ export function EditorToolbar({
         <Button
           type="button"
           size="icon"
-          variant="outline"
-          className="aria-pressed:bg-muted aria-pressed:text-foreground aria-pressed:inset-ring aria-pressed:inset-ring-foreground/20"
+          variant="toggle"
           aria-label={t(tool.label)}
           aria-keyshortcuts={'keys' in tool ? tool.keys || undefined : undefined}
           aria-pressed={'pressed' in tool ? tool.pressed : undefined}
