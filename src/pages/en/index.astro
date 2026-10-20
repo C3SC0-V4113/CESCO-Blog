@@ -45,10 +45,7 @@ const alternates = routeAlternates('home');
     <Fragment slot="lead">
       {featured && (
         <section aria-labelledby="featured-heading" class="mb-10">
-          <h2
-            id="featured-heading"
-            class="mb-4 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
-          >
+          <h2 id="featured-heading" class="eyebrow mb-4 text-xs text-muted-foreground">
             {t('listing.featured')}
           </h2>
           <PostCard locale={locale} post={featured} featured headingLevel={3} />

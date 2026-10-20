@@ -1,16 +1,90 @@
+import { plugin as shadcn } from '@shadcn/lint';
 import vitest from '@vitest/eslint-plugin';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import eslintPluginAstro from 'eslint-plugin-astro';
+import betterTailwindcss from 'eslint-plugin-better-tailwindcss';
+import { getDefaultSelectors } from 'eslint-plugin-better-tailwindcss/defaults';
 import importPlugin from 'eslint-plugin-import';
 import playwrightPlugin from 'eslint-plugin-playwright';
 import reactDoctor from 'eslint-plugin-react-doctor';
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
 import testingLibraryPlugin from 'eslint-plugin-testing-library';
 import tseslint from 'typescript-eslint';
+
+// Keep built-in class attributes while limiting helper-call linting to our APIs.
+const tailwindSelectors = getDefaultSelectors().filter(
+  (selector) => selector.kind !== 'callee' || selector.name === '^cn$' || selector.name === '^cva$'
+);
+
 const eslintConfig = defineConfig([
   ...tseslint.configs.recommended,
   ...eslintPluginAstro.configs.recommended,
+  {
+    files: ['**/*.{ts,tsx,astro}'],
+    plugins: {
+      'better-tailwindcss': betterTailwindcss,
+    },
+    settings: {
+      'better-tailwindcss': {
+        entryPoint: 'src/styles/global.css',
+        selectors: tailwindSelectors,
+      },
+    },
+    rules: {
+      'better-tailwindcss/enforce-canonical-classes': 'error',
+      'better-tailwindcss/enforce-shorthand-classes': 'error',
+      'better-tailwindcss/no-conflicting-classes': 'error',
+      'better-tailwindcss/no-deprecated-classes': 'error',
+      'better-tailwindcss/no-duplicate-classes': 'error',
+      'better-tailwindcss/no-restricted-classes': [
+        'error',
+        {
+          restrict: [
+            {
+              pattern: '^(?:.+:)?text-primary(?:/[0-9]{1,3})?!?$',
+              message: 'use text-brand for accent text; text-primary is a fill colour',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['**/*.tsx'],
+    plugins: {
+      shadcn,
+    },
+    settings: {
+      shadcn: {
+        ui: '@/components/ui',
+        componentImports: ['^@/components/ui(/|$)'],
+        mergeFunctions: ['cn'],
+        variantFunctions: ['cva', 'buttonVariants'],
+        themeImports: ['(?:^|/)styles/global\\.css$'],
+      },
+    },
+    rules: {
+      'shadcn/no-restyle': 'off',
+      'shadcn/no-raw-colors': 'error',
+      // Keep only browser insets, viewport bounds, and the OG image overlap as one-off values.
+      'shadcn/no-arbitrary-values': [
+        'error',
+        {
+          allow: [
+            'md:min-h-[calc(100dvh-4rem)]',
+            'max-h-[calc(100dvh-2rem)]',
+            'pb-[env(safe-area-inset-bottom)]',
+            'mt-[-52.35%]',
+            'transition-[*]',
+          ],
+        },
+      ],
+      'shadcn/no-inline-styles': 'error',
+      'shadcn/no-unknown-classes': 'error',
+      'shadcn/require-static-classes': 'error',
+    },
+  },
   {
     ...reactDoctor.configs.recommended,
     files: ['**/*.{jsx,tsx}'],

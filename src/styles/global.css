@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './typeset.css';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/figtree';
@@ -16,7 +17,7 @@
   --popover-foreground: oklch(0.148 0.004 228.8);
   --primary: oklch(0.511 0.096 186.391);
   --primary-foreground: oklch(0.984 0.014 180.72);
-  --primary-text: var(--primary);
+  --brand: var(--primary);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.963 0.002 197.1);
@@ -28,6 +29,8 @@
   --input: oklch(0.925 0.005 214.3);
   --ring: oklch(0.511 0.096 186.391);
   --image-outline: oklch(0 0 0 / 0.1);
+  /* Keep the social preview canvas dark in either site color scheme. */
+  --seo-preview-background: #020617;
   --chart-1: oklch(0.845 0.143 164.978);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.596 0.145 163.225);
@@ -54,7 +57,7 @@
   --popover-foreground: oklch(0.987 0.002 197.1);
   --primary: oklch(0.437 0.078 188.216);
   --primary-foreground: oklch(0.984 0.014 180.72);
-  --primary-text: oklch(0.704 0.14 182.503);
+  --brand: oklch(0.704 0.14 182.503);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.275 0.011 216.9);
@@ -85,6 +88,26 @@
   --font-sans: 'Figtree Variable', sans-serif;
   --font-heading: 'Merriweather Variable', serif;
 
+  /* The compact label size keeps an explicit 1rem line box. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+
+  /* Display title sizes preserve the article title's existing scale and leading. */
+  --text-display: 2.125rem;
+  --text-display--line-height: 1.15;
+  --text-display-sm: 2.5rem;
+  --text-display-sm--line-height: 1.15;
+
+  /* Named administration tracks and caps keep layouts on shared dimensions. */
+  --spacing-admin-sidebar: 15rem;
+  --spacing-admin-panel: 22rem;
+  --spacing-review-panel: 18rem;
+  --spacing-review-queue-max-height: 70vh;
+  --spacing-bottom-sheet-max-height: 85dvh;
+
+  /* Social preview images follow the Open Graph landscape ratio. */
+  --aspect-og-preview: 1.91 / 1;
+
   /*
    * The easing scale of ADR-0022. Declared in the theme rather than as loose
    * custom properties so Tailwind generates `ease-out-quad` and friends, which
@@ -113,7 +136,7 @@
    * This token keeps the same hue and clears 4.5:1 on the background, card and
    * muted surfaces of both themes. Fills keep `--primary`.
    */
-  --color-primary-text: var(--primary-text);
+  --color-brand: var(--brand);
 
   /*
    * A hairline drawn inside an image's edge, so a pale cover does not bleed
@@ -123,6 +146,7 @@
    * rather than around it and changes no layout.
    */
   --color-image-outline: var(--image-outline);
+  --color-seo-preview: var(--seo-preview-background);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -167,6 +191,39 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@utility grid-cols-admin-shell {
+  grid-template-columns: var(--spacing-admin-sidebar) 1fr;
+}
+
+@utility grid-cols-editor-picker {
+  grid-template-columns: minmax(0, 1fr) var(--spacing-admin-panel);
+}
+
+@utility grid-cols-review-split {
+  grid-template-columns: var(--spacing-review-panel) 1fr;
+}
+
+@utility grid-cols-seo-preview {
+  grid-template-columns: minmax(0, 1fr) minmax(var(--spacing-admin-panel), 0.8fr);
+}
+
+@utility max-h-review-queue {
+  max-height: var(--spacing-review-queue-max-height);
+}
+
+@utility eyebrow {
+  @apply text-2xs font-medium tracking-[0.14em] uppercase;
+}
+
+.typeset-article {
+  --typeset-font-body: var(--font-sans);
+  --typeset-font-heading: var(--font-heading);
+  --typeset-font-mono: var(--font-mono);
+  --typeset-size: 17px;
+  --typeset-leading: 1.7;
+  --typeset-flow: 1.25em;
 }
 
 @layer base {

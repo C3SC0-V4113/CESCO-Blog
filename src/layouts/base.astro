@@ -1,0 +1,25 @@
+---
+import ThemeScript from '@/components/common/theme-script.astro';
+
+import '../styles/global.css';
+
+interface Props {
+  lang: string;
+  class?: string;
+}
+
+const { lang, class: bodyClass = '' } = Astro.props;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <ThemeScript />
+    <slot name="head" />
+  </head>
+  <body class={bodyClass}>
+    <slot />
+  </body>
+</html>

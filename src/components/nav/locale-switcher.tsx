@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuLinkItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -59,7 +59,7 @@ export default function LocaleSwitcher({ triggerLabel, options }: Props) {
         render={
           <Button
             variant="ghost"
-            className="h-10 min-w-10"
+            size="xl"
             aria-label={active ? `${triggerLabel}: ${active.label}` : triggerLabel}
           >
             <Languages />
@@ -72,20 +72,16 @@ export default function LocaleSwitcher({ triggerLabel, options }: Props) {
 
       <DropdownMenuContent align="end" className="min-w-36">
         {options.map((option) => (
-          <DropdownMenuItem
+          <DropdownMenuLinkItem
             key={option.locale}
-            render={
-              <a
-                href={option.href}
-                hrefLang={option.locale}
-                lang={option.locale}
-                aria-current={option.current ? 'page' : undefined}
-              >
-                {option.label}
-                {option.current && <Check className="ml-auto" />}
-              </a>
-            }
-          />
+            href={option.href}
+            hrefLang={option.locale}
+            lang={option.locale}
+            aria-current={option.current ? 'page' : undefined}
+          >
+            {option.label}
+            {option.current && <Check className="ml-auto" />}
+          </DropdownMenuLinkItem>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>

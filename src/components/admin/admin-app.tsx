@@ -124,7 +124,7 @@ export function AdminApp({ screen = { name: 'dashboard' } }: { screen?: Screen }
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-screen-2xl md:grid-cols-[15rem_1fr]">
+      <div className="mx-auto grid max-w-screen-2xl md:grid-cols-admin-shell">
         <AdminNavigation screen={screen} open={isNavigationOpen} />
 
         {/* Focused by the skip link only, so it draws no ring of its own. */}

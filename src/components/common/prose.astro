@@ -26,80 +26,77 @@
  */
 ---
 
-<div class="prose">
+<div class="typeset typeset-article max-w-136">
   <slot />
 </div>
 
 <style>
-  .prose {
-    /* Roughly 65 characters: long enough to avoid choppy lines, short enough
-       that the eye finds the next line without effort. */
-    max-width: 34rem;
-    font-family: var(--font-sans);
-    color: var(--foreground);
-    font-size: 1.0625rem;
-    line-height: 1.7;
-  }
-
-  .prose :global(h2),
-  .prose :global(h3) {
+  .typeset :global(h2, h3) {
     font-family: var(--font-heading);
+    font-weight: inherit;
     line-height: 1.3;
-    /* Bound to the heading that follows it, not floating between blocks. */
     margin-block: 2.5em 0.75em;
     text-wrap: balance;
   }
 
-  .prose :global(h2) {
+  .typeset :global(h2) {
     font-size: 1.5rem;
   }
 
-  .prose :global(h3) {
+  .typeset :global(h3) {
     font-size: 1.25rem;
   }
 
-  /* Pretty wrapping avoids a lone word stranded on a paragraph's last line. */
-  .prose :global(p) {
+  .typeset :global(p) {
     margin-block: 0 1.25em;
     text-wrap: pretty;
   }
 
-  .prose :global(p:last-child) {
+  .typeset :global(p:last-child) {
     margin-block-end: 0;
   }
 
-  .prose :global(pre) {
+  .typeset :global(pre) {
     margin-block: 0 1.5em;
     padding: 1rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background-color: var(--muted);
     overflow-x: auto;
+    font-family: var(--font-sans);
+    font-size: inherit;
+    line-height: inherit;
   }
 
-  .prose :global(code) {
+  .typeset :global(code) {
+    background-color: transparent;
     font-family: ui-monospace, monospace;
     font-size: 0.9375em;
+    padding: 0;
+    border-radius: 0;
   }
 
-  .prose :global(figure) {
+  .typeset :global(figure) {
     margin-block: 0 1.5em;
+    margin-inline: 0;
   }
 
   /* The same hairline as the covers, for the same reason: an image whose edge
      matches the page has no edge at all. */
-  .prose :global(figure img) {
+  .typeset :global(figure img) {
     border-radius: var(--radius-md);
     outline: 1px solid var(--image-outline);
     outline-offset: -1px;
+    margin-block-start: 0;
   }
 
   /* Credits and captions are read after the image, so they step back from it. */
-  .prose :global(figcaption) {
+  .typeset :global(figcaption) {
     margin-block-start: 0.5rem;
     font-size: 0.875rem;
     line-height: 1.5;
     color: var(--muted-foreground);
+    text-align: initial;
   }
 
   /*
@@ -112,25 +109,33 @@
    * it from cutting through descenders, which is what makes underlines look
    * cheap.
    */
-  .prose :global(a) {
-    color: var(--primary-text);
+  .typeset :global(a) {
+    color: var(--brand);
+    font-weight: inherit;
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;
-    text-decoration-color: color-mix(in oklch, var(--primary-text), transparent 55%);
+    text-decoration-color: color-mix(in oklch, var(--brand), transparent 55%);
     transition: text-decoration-color 150ms var(--ease-out-quad);
   }
 
   /* Gated like every hover in the project (ADR-0022): on touch, a tap would
      otherwise leave the underline stuck at full strength. */
   @media (hover: hover) and (pointer: fine) {
-    .prose :global(a:hover) {
-      text-decoration-color: var(--primary-text);
+    .typeset :global(a:hover) {
+      text-decoration-color: var(--brand);
+    }
+  }
+
+  /* Typeset enlarges body copy on narrow screens; keep the article's scale fixed. */
+  @media (max-width: 47.999rem) {
+    .typeset {
+      font-size: 17px;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .prose :global(a) {
+    .typeset :global(a) {
       transition: none;
     }
   }

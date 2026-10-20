@@ -1,7 +1,9 @@
 ---
 import { Library } from 'lucide-react';
 
+import { badgeVariants } from '@/components/ui/badge';
 import { getTranslations } from '@/i18n/utils';
+import { cn } from '@/lib/utils';
 
 import type { PostSeries } from '@/db/queries/collections';
 import type { Locale } from '@/i18n/locales';
@@ -34,15 +36,18 @@ const t = getTranslations(locale);
 
 <a
   href={`/${locale}/series/${series.slug}`}
-  class="group/series mb-5 inline-flex items-center gap-2 rounded-full border border-border py-1.5 ps-3 pe-3.5 text-xs transition-colors duration-150 hover:border-primary/40 hover:bg-muted motion-reduce:transition-none"
+  class={cn(
+    badgeVariants({ variant: 'outline' }),
+    'group/series mb-5 h-auto w-fit justify-start gap-2 overflow-visible rounded-full border-border px-0 py-1.5 ps-3 pe-3.5 text-xs font-normal transition-colors duration-150 hover:border-primary/40 hover:bg-muted motion-reduce:transition-none'
+  )}
 >
-  <Library aria-hidden="true" strokeWidth={1.75} className="size-3.5 shrink-0 text-primary-text" />
+  <span class="inline-flex shrink-0">
+    <Library aria-hidden="true" strokeWidth={1.75} className="size-3.5 text-brand" />
+  </span>
 
   <span class="text-muted-foreground">{t('post.partOfSeries')}</span>
 
-  <span class="font-medium text-foreground group-hover/series:text-primary-text">
-    {series.title}
-  </span>
+  <span class="font-medium text-foreground group-hover/series:text-brand">{series.title}</span>
 
   {/*
     Separated by a middot rather than a slash: the numbers are a position in a

@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
+import { buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Field, FieldContent, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { getTranslations } from '@/i18n/utils';
 import {
@@ -34,7 +35,6 @@ type Action = 'publish' | 'unpublish' | 'rename';
 // its tags when it committed (ADR-0037), so the server renders the pending
 // notice and its retry for whoever opens the page next, not just this tab.
 const reload = () => window.location.reload();
-const textLink = 'inline-flex min-h-6 items-center underline underline-offset-4';
 
 function PendingPurgesNotice() {
   const [state, setState] = useState<'idle' | 'pending' | 'error'>('idle');
@@ -104,7 +104,7 @@ function ReviewPreview({ detail }: { detail: ReviewDetail }) {
               width={asset.width ?? undefined}
               height={asset.height ?? undefined}
               alt={block.attrs.alt}
-              className="h-auto max-h-[32rem] w-full rounded-md object-contain"
+              className="h-auto max-h-128 w-full rounded-md object-contain"
             />
           </figure>
         ) : (
@@ -136,10 +136,10 @@ function ReviewQueue({
   return (
     <section
       aria-label={t('admin.review.queue')}
-      className="order-last max-h-[70vh] overflow-auto rounded-xl border bg-background p-1.5 lg:order-first"
+      className="order-last max-h-review-queue overflow-auto rounded-xl border bg-background p-1.5 lg:order-first"
     >
       {items.length ? (
-        <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
+        <ul className="grid grid-cols-1 gap-1.5">
           {items.map((item) => (
             <li key={item.localizationId}>
               <a
@@ -169,14 +169,20 @@ function ReviewQueue({
           className="mt-1.5 flex justify-between gap-2 px-2.5 pb-1"
         >
           {page > 1 ? (
-            <a className={textLink} href={reviewUrl(page - 1, detail)}>
+            <a
+              className={buttonVariants({ variant: 'link', size: 'xs' })}
+              href={reviewUrl(page - 1, detail)}
+            >
               {t('listing.previous')}
             </a>
           ) : (
             <span />
           )}
           {lastItem < total && (
-            <a className={textLink} href={reviewUrl(page + 1, detail)}>
+            <a
+              className={buttonVariants({ variant: 'link', size: 'xs' })}
+              href={reviewUrl(page + 1, detail)}
+            >
               {t('listing.next')}
             </a>
           )}
@@ -190,9 +196,7 @@ function ReviewSummary({ detail }: { detail: ReviewDetail }) {
   return (
     <>
       <div>
-        <h2 className="text-xl font-semibold [overflow-wrap:anywhere]">
-          {detail.title || detail.slug}
-        </h2>
+        <h2 className="text-xl font-semibold wrap-anywhere">{detail.title || detail.slug}</h2>
         <p className="text-sm text-muted-foreground">
           {detail.locale.toUpperCase()} · {t(`admin.posts.locale.${detail.status}`)}
         </p>
@@ -234,7 +238,7 @@ function RenameConfirmation({
   return (
     <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
       <p>{t('admin.review.renameWarning')}</p>
-      <Field orientation="horizontal" className="items-start">
+      <Field orientation="horizontal">
         <Checkbox
           id="review-rename-confirmation"
           ref={acknowledgement}
@@ -246,9 +250,11 @@ function RenameConfirmation({
             acknowledgementMissing ? 'acknowledgePermanentRedirect-error' : undefined
           }
         />
-        <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
-          {t('admin.review.renameConfirm')}
-        </FieldLabel>
+        <FieldContent>
+          <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
+            {t('admin.review.renameConfirm')}
+          </FieldLabel>
+        </FieldContent>
       </Field>
       {acknowledgementMissing && (
         <FieldError id="acknowledgePermanentRedirect-error">
@@ -286,7 +292,6 @@ function ReviewActions({
       <div className="flex flex-wrap gap-2">
         <PendingButton
           type="button"
-          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
           pending={state === 'pending' && running === 'publish'}
           disabled={blocked || state === 'pending'}
           focusableWhenDisabled
@@ -367,7 +372,7 @@ function ReviewDetailPanel({
           }}
         >
           <ReviewSummary detail={detail} />
-          <Field className="gap-1">
+          <Field spacing="compact">
             <FieldLabel htmlFor="review-slug">{t('admin.posts.slug')}</FieldLabel>
             <Input
               id="review-slug"
@@ -484,7 +489,7 @@ export function AdminReview({ items, detail, page, pageSize, total, pendingPurge
   return (
     <div className="grid gap-6">
       {pendingPurges > 0 && <PendingPurgesNotice />}
-      <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
+      <div className="grid gap-6 lg:grid-cols-review-split">
         {/* Concentric: the items' radius-md plus the 6px inset is radius-xl. */}
         <ReviewQueue items={items} detail={detail} page={page} pageSize={pageSize} total={total} />
         <ReviewDetailPanel

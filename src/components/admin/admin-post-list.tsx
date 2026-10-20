@@ -2,6 +2,15 @@ import { PlusIcon, StarIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatDate, getTranslations, interpolate } from '@/i18n/utils';
 import { callRetryPendingPurges, callSetFeatured } from '@/lib/admin-actions';
 import { pageCount } from '@/lib/pagination';
@@ -12,8 +21,6 @@ import type { UiKey } from '@/i18n/ui';
 
 const t = getTranslations('es');
 const statusKey = (status: AdminLocaleStatus) => `admin.posts.locale.${status}` as UiKey;
-const textAction =
-  'inline-flex min-h-6 items-center underline underline-offset-4 disabled:opacity-50';
 
 function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | 'en' }) {
   const id = post.localizationIds[locale];
@@ -65,7 +72,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
   return (
     <div className="grid gap-2">
       <a
-        className={textAction}
+        className={buttonVariants({ variant: 'link', size: 'xs' })}
         href={`/admin/posts/${post.id}/edit?localization=${id}`}
         aria-label={name(label)}
       >
@@ -73,7 +80,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
       </a>
       <div className="flex flex-wrap gap-2 text-xs">
         <a
-          className={textAction}
+          className={buttonVariants({ variant: 'link', size: 'xs' })}
           href={`/admin/posts/${post.id}/seo?localization=${id}`}
           aria-label={name(t('admin.posts.seo'))}
         >
@@ -84,7 +91,6 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
             <Button
               type="button"
               variant="link"
-              className={textAction}
               disabled={pending}
               aria-label={name(t('admin.common.retryCache'))}
               onClick={retryCache}
@@ -95,7 +101,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
             <Button
               type="button"
               variant="link"
-              className={cn(textAction, 'gap-1')}
+              size="tight"
               disabled={pending}
               aria-pressed={featured}
               aria-label={name(t('admin.posts.feature'))}
@@ -129,56 +135,40 @@ export function AdminPostList({ posts, page, total }: AdminPostListProps) {
           {t('admin.posts.empty')}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
-          <table className="w-full min-w-2xl text-left text-sm">
-            <caption className="sr-only">{t('admin.posts.caption')}</caption>
-            <thead className="border-b bg-muted/50 text-xs text-muted-foreground">
-              <tr>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t('admin.posts.title')}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t('admin.posts.section')}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t('locale.es')}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t('locale.en')}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t('admin.posts.state')}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t('post.updatedOn')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+        <div className="rounded-xl border bg-card shadow-sm">
+          <Table className="min-w-2xl text-left">
+            <TableCaption className="sr-only">{t('admin.posts.caption')}</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">{t('admin.posts.title')}</TableHead>
+                <TableHead scope="col">{t('admin.posts.section')}</TableHead>
+                <TableHead scope="col">{t('locale.es')}</TableHead>
+                <TableHead scope="col">{t('locale.en')}</TableHead>
+                <TableHead scope="col">{t('admin.posts.state')}</TableHead>
+                <TableHead scope="col">{t('post.updatedOn')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {posts.map((post) => (
-                <tr key={post.id}>
-                  <th scope="row" className="max-w-64 truncate px-4 py-4 font-medium">
+                <TableRow key={post.id}>
+                  <TableHead scope="row" className="max-w-64 truncate p-4">
                     {post.displayName}
-                  </th>
-                  <td className="px-4 py-4">
+                  </TableHead>
+                  <TableCell>
                     {t(post.section === 'analysis' ? 'nav.analysis' : 'nav.opinion')}
-                  </td>
-                  <td className="px-4 py-4">
+                  </TableCell>
+                  <TableCell>
                     <LocaleCell post={post} locale="es" />
-                  </td>
-                  <td className="px-4 py-4">
+                  </TableCell>
+                  <TableCell>
                     <LocaleCell post={post} locale="en" />
-                  </td>
-                  <td className="px-4 py-4">
-                    {t(`admin.posts.state.${post.editorialState}` as UiKey)}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    {formatDate(post.updatedAt, 'es')}
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell>{t(`admin.posts.state.${post.editorialState}` as UiKey)}</TableCell>
+                  <TableCell>{formatDate(post.updatedAt, 'es')}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
       {totalPages > 1 && (

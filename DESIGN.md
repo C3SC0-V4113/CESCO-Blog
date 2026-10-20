@@ -9,8 +9,7 @@ below links to the ADR that governs it rather than repeating its reasoning. Wher
 a component reads a specific column, it links to the
 [database schema](docs/database/schema.md).
 
-Status: this document specifies the system. Almost none of it is implemented yet
-— see [Debt and open questions](#debt-and-open-questions).
+Status: this document describes the implemented system and its current conventions.
 
 ---
 
@@ -42,7 +41,7 @@ in both themes without any per-component work.
 | `card` / `card-foreground`         | Raised surfaces: post cards, metadata panels      |
 | `popover` / `popover-foreground`   | Floating surfaces: menus, tooltips                |
 | `primary` / `secondary` / `accent` | Actions and emphasis                              |
-| `primary-text`                     | The accent as text and small glyphs               |
+| `brand`                            | The accent as text and small glyphs               |
 | `muted` / `muted-foreground`       | De-emphasized text: dates, reading time, captions |
 | `destructive`                      | Errors only                                       |
 | `border` / `input` / `ring`        | Edges and focus                                   |
@@ -50,7 +49,7 @@ in both themes without any per-component work.
 
 `--primary` is a **fill**: in dark it is chosen for light text on top of it, and
 as text it falls to 2.62:1 on the background. Text and small glyphs in the accent
-colour use `--primary-text` (`text-primary-text`, `hover:text-primary-text`)
+colour use `--brand` (`text-brand`, `hover:text-brand`)
 instead: `--primary` in light, `oklch(0.704 0.14 182.503)` in dark, at 8.14:1 on
 the background, 7.17:1 on card and 6.10:1 on muted. Buttons and other fills keep
 `--primary`.
@@ -82,6 +81,12 @@ Governed by
 
 Both are installed and imported, and `@layer base` in `global.css` applies
 `font-heading` to headings.
+
+The shared type tokens include `text-2xs` (0.6875rem with a 1rem line box),
+`text-display` (2.125rem at 1.15 leading), and `text-display-sm` (2.5rem at
+1.15 leading). The `eyebrow` utility adds the compact size, medium weight,
+letter spacing, and uppercase treatment; callers choose its color with
+`text-brand` or `text-muted-foreground`.
 
 ---
 
@@ -162,8 +167,9 @@ Governed by
 | Theme token                | `src/styles/global.css`     |
 
 Dependencies flow one way: **feature → common → ui**, and **admin → common →
-ui**. Never edit a primitive to add product behavior — wrap it from `common/`,
-because the next registry update reverts local edits.
+ui**. Put reusable project-wide visual patterns in `ui/`; it is our kit and may
+be changed to fit this design system. Keep product behavior in `common/` or the
+owning feature.
 
 `common/` must never import from `admin/`. Astro splits bundles by route, but a
 single careless shared import can drag the editor into a public page — see
@@ -183,6 +189,31 @@ This project uses **Base UI**, not Radix.
 | [chanhdai](https://chanhdai.com) | Rejected — audited, see below     |
 
 **No component that pulls in `@radix-ui/*` enters this project.**
+
+### Shared variants and lint
+
+Use `cva` only inside `src/components/ui/` to define shared component variants.
+Product components pass one-off styling through the primitive's `className`;
+do not create a single-use variant helper. The `Badge` exposes its `default`,
+`secondary`, `destructive`, `outline`, `ghost`, and `link` variants. `Button`
+owns its interaction states, including `aria-disabled`; its sizes include 40px
+`xl` and `icon-xl`, plus the `tight` spacing used for a compact icon-and-label
+action. Use `variant="toggle"` for pressed toolbar buttons.
+
+The `Table` kit defaults provide the project's table treatment: muted compact
+headers, padded cells, and divided rows without hover styling. Add only
+table-specific layout classes at the call site.
+
+ESLint enforces the design system with `eslint-plugin-better-tailwindcss` and
+`@shadcn/lint`; the policy and intentional exceptions are recorded in
+[ADR-0041](docs/adr/0041-enforce-design-system-with-lint.md). The Tailwind
+plugin checks canonical and shorthand classes, conflicts, deprecated and
+repeated classes, and the text-color token restriction. shadcn lint checks raw
+colors, arbitrary values, inline styles, unknown classes, and static class
+analysis. Its `no-restyle` rule is off: it treated every one-off visual class on
+a kit component as a violation, which encouraged single-use variants and native
+element workarounds. `src/components/ui/**` is ignored so generated kit files
+stay clean under `shadcn add --diff`.
 
 ---
 
@@ -671,6 +702,8 @@ Rules that apply everywhere:
   `motion-reduce:transition-none` or `motion-reduce:animate-none`. Motion stays
   on for everyone else, and reduced motion gets no motion rather than an
   opacity-only stand-in.
+- For transitions that need a custom property list, use Tailwind's arbitrary
+  `transition-[...]` utility; its property-list form is allowed by shadcn lint.
 - Hover effects sit inside `@media (hover: hover) and (pointer: fine)`.
 - High-frequency controls — primary nav, body links — do not move. A colour
   transition of 150 ms or less is allowed.

@@ -1,12 +1,11 @@
 ---
 import SiteFooter from '@/components/common/site-footer.astro';
 import SiteHeader from '@/components/common/site-header.astro';
-import ThemeScript from '@/components/common/theme-script.astro';
 import { getTranslations, resolveLocale } from '@/i18n/utils';
+import BaseLayout from '@/layouts/base.astro';
 import { errorCopy, isErrorStatus } from '@/lib/error-copy';
 import { SITE_NAME } from '@/lib/site';
 
-import '../styles/global.css';
 import '../styles/page-transitions.css';
 
 import type { Locale } from '@/i18n/locales';
@@ -56,29 +55,23 @@ const fallbackTitle = head.trim()
     : SITE_NAME;
 ---
 
-<html lang={locale}>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    {fallbackTitle && <title>{fallbackTitle}</title>}
+<BaseLayout lang={locale} class="flex min-h-dvh flex-col">
+  {fallbackTitle && <title slot="head">{fallbackTitle}</title>}
 
-    <ThemeScript />
+  {import.meta.env.DEV && (
+    <script
+      slot="head"
+      is:inline
+      defer
+      crossorigin="anonymous"
+      src="//unpkg.com/react-scan/dist/auto.global.js"
+    />
+  )}
+  <Fragment slot="head" set:html={head} />
 
-    {import.meta.env.DEV && (
-      <script
-        is:inline
-        defer
-        crossorigin="anonymous"
-        src="//unpkg.com/react-scan/dist/auto.global.js"
-      />
-    )}
-    <Fragment set:html={head} />
-  </head>
-  <body class="flex min-h-dvh flex-col">
-    <SiteHeader locale={locale} alternates={alternates} />
-    <div id="main" class="flex-1">
-      <slot />
-    </div>
-    <SiteFooter locale={locale} />
-  </body>
-</html>
+  <SiteHeader locale={locale} alternates={alternates} />
+  <div id="main" class="flex-1">
+    <slot />
+  </div>
+  <SiteFooter locale={locale} />
+</BaseLayout>

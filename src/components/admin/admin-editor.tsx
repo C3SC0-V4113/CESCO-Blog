@@ -241,7 +241,7 @@ export function AdminEditor({
       className={cn(
         'grid gap-4',
         picker.openState && isWideEditor
-          ? 'max-w-none grid-cols-[minmax(0,1fr)_22rem] items-start'
+          ? 'max-w-none grid-cols-editor-picker items-start'
           : 'max-w-4xl'
       )}
     >
@@ -294,7 +294,7 @@ export function AdminEditor({
         </div>
         {/* Each constraint sits outside its label: inside, it would be read twice,
           once in the name and again as the description. */}
-        <Field className="gap-2">
+        <Field>
           <FieldLabel htmlFor="editor-title">{t('admin.editor.postTitle')}</FieldLabel>
           <Input
             id="editor-title"
@@ -308,13 +308,13 @@ export function AdminEditor({
             {t('admin.editor.titleConstraint')}
           </FieldDescription>
         </Field>
-        <Field className="gap-2">
+        <Field>
           <FieldLabel htmlFor="editor-excerpt">{t('admin.editor.excerpt')}</FieldLabel>
           <Textarea
             id="editor-excerpt"
             name="excerpt"
             aria-describedby="editor-excerpt-constraint"
-            className="min-h-20"
+            size="compact"
             defaultValue={draft.excerpt ?? ''}
             maxLength={1000}
             onChange={(event) => editField('excerpt', event.target.value)}
@@ -436,7 +436,7 @@ function EditorImagePicker({
           id="editor-image-picker"
           aria-labelledby="editor-image-picker-heading"
           className={cn(
-            'sticky top-4 max-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-3 overflow-hidden rounded-xl border bg-background p-4 transition-[opacity,translate,display] [transition-behavior:allow-discrete] duration-200 ease-out-cubic [@starting-style]:opacity-0 motion-safe:[@starting-style]:translate-x-2',
+            'sticky top-4 max-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-3 overflow-hidden rounded-xl border bg-background p-4 transition-[opacity,translate,display] transition-discrete duration-200 ease-out-cubic starting:opacity-0 motion-safe:starting:translate-x-2',
             open
               ? 'flex translate-x-0 opacity-100'
               : 'pointer-events-none hidden opacity-0 duration-150 motion-safe:translate-x-2'
@@ -495,9 +495,8 @@ function EditorImagePicker({
               initialFocus={() => headingRef.current}
               finalFocus={() => (restoreFocusRef.current ? buttonRef.current : false)}
               closeLabel={t('admin.editor.closeImagePicker')}
-              className="max-h-[85dvh] px-0 pb-[env(safe-area-inset-bottom)]"
             >
-              <SheetHeader className="pr-12">
+              <SheetHeader closeButton>
                 <SheetTitle ref={headingRef} tabIndex={-1}>
                   {t('admin.editor.insertImage')}
                 </SheetTitle>

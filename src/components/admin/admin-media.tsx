@@ -24,7 +24,6 @@ const metadataFields = [
   'licenseUrl',
 ] as const;
 const urlFields: ReadonlySet<string> = new Set(['sourceUrl', 'licenseUrl']);
-const textLink = 'inline-flex min-h-6 items-center underline underline-offset-4';
 /** Lets the editor hand over files pasted or dropped outside the upload box. */
 export type MediaUploader = { upload(files: File[]): void };
 type Props = {
@@ -87,7 +86,7 @@ export function AdminMedia({
         }
       />
       {onSelect && showLibraryLink && (
-        <a className={textLink} href="/admin/media">
+        <a className={buttonVariants({ variant: 'link', size: 'xs' })} href="/admin/media">
           {t('admin.media.openLibrary')}
         </a>
       )}
@@ -206,7 +205,7 @@ function MediaUpload({
             aria-describedby={altMissing ? 'altText-error' : undefined}
           />
         </Field>
-        <Field orientation="horizontal" className="h-10 w-auto items-center gap-2">
+        <Field orientation="horizontal" className="h-10 w-auto gap-2">
           <Checkbox
             id={decorativeId}
             checked={decorative}
@@ -220,7 +219,8 @@ function MediaUpload({
         <Field className="w-auto">
           <FieldLabel
             htmlFor={fileId}
-            className={buttonVariants({ className: status === 'loading' ? 'opacity-50' : '' })}
+            className={buttonVariants()}
+            data-loading={status === 'loading'}
           >
             {status === 'loading' ? (
               <LoaderCircleIcon aria-hidden="true" />
@@ -274,7 +274,7 @@ function MediaAssetList({
             <Button
               type="button"
               variant="ghost"
-              className="h-auto w-full flex-row items-center justify-start gap-3 rounded-none p-2 text-left font-normal whitespace-normal hover:bg-transparent focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
+              className="h-auto w-full justify-start gap-3 rounded-none p-2 text-left font-normal whitespace-normal focus-visible:ring-inset"
               onClick={() => onSelect(asset)}
             >
               <MediaCard asset={asset} compact />
@@ -314,7 +314,10 @@ function MediaPagination({
             {t('listing.previous')}
           </Button>
         ) : (
-          <a className={textLink} href={`/admin/media?page=${page - 1}`}>
+          <a
+            className={buttonVariants({ variant: 'link', size: 'xs' })}
+            href={`/admin/media?page=${page - 1}`}
+          >
             {t('listing.previous')}
           </a>
         ))}
@@ -324,7 +327,10 @@ function MediaPagination({
             {t('listing.next')}
           </Button>
         ) : (
-          <a className={textLink} href={`/admin/media?page=${page + 1}`}>
+          <a
+            className={buttonVariants({ variant: 'link', size: 'xs' })}
+            href={`/admin/media?page=${page + 1}`}
+          >
             {t('listing.next')}
           </a>
         ))}
@@ -346,7 +352,7 @@ function MediaCard({ asset, compact = false }: { asset: AdminMediaAsset; compact
           compact ? 'size-16 shrink-0 rounded-md object-cover' : 'aspect-video w-full object-cover'
         }
       />
-      <span className={compact ? 'min-w-0 flex-1 p-2 break-words' : 'block truncate p-3'}>
+      <span className={compact ? 'min-w-0 flex-1 p-2 wrap-break-word' : 'block truncate p-3'}>
         {asset.altText || t('admin.media.decorative')}
       </span>
     </>
@@ -390,11 +396,11 @@ function MetadataForm({
         void save(event.currentTarget);
       }}
     >
-      <Field className="gap-1">
+      <Field spacing="compact">
         <FieldLabel htmlFor={`${formId}-alt`}>{t('admin.media.alt')}</FieldLabel>
         <Input id={`${formId}-alt`} name="altText" defaultValue={asset.altText ?? ''} />
       </Field>
-      <Field orientation="horizontal" className="items-center">
+      <Field orientation="horizontal">
         <Checkbox
           id={`${formId}-decorative`}
           name="decorative"
@@ -403,7 +409,7 @@ function MetadataForm({
         <FieldLabel htmlFor={`${formId}-decorative`}>{t('admin.media.decorative')}</FieldLabel>
       </Field>
       {metadataFields.map((field) => (
-        <Field key={field} className="gap-1">
+        <Field key={field} spacing="compact">
           <FieldLabel htmlFor={`${formId}-${field}`}>{t(`admin.media.${field}`)}</FieldLabel>
           <Input
             id={`${formId}-${field}`}
@@ -413,7 +419,7 @@ function MetadataForm({
           />
         </Field>
       ))}
-      <Field orientation="horizontal" className="items-center">
+      <Field orientation="horizontal">
         <Checkbox id={`${formId}-own-work`} name="isOwnWork" defaultChecked={asset.isOwnWork} />
         <FieldLabel htmlFor={`${formId}-own-work`}>{t('admin.media.isOwnWork')}</FieldLabel>
       </Field>
