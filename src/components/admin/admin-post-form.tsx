@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Controller, useForm, type Control } from 'react-hook-form';
 
 import { buttonVariants } from '@/components/ui/button';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -126,7 +126,7 @@ export function AdminPostForm({
       noValidate
     >
       <fieldset disabled={!ready} className={fieldsClass}>
-        <div className="grid w-full gap-5 sm:grid-cols-2">
+        <FieldGroup className="grid w-full gap-5 sm:grid-cols-2">
           <ControlledSelect
             control={control}
             name="section"
@@ -159,7 +159,7 @@ export function AdminPostForm({
               </FieldError>
             )}
           </Field>
-        </div>
+        </FieldGroup>
         {serverError && (
           <p role="alert" className="text-sm text-destructive sm:col-span-2">
             {serverError}
