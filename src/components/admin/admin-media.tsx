@@ -205,7 +205,7 @@ function MediaUpload({
             aria-describedby={altMissing ? 'altText-error' : undefined}
           />
         </Field>
-        <Field orientation="horizontal" size="control">
+        <Field orientation="horizontal" className="h-10 w-auto gap-2">
           <Checkbox
             id={decorativeId}
             checked={decorative}

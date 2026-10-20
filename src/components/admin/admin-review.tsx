@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 
 import { buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Field, FieldContent, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { getTranslations } from '@/i18n/utils';
 import {
@@ -238,7 +238,7 @@ function RenameConfirmation({
   return (
     <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
       <p>{t('admin.review.renameWarning')}</p>
-      <Field orientation="horizontal" align="start">
+      <Field orientation="horizontal">
         <Checkbox
           id="review-rename-confirmation"
           ref={acknowledgement}
@@ -250,9 +250,11 @@ function RenameConfirmation({
             acknowledgementMissing ? 'acknowledgePermanentRedirect-error' : undefined
           }
         />
-        <FieldLabel htmlFor="review-rename-confirmation" weight="normal">
-          {t('admin.review.renameConfirm')}
-        </FieldLabel>
+        <FieldContent>
+          <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
+            {t('admin.review.renameConfirm')}
+          </FieldLabel>
+        </FieldContent>
       </Field>
       {acknowledgementMissing && (
         <FieldError id="acknowledgePermanentRedirect-error">
