@@ -338,7 +338,7 @@ export function AdminEditor({
             other fields while it holds focus. */}
           <EditorContent
             editor={editor}
-            className="min-h-72 rounded-xl border bg-background p-4 transition transition-field-frame duration-150 ease-out-quad has-[.ProseMirror:focus-visible]:border-ring has-[.ProseMirror:focus-visible]:ring-3 has-[.ProseMirror:focus-visible]:ring-ring motion-reduce:transition-none [&_.ProseMirror]:min-h-64 [&_.ProseMirror]:outline-none"
+            className="min-h-72 rounded-xl border bg-background p-4 transition-[border-color,box-shadow] duration-150 ease-out-quad has-[.ProseMirror:focus-visible]:border-ring has-[.ProseMirror:focus-visible]:ring-3 has-[.ProseMirror:focus-visible]:ring-ring motion-reduce:transition-none [&_.ProseMirror]:min-h-64 [&_.ProseMirror]:outline-none"
           />
         </div>
         <div className="flex items-center gap-3">
@@ -436,7 +436,7 @@ function EditorImagePicker({
           id="editor-image-picker"
           aria-labelledby="editor-image-picker-heading"
           className={cn(
-            'sticky top-4 max-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-3 overflow-hidden rounded-xl border bg-background p-4 transition transition-picker transition-discrete duration-200 ease-out-cubic starting:opacity-0 motion-safe:starting:translate-x-2',
+            'sticky top-4 max-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-3 overflow-hidden rounded-xl border bg-background p-4 transition-[opacity,translate,display] transition-discrete duration-200 ease-out-cubic starting:opacity-0 motion-safe:starting:translate-x-2',
             open
               ? 'flex translate-x-0 opacity-100'
               : 'pointer-events-none hidden opacity-0 duration-150 motion-safe:translate-x-2'
