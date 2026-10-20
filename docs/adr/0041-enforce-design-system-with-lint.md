@@ -41,6 +41,10 @@ native elements. Use `cva` only inside `src/components/ui/` for shared patterns;
 product components pass one-off classes through `className`. The kit is ours to
 modify when a style is a project-wide pattern.
 
+The `src/components/ui/table.tsx` defaults provide the shared project table
+presentation: muted compact headers, padded cells, dividers, and no row hover
+effect. Individual tables add only their own layout or content constraints.
+
 Arbitrary values should be replaced by theme tokens or named utilities. The
 small allow list is reserved for browser-specific layout values that do not
 belong on the theme scale:
@@ -70,6 +74,8 @@ unrelated `cn` package.
 - Tailwind and shadcn violations fail lint before they drift into product UI.
 - Shared component variants stay in the UI kit; one-off visual adjustments remain
   at the product call site.
+- The table kit owns the common table appearance, while individual tables keep
+  their layout constraints local.
 - Registry files stay comparable with upstream shadcn output.
 - Arbitrary values remain exceptional and have an auditable allow list.
 

@@ -200,6 +200,10 @@ owns its interaction states, including `aria-disabled`; its sizes include 40px
 `xl` and `icon-xl`, plus the `tight` spacing used for a compact icon-and-label
 action. Use `variant="toggle"` for pressed toolbar buttons.
 
+The `Table` kit defaults provide the project's table treatment: muted compact
+headers, padded cells, and divided rows without hover styling. Add only
+table-specific layout classes at the call site.
+
 ESLint enforces the design system with `eslint-plugin-better-tailwindcss` and
 `@shadcn/lint`; the policy and intentional exceptions are recorded in
 [ADR-0041](docs/adr/0041-enforce-design-system-with-lint.md). The Tailwind

@@ -1,4 +1,3 @@
-import { cva } from 'class-variance-authority';
 import { PlusIcon, StarIcon } from 'lucide-react';
 import { useState } from 'react';
 
@@ -21,22 +20,6 @@ import type { AdminLocaleStatus, AdminPostSummary } from '@/db/queries/admin-pos
 import type { UiKey } from '@/i18n/ui';
 
 const t = getTranslations('es');
-const adminPostsTableVariants = cva('', {
-  variants: {
-    part: {
-      table: 'min-w-2xl text-left',
-      caption: 'sr-only',
-      header: 'bg-muted/50 text-xs text-muted-foreground',
-      headerRow: 'border-b-0 transition-none hover:bg-transparent',
-      column: 'px-4 py-3 font-medium',
-      body: 'divide-y',
-      row: 'border-0 transition-none hover:bg-transparent',
-      title: 'max-w-64 truncate p-4 font-medium',
-      cell: 'p-4',
-      date: 'p-4 whitespace-nowrap',
-    },
-  },
-});
 const statusKey = (status: AdminLocaleStatus) => `admin.posts.locale.${status}` as UiKey;
 
 function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | 'en' }) {
@@ -153,53 +136,35 @@ export function AdminPostList({ posts, page, total }: AdminPostListProps) {
         </p>
       ) : (
         <div className="rounded-xl border bg-card shadow-sm">
-          <Table className={adminPostsTableVariants({ part: 'table' })}>
-            <TableCaption className={adminPostsTableVariants({ part: 'caption' })}>
-              {t('admin.posts.caption')}
-            </TableCaption>
-            <TableHeader className={adminPostsTableVariants({ part: 'header' })}>
-              <TableRow className={adminPostsTableVariants({ part: 'headerRow' })}>
-                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
-                  {t('admin.posts.title')}
-                </TableHead>
-                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
-                  {t('admin.posts.section')}
-                </TableHead>
-                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
-                  {t('locale.es')}
-                </TableHead>
-                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
-                  {t('locale.en')}
-                </TableHead>
-                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
-                  {t('admin.posts.state')}
-                </TableHead>
-                <TableHead scope="col" className={adminPostsTableVariants({ part: 'column' })}>
-                  {t('post.updatedOn')}
-                </TableHead>
+          <Table className="min-w-2xl text-left">
+            <TableCaption className="sr-only">{t('admin.posts.caption')}</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">{t('admin.posts.title')}</TableHead>
+                <TableHead scope="col">{t('admin.posts.section')}</TableHead>
+                <TableHead scope="col">{t('locale.es')}</TableHead>
+                <TableHead scope="col">{t('locale.en')}</TableHead>
+                <TableHead scope="col">{t('admin.posts.state')}</TableHead>
+                <TableHead scope="col">{t('post.updatedOn')}</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className={adminPostsTableVariants({ part: 'body' })}>
+            <TableBody>
               {posts.map((post) => (
-                <TableRow key={post.id} className={adminPostsTableVariants({ part: 'row' })}>
-                  <TableHead scope="row" className={adminPostsTableVariants({ part: 'title' })}>
+                <TableRow key={post.id}>
+                  <TableHead scope="row" className="max-w-64 truncate">
                     {post.displayName}
                   </TableHead>
-                  <TableCell className={adminPostsTableVariants({ part: 'cell' })}>
+                  <TableCell>
                     {t(post.section === 'analysis' ? 'nav.analysis' : 'nav.opinion')}
                   </TableCell>
-                  <TableCell className={adminPostsTableVariants({ part: 'cell' })}>
+                  <TableCell>
                     <LocaleCell post={post} locale="es" />
                   </TableCell>
-                  <TableCell className={adminPostsTableVariants({ part: 'cell' })}>
+                  <TableCell>
                     <LocaleCell post={post} locale="en" />
                   </TableCell>
-                  <TableCell className={adminPostsTableVariants({ part: 'cell' })}>
-                    {t(`admin.posts.state.${post.editorialState}` as UiKey)}
-                  </TableCell>
-                  <TableCell className={adminPostsTableVariants({ part: 'date' })}>
-                    {formatDate(post.updatedAt, 'es')}
-                  </TableCell>
+                  <TableCell>{t(`admin.posts.state.${post.editorialState}` as UiKey)}</TableCell>
+                  <TableCell>{formatDate(post.updatedAt, 'es')}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
