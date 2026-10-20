@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
+import { buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { linkVariants } from '@/components/ui/link-variants';
 import { getTranslations } from '@/i18n/utils';
 import {
   callPublish,
@@ -169,14 +169,20 @@ function ReviewQueue({
           className="mt-1.5 flex justify-between gap-2 px-2.5 pb-1"
         >
           {page > 1 ? (
-            <a className={linkVariants({ variant: 'admin' })} href={reviewUrl(page - 1, detail)}>
+            <a
+              className={buttonVariants({ variant: 'link', size: 'xs' })}
+              href={reviewUrl(page - 1, detail)}
+            >
               {t('listing.previous')}
             </a>
           ) : (
             <span />
           )}
           {lastItem < total && (
-            <a className={linkVariants({ variant: 'admin' })} href={reviewUrl(page + 1, detail)}>
+            <a
+              className={buttonVariants({ variant: 'link', size: 'xs' })}
+              href={reviewUrl(page + 1, detail)}
+            >
               {t('listing.next')}
             </a>
           )}

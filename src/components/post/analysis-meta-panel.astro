@@ -1,5 +1,4 @@
 ---
-import { linkVariants } from '@/components/ui/link-variants';
 import { getTranslations } from '@/i18n/utils';
 
 import type { AnalysisMetadata, PostGame } from '@/db/queries/posts';
@@ -89,7 +88,7 @@ if (analysis.completionState) {
         <dd class="mt-1 text-sm">
           <a
             href={`/${locale}/${gameSegment}/${game.slug}`}
-            class={linkVariants({ variant: 'foreground' })}
+            class="text-foreground transition-colors duration-150 hover:text-brand motion-reduce:transition-none"
           >
             {game.title}
           </a>

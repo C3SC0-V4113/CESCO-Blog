@@ -1,5 +1,4 @@
 ---
-import { linkVariants } from '@/components/ui/link-variants';
 import { getTranslations } from '@/i18n/utils';
 import { footerLinks } from '@/lib/navigation';
 
@@ -38,7 +37,10 @@ const year = new Date().getUTCFullYear();
     {links.length > 0 && (
       <nav aria-label={t('footer.about')} class="flex flex-wrap items-center gap-4">
         {links.map((link) => (
-          <a href={link.href} class={linkVariants({ variant: 'footer' })}>
+          <a
+            href={link.href}
+            class="inline-flex min-h-6 items-center transition-colors duration-150 hover:text-foreground motion-reduce:transition-none"
+          >
             {t(link.key)}
           </a>
         ))}

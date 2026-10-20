@@ -3,7 +3,6 @@ import { PlusIcon, StarIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
-import { linkVariants } from '@/components/ui/link-variants';
 import {
   Table,
   TableBody,
@@ -90,7 +89,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
   return (
     <div className="grid gap-2">
       <a
-        className={linkVariants({ variant: 'adminAction' })}
+        className={buttonVariants({ variant: 'link', size: 'xs' })}
         href={`/admin/posts/${post.id}/edit?localization=${id}`}
         aria-label={name(label)}
       >
@@ -98,7 +97,7 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
       </a>
       <div className="flex flex-wrap gap-2 text-xs">
         <a
-          className={linkVariants({ variant: 'adminAction' })}
+          className={buttonVariants({ variant: 'link', size: 'xs' })}
           href={`/admin/posts/${post.id}/seo?localization=${id}`}
           aria-label={name(t('admin.posts.seo'))}
         >
@@ -109,7 +108,6 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
             <Button
               type="button"
               variant="link"
-              className={linkVariants({ variant: 'adminAction' })}
               disabled={pending}
               aria-label={name(t('admin.common.retryCache'))}
               onClick={retryCache}
@@ -121,7 +119,6 @@ function LocaleCell({ post, locale }: { post: AdminPostSummary; locale: 'es' | '
               type="button"
               variant="link"
               size="tight"
-              className={linkVariants({ variant: 'adminAction' })}
               disabled={pending}
               aria-pressed={featured}
               aria-label={name(t('admin.posts.feature'))}

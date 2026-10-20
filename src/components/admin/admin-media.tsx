@@ -5,7 +5,6 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { linkVariants } from '@/components/ui/link-variants';
 import { getTranslations } from '@/i18n/utils';
 import { callListMedia, callUpdateMediaAsset } from '@/lib/admin-actions';
 import { normalizeImage } from '@/lib/image-normalize';
@@ -87,7 +86,7 @@ export function AdminMedia({
         }
       />
       {onSelect && showLibraryLink && (
-        <a className={linkVariants({ variant: 'admin' })} href="/admin/media">
+        <a className={buttonVariants({ variant: 'link', size: 'xs' })} href="/admin/media">
           {t('admin.media.openLibrary')}
         </a>
       )}
@@ -316,7 +315,10 @@ function MediaPagination({
             {t('listing.previous')}
           </Button>
         ) : (
-          <a className={linkVariants({ variant: 'admin' })} href={`/admin/media?page=${page - 1}`}>
+          <a
+            className={buttonVariants({ variant: 'link', size: 'xs' })}
+            href={`/admin/media?page=${page - 1}`}
+          >
             {t('listing.previous')}
           </a>
         ))}
@@ -326,7 +328,10 @@ function MediaPagination({
             {t('listing.next')}
           </Button>
         ) : (
-          <a className={linkVariants({ variant: 'admin' })} href={`/admin/media?page=${page + 1}`}>
+          <a
+            className={buttonVariants({ variant: 'link', size: 'xs' })}
+            href={`/admin/media?page=${page + 1}`}
+          >
             {t('listing.next')}
           </a>
         ))}

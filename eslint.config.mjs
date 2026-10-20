@@ -60,7 +60,7 @@ const eslintConfig = defineConfig([
         ui: '@/components/ui',
         componentImports: ['^@/components/ui(/|$)'],
         mergeFunctions: ['cn'],
-        variantFunctions: ['cva', 'buttonVariants'],
+        variantFunctions: ['cva', 'buttonVariants', 'adminPostsTableVariants'],
         themeImports: ['(?:^|/)styles/global\\.css$'],
       },
     },
