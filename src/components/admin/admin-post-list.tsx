@@ -151,7 +151,7 @@ export function AdminPostList({ posts, page, total }: AdminPostListProps) {
             <TableBody>
               {posts.map((post) => (
                 <TableRow key={post.id}>
-                  <TableHead scope="row" className="max-w-64 truncate">
+                  <TableHead scope="row" className="max-w-64 truncate p-4">
                     {post.displayName}
                   </TableHead>
                   <TableCell>
