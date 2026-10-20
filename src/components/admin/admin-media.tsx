@@ -229,13 +229,11 @@ function MediaUpload({
             )}
             {t('admin.media.choose')}
           </FieldLabel>
-          <input
+          <Input
             id={fileId}
-            data-slot="input"
             className="sr-only"
             ref={fileInput}
             type="file"
-            aria-label={t('admin.media.choose')}
             disabled={status === 'loading'}
             accept="image/png,image/jpeg,image/webp"
             onChange={(event) => event.target.files && void upload(event.target.files)}
@@ -273,13 +271,14 @@ function MediaAssetList({
       {assets.map((asset) => (
         <li key={asset.id} className="min-w-0 overflow-hidden rounded-lg border bg-background">
           {onSelect ? (
-            <button
+            <Button
               type="button"
-              className="flex w-full items-center justify-start gap-3 rounded-none border border-transparent bg-transparent p-2 text-left text-sm font-normal whitespace-normal transition-colors outline-none hover:bg-transparent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset active:scale-press motion-reduce:transition-none"
+              variant="ghost"
+              className="h-auto w-full justify-start gap-3 rounded-none p-2 text-left font-normal whitespace-normal focus-visible:ring-inset"
               onClick={() => onSelect(asset)}
             >
               <MediaCard asset={asset} compact />
-            </button>
+            </Button>
           ) : (
             <MediaCard asset={asset} />
           )}
