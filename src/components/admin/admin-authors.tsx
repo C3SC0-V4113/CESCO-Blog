@@ -11,10 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { getTranslations } from '@/i18n/utils';
 import { callCreateAuthor, callRetryPendingPurges, callUpdateAuthor } from '@/lib/admin-actions';
 
+import { TextAreaField, TextField } from './admin-fields';
 import { FormStatus, PendingButton } from './admin-form';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
@@ -148,7 +148,7 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
         </Field>
         <TextAreaField
           id={`${id}-bio`}
-          className="md:col-span-2"
+          layout="wide"
           label={t('admin.authors.bio')}
           name="bio"
           defaultValue={author?.bio ?? ''}
@@ -156,7 +156,7 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
         />
         <TextAreaField
           id={`${id}-same-as`}
-          className="md:col-span-2"
+          layout="wide"
           label={t('admin.authors.sameAs')}
           name="sameAs"
           defaultValue={sameAs.join('\n')}
@@ -200,38 +200,5 @@ function AuthorForm({ author, media }: { author?: AdminAuthor; media: AdminMedia
         )}
       </div>
     </form>
-  );
-}
-
-function TextField({
-  id,
-  label,
-  name,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { id: string; label: string; name: string }) {
-  return (
-    <Field spacing="compact">
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Input id={id} name={name} {...props} />
-    </Field>
-  );
-}
-
-function TextAreaField({
-  id,
-  label,
-  name,
-  className,
-  ...props
-}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
-  id: string;
-  label: string;
-  name: string;
-}) {
-  return (
-    <Field className={className}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Textarea id={id} name={name} {...props} />
-    </Field>
   );
 }

@@ -19,11 +19,11 @@ import { AdminCollectionEditor, AdminCollections } from './admin-collections';
 import { AdminDashboard } from './admin-dashboard';
 import { AdminEditor } from './admin-editor';
 import { useHydrated } from './admin-hydration';
-import { AdminMedia } from './admin-media';
 import { AdminPostForm } from './admin-post-form';
 import { AdminPostList } from './admin-post-list';
 import { AdminReview } from './admin-review';
 import { AdminSeo } from './admin-seo';
+import { MediaLibrary } from './media';
 
 import type { AdminMediaAsset } from '@/db/queries/admin-media';
 import type { AdminPostSummary } from '@/db/queries/admin-posts';
@@ -246,7 +246,7 @@ function AdminScreenContent({ screen, hydrated }: { screen: Screen; hydrated: bo
         {screen.name === 'new-post' && <AdminPostForm />}
         {screen.name === 'editor' && <AdminEditor {...screen} />}
         {screen.name === 'media' && (
-          <AdminMedia assets={screen.assets} page={screen.page} total={screen.total} />
+          <MediaLibrary assets={screen.assets} page={screen.page} total={screen.total} />
         )}
         {screen.name === 'review' && <AdminReview {...screen} />}
         {screen.name === 'authors' && (

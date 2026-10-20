@@ -141,9 +141,33 @@ describe('admin editor', () => {
     );
 
     await screen.findByRole('textbox', { name: 'Contenido' });
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 1_050));
     expect(callSaveDraft).not.toHaveBeenCalled();
     view.unmount();
+  });
+
+  it('saves an edit when the editor unmounts before the debounce', async () => {
+    vi.mocked(callSaveDraft).mockClear();
+    const view = render(
+      <AdminEditor
+        postId="p1"
+        localizationId="l1"
+        localizations={{ es: 'l1' }}
+        draft={emptyDraft}
+        mediaAssets={[]}
+        referencedAssets={[]}
+        mediaTotal={0}
+      />
+    );
+    const title = await screen.findByRole('textbox', { name: 'Título' });
+
+    fireEvent.change(title, { target: { value: 'Unsaved title' } });
+    expect(callSaveDraft).not.toHaveBeenCalled();
+    view.unmount();
+
+    expect(callSaveDraft).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ title: 'Unsaved title', localizationId: 'l1' })
+    );
   });
 
   it('opens the image picker from the toolbar and reports its expanded state', async () => {
