@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
  * variant, so the server and the client render identical markup and there is no
  * hydration mismatch to work around. The component's whole job is the click.
  *
- * The crossfade obeys ADR-0022: `transform` and `opacity` only, under 300 ms,
+ * The crossfade obeys ADR-0022: `scale`, `rotate` and `opacity` only, under 300 ms,
  * with `motion-reduce` opting out. A theme toggle is pressed rarely, so it is
  * not one of the high-frequency controls that ADR asks to keep instant.
  *
@@ -84,16 +84,16 @@ export default function ThemeToggle({ label }: Props) {
         Opacity carries the swap and scale only nudges it. The usual shadcn
         toggle animates to `scale-0`, which ADR-0022 rules out — "enter from
         scale(0.95), never from scale(0)" — because collapsing to nothing reads
-        as a glitch rather than a transition. Only `transform` and `opacity` are
-        animated, which is the other half of that ADR.
+        as a glitch rather than a transition. Only composite `scale`, `rotate`
+        and `opacity` properties are animated, which is the other half of that ADR.
       */}
       <Sun
         data-theme-glyph
-        className="scale-100 rotate-0 opacity-100 transition transition-theme-glyph duration-150 ease-out-quad motion-reduce:transition-none dark:scale-95 dark:-rotate-90 dark:opacity-0"
+        className="scale-100 rotate-0 opacity-100 transition-[scale,rotate,opacity] duration-150 ease-out-quad motion-reduce:transition-none dark:scale-95 dark:-rotate-90 dark:opacity-0"
       />
       <Moon
         data-theme-glyph
-        className="absolute scale-95 rotate-90 opacity-0 transition transition-theme-glyph duration-150 ease-out-quad motion-reduce:transition-none dark:scale-100 dark:rotate-0 dark:opacity-100"
+        className="absolute scale-95 rotate-90 opacity-0 transition-[scale,rotate,opacity] duration-150 ease-out-quad motion-reduce:transition-none dark:scale-100 dark:rotate-0 dark:opacity-100"
       />
     </Button>
   );

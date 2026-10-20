@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
+import { buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Field, FieldContent, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { linkVariants } from '@/components/ui/link-variants';
 import { getTranslations } from '@/i18n/utils';
 import {
   callPublish,
@@ -169,14 +169,20 @@ function ReviewQueue({
           className="mt-1.5 flex justify-between gap-2 px-2.5 pb-1"
         >
           {page > 1 ? (
-            <a className={linkVariants({ variant: 'admin' })} href={reviewUrl(page - 1, detail)}>
+            <a
+              className={buttonVariants({ variant: 'link', size: 'xs' })}
+              href={reviewUrl(page - 1, detail)}
+            >
               {t('listing.previous')}
             </a>
           ) : (
             <span />
           )}
           {lastItem < total && (
-            <a className={linkVariants({ variant: 'admin' })} href={reviewUrl(page + 1, detail)}>
+            <a
+              className={buttonVariants({ variant: 'link', size: 'xs' })}
+              href={reviewUrl(page + 1, detail)}
+            >
               {t('listing.next')}
             </a>
           )}
@@ -232,7 +238,7 @@ function RenameConfirmation({
   return (
     <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-foreground">
       <p>{t('admin.review.renameWarning')}</p>
-      <Field orientation="horizontal" align="start">
+      <Field orientation="horizontal">
         <Checkbox
           id="review-rename-confirmation"
           ref={acknowledgement}
@@ -244,9 +250,11 @@ function RenameConfirmation({
             acknowledgementMissing ? 'acknowledgePermanentRedirect-error' : undefined
           }
         />
-        <FieldLabel htmlFor="review-rename-confirmation" weight="normal">
-          {t('admin.review.renameConfirm')}
-        </FieldLabel>
+        <FieldContent>
+          <FieldLabel htmlFor="review-rename-confirmation" className="font-normal">
+            {t('admin.review.renameConfirm')}
+          </FieldLabel>
+        </FieldContent>
       </Field>
       {acknowledgementMissing && (
         <FieldError id="acknowledgePermanentRedirect-error">

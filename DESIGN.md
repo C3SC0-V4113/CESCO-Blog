@@ -167,8 +167,9 @@ Governed by
 | Theme token                | `src/styles/global.css`     |
 
 Dependencies flow one way: **feature → common → ui**, and **admin → common →
-ui**. Never edit a primitive to add product behavior — wrap it from `common/`,
-because the next registry update reverts local edits.
+ui**. Put reusable project-wide visual patterns in `ui/`; it is our kit and may
+be changed to fit this design system. Keep product behavior in `common/` or the
+owning feature.
 
 `common/` must never import from `admin/`. Astro splits bundles by route, but a
 single careless shared import can drag the editor into a public page — see
@@ -191,23 +192,28 @@ This project uses **Base UI**, not Radix.
 
 ### Shared variants and lint
 
-Reusable text links use `linkVariants` from
-`src/components/ui/link-variants.ts`: `accent`, `admin`, `adminAction`,
-`articleTitle`, `footer`, `headerBrand`, `mobileNav`, `nav`, and `foreground`.
-The registry `Badge` exposes its `default`, `secondary`, `destructive`,
-`outline`, `ghost`, and `link` variants. `Button` owns its interaction states,
-including `aria-disabled`; its sizes include 40px `xl` and `icon-xl`, plus the
-`tight` spacing used for a compact icon-and-label action. Use `variant="toggle"`
-for pressed toolbar buttons.
+Use `cva` only inside `src/components/ui/` to define shared component variants.
+Product components pass one-off styling through the primitive's `className`;
+do not create a single-use variant helper. The `Badge` exposes its `default`,
+`secondary`, `destructive`, `outline`, `ghost`, and `link` variants. `Button`
+owns its interaction states, including `aria-disabled`; its sizes include 40px
+`xl` and `icon-xl`, plus the `tight` spacing used for a compact icon-and-label
+action. Use `variant="toggle"` for pressed toolbar buttons.
+
+The `Table` kit defaults provide the project's table treatment: muted compact
+headers, padded cells, and divided rows without hover styling. Add only
+table-specific layout classes at the call site.
 
 ESLint enforces the design system with `eslint-plugin-better-tailwindcss` and
 `@shadcn/lint`; the policy and intentional exceptions are recorded in
 [ADR-0041](docs/adr/0041-enforce-design-system-with-lint.md). The Tailwind
 plugin checks canonical and shorthand classes, conflicts, deprecated and
-repeated classes, and the text-color token restriction. shadcn lint checks
-component restyling, raw colors, arbitrary values, inline styles, unknown
-classes, and static class analysis. `src/components/ui/**` is ignored because
-it is the vendored registry kit and should remain clean under `shadcn add --diff`.
+repeated classes, and the text-color token restriction. shadcn lint checks raw
+colors, arbitrary values, inline styles, unknown classes, and static class
+analysis. Its `no-restyle` rule is off: it treated every one-off visual class on
+a kit component as a violation, which encouraged single-use variants and native
+element workarounds. `src/components/ui/**` is ignored so generated kit files
+stay clean under `shadcn add --diff`.
 
 ---
 
@@ -696,6 +702,8 @@ Rules that apply everywhere:
   `motion-reduce:transition-none` or `motion-reduce:animate-none`. Motion stays
   on for everyone else, and reduced motion gets no motion rather than an
   opacity-only stand-in.
+- For transitions that need a custom property list, use Tailwind's arbitrary
+  `transition-[...]` utility; its property-list form is allowed by shadcn lint.
 - Hover effects sit inside `@media (hover: hover) and (pointer: fine)`.
 - High-frequency controls — primary nav, body links — do not move. A colour
   transition of 150 ms or less is allowed.

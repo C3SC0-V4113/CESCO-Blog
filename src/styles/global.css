@@ -193,31 +193,6 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Named property sets keep transition lists shared and searchable. */
-@utility transition-button {
-  transition-property: color, background-color, border-color, box-shadow, scale;
-}
-
-@utility transition-field-frame {
-  transition-property: border-color, box-shadow;
-}
-
-@utility transition-picker {
-  transition-property: opacity, translate, display;
-}
-
-@utility transition-theme-glyph {
-  transition-property: transform, opacity;
-}
-
-@utility transition-dropdown {
-  transition-property: opacity, scale;
-}
-
-@utility transition-sheet {
-  transition-property: opacity, translate;
-}
-
 @utility grid-cols-admin-shell {
   grid-template-columns: var(--spacing-admin-sidebar) 1fr;
 }

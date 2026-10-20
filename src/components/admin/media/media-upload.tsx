@@ -69,7 +69,7 @@ export function MediaUpload({ compact, onUploaded, onSelect, pendingUploadQueue 
             aria-describedby={uploadState.altMissing ? 'altText-error' : undefined}
           />
         </Field>
-        <Field orientation="horizontal" size="control">
+        <Field orientation="horizontal" className="h-10 w-auto gap-2">
           <Checkbox
             id={decorativeId}
             checked={uploadState.decorative}
@@ -90,13 +90,11 @@ export function MediaUpload({ compact, onUploaded, onSelect, pendingUploadQueue 
             )}
             {t('admin.media.choose')}
           </FieldLabel>
-          <input
+          <Input
             id={fileId}
-            data-slot="input"
             className="sr-only"
             ref={uploadState.fileInput}
             type="file"
-            aria-label={t('admin.media.choose')}
             disabled={uploadState.status === 'loading'}
             accept="image/png,image/jpeg,image/webp"
             onChange={(event) => event.target.files && void uploadState.upload(event.target.files)}

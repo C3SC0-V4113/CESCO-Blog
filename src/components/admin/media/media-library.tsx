@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { linkVariants } from '@/components/ui/link-variants';
+import { buttonVariants } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
 
 import { MediaCard } from './media-card';
@@ -56,7 +56,7 @@ export function MediaLibrary({
         <nav aria-label={t('listing.pagination')} className="flex gap-2">
           {page > 1 && (
             <a
-              className={linkVariants({ variant: 'admin' })}
+              className={buttonVariants({ variant: 'link', size: 'xs' })}
               href={`/admin/media?page=${page - 1}`}
             >
               {t('listing.previous')}
@@ -64,7 +64,7 @@ export function MediaLibrary({
           )}
           {page * 20 < currentTotal && (
             <a
-              className={linkVariants({ variant: 'admin' })}
+              className={buttonVariants({ variant: 'link', size: 'xs' })}
               href={`/admin/media?page=${page + 1}`}
             >
               {t('listing.next')}

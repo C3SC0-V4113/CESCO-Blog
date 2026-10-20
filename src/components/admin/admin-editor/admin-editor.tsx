@@ -175,7 +175,7 @@ function EditorComposition({
             other fields while it holds focus. */}
           <EditorContent
             editor={editor}
-            className="min-h-72 rounded-xl border bg-background p-4 transition transition-field-frame duration-150 ease-out-quad has-[.ProseMirror:focus-visible]:border-ring has-[.ProseMirror:focus-visible]:ring-3 has-[.ProseMirror:focus-visible]:ring-ring motion-reduce:transition-none [&_.ProseMirror]:min-h-64 [&_.ProseMirror]:outline-none"
+            className="min-h-72 rounded-xl border bg-background p-4 transition-[border-color,box-shadow] duration-150 ease-out-quad has-[.ProseMirror:focus-visible]:border-ring has-[.ProseMirror:focus-visible]:ring-3 has-[.ProseMirror:focus-visible]:ring-ring motion-reduce:transition-none [&_.ProseMirror]:min-h-64 [&_.ProseMirror]:outline-none"
           />
         </div>
         <div className="flex items-center gap-3">

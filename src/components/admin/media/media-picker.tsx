@@ -1,5 +1,4 @@
-import { Button } from '@/components/ui/button';
-import { linkVariants } from '@/components/ui/link-variants';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { getTranslations } from '@/i18n/utils';
 
 import { MediaCard } from './media-card';
@@ -47,19 +46,20 @@ export function MediaPicker({
         >
           {pages.assets.map((asset) => (
             <li key={asset.id} className="min-w-0 overflow-hidden rounded-lg border bg-background">
-              <button
+              <Button
                 type="button"
-                className="flex w-full items-center justify-start gap-3 rounded-none border border-transparent bg-transparent p-2 text-left text-sm font-normal whitespace-normal transition-colors outline-none hover:bg-transparent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset active:scale-press motion-reduce:transition-none"
+                variant="ghost"
+                className="h-auto w-full justify-start gap-3 rounded-none p-2 text-left font-normal whitespace-normal focus-visible:ring-inset"
                 onClick={() => onSelect(asset)}
               >
                 <MediaCard asset={asset} compact />
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
       )}
       {showLibraryLink && (
-        <a className={linkVariants({ variant: 'admin' })} href="/admin/media">
+        <a className={buttonVariants({ variant: 'link', size: 'xs' })} href="/admin/media">
           {t('admin.media.openLibrary')}
         </a>
       )}

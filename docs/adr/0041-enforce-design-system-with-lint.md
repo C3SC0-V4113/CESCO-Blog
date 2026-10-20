@@ -7,10 +7,11 @@
 The design system uses Tailwind theme tokens and shadcn components built on Base
 UI ([ADR-0020](0020-extend-shadcn-with-base-ui-compatible-registries.md)).
 Without automated checks, classes drift toward duplicate, deprecated, arbitrary,
-or conflicting values, and callers can restyle shared component primitives with
-one-off visual classes. The registry components themselves are vendored shadcn
-code; linting them would make upstream `shadcn add --diff` report project-side
-changes as registry drift.
+or conflicting values. The `no-restyle` rule also treated every one-off visual
+class on a kit component as a violation, encouraging single-use variants and
+native-element workarounds. The files under `src/components/ui/` are our kit,
+not untouchable vendor files; linting them would make upstream
+`shadcn add --diff` report project-side changes as registry drift.
 
 The editor also emits deliberate values that cannot use a theme scale: viewport
 bounds, safe-area insets, and the overlap ratio that places the OG text overlay.
@@ -33,12 +34,16 @@ value policy, no inline styles, known classes, and statically analyzable class
 strings. All configured rules run at error severity.
 
 The shadcn rules apply to `.tsx` files. `src/components/ui/**` remains globally
-ignored because it is the vendored registry kit; product components should use
-its variants rather than editing kit styles to satisfy a call site. The
-`no-restyle` allow list is limited to parent placement and layout: margins,
-full/auto/content widths, child flex/grid placement, order, and display toggles.
-It does not allow gaps, padding, colors, typography, control sizes, borders,
-rings, or other visual styling on a shared component.
+ignored so `shadcn add --diff` can compare generated files with upstream. The
+`no-restyle` rule is off: its blanket ban on visual classes caused callers to
+encode one-off styling as single-use variants or replace kit controls with
+native elements. Use `cva` only inside `src/components/ui/` for shared patterns;
+product components pass one-off classes through `className`. The kit is ours to
+modify when a style is a project-wide pattern.
+
+The `src/components/ui/table.tsx` defaults provide the shared project table
+presentation: muted compact headers, padded cells, dividers, and no row hover
+effect. Individual tables add only their own layout or content constraints.
 
 Arbitrary values should be replaced by theme tokens or named utilities. The
 small allow list is reserved for browser-specific layout values that do not
@@ -49,8 +54,10 @@ belong on the theme scale:
 - `pb-[env(safe-area-inset-bottom)]` respects device safe areas.
 - `mt-[-52.35%]` aligns the social-card text overlay to its 1.91:1 image.
 
-Repeated administration dimensions and transition property lists use named
-theme values or `@utility` classes. Typeset stays upstream in
+Repeated administration dimensions use named theme values. Transition property
+lists use Tailwind's arbitrary `transition-[...]` utility; this form is
+explicitly allowed because its property list is a CSS declaration rather than a
+design token. Typeset stays upstream in
 `src/styles/typeset.css`; site-specific metrics and structures that its controls
 do not cover stay in the prose override block. Typeset currently overrides most
 editor-produced classes, so the wrapper's overrides preserve the existing article
@@ -65,8 +72,10 @@ unrelated `cn` package.
 ### Positive
 
 - Tailwind and shadcn violations fail lint before they drift into product UI.
-- Shared components own their visual variants, while layout callers retain a
-  small, documented set of placement classes.
+- Shared component variants stay in the UI kit; one-off visual adjustments remain
+  at the product call site.
+- The table kit owns the common table appearance, while individual tables keep
+  their layout constraints local.
 - Registry files stay comparable with upstream shadcn output.
 - Arbitrary values remain exceptional and have an auditable allow list.
 

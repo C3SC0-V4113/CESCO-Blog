@@ -157,7 +157,7 @@ function Panel({ onSelect }: PanelProps) {
           id={PANEL_ID}
           aria-labelledby={PANEL_HEADING_ID}
           className={cn(
-            'sticky top-4 max-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-3 overflow-hidden rounded-xl border bg-background p-4 transition transition-picker transition-discrete duration-200 ease-out-cubic starting:opacity-0 motion-safe:starting:translate-x-2',
+            'sticky top-4 max-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-3 overflow-hidden rounded-xl border bg-background p-4 transition-[opacity,translate,display] transition-discrete duration-200 ease-out-cubic starting:opacity-0 motion-safe:starting:translate-x-2',
             picker.openState
               ? 'flex translate-x-0 opacity-100'
               : 'pointer-events-none hidden opacity-0 duration-150 motion-safe:translate-x-2'
