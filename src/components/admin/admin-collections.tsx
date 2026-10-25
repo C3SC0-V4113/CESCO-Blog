@@ -3,8 +3,7 @@ import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Field as UiField, FieldError as UiFieldError, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { Field as UiField, FieldLabel } from '@/components/ui/field';
 import {
   Select,
   SelectContent,
@@ -23,6 +22,7 @@ import {
 import { pickCollectionLocalizations } from '@/lib/admin-taxonomy';
 import { cn } from '@/lib/utils';
 
+import { TextField } from './admin-fields';
 import { FormStatus, PendingButton } from './admin-form';
 
 import type {
@@ -340,32 +340,6 @@ export function AdminCollectionEditor({
   );
 }
 
-function Field({
-  label,
-  name,
-  invalid,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
-  label: string;
-  name: string;
-  invalid?: { name: string; message: UiKey };
-}) {
-  const message = invalid?.name === name ? invalid.message : undefined;
-  return (
-    <UiField data-invalid={Boolean(message)} spacing="compact">
-      <FieldLabel htmlFor={name}>{label}</FieldLabel>
-      <Input
-        id={name}
-        name={name}
-        aria-invalid={Boolean(message)}
-        aria-describedby={message ? `${name}-error` : undefined}
-        {...props}
-      />
-      {message && <UiFieldError id={`${name}-error`}>{t(message)}</UiFieldError>}
-    </UiField>
-  );
-}
-
 function CollectionLocalizations({
   collection,
   invalid,
@@ -381,20 +355,22 @@ function CollectionLocalizations({
         return (
           <fieldset key={locale} className="grid gap-3 rounded-xl border bg-background p-5">
             <legend className="px-2 font-semibold">{t(`locale.${locale}`)}</legend>
-            <Field
+            <TextField
+              id={`${locale}-title`}
               name={`${locale}-title`}
               label={t('admin.collections.fieldTitle')}
               defaultValue={current?.title}
-              invalid={invalid}
+              error={invalid?.name === `${locale}-title` ? t(invalid.message) : undefined}
             />
-            <Field
+            <TextField
+              id={`${locale}-slug`}
               name={`${locale}-slug`}
               label={t('admin.collections.slug')}
               defaultValue={current?.slug}
               readOnly={locked}
               autoComplete="off"
               spellCheck={false}
-              invalid={invalid}
+              error={invalid?.name === `${locale}-slug` ? t(invalid.message) : undefined}
             />
             {locked && (
               <p className="text-sm text-muted-foreground">{t('admin.collections.slugLocked')}</p>

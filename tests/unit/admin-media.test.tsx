@@ -14,7 +14,7 @@ vi.mock('@/lib/admin-actions', () => ({
 }));
 
 import { mediaMetadataSchema } from '@/actions/media';
-import { AdminMedia } from '@/components/admin/admin-media';
+import { MediaLibrary, MediaPicker } from '@/components/admin/media';
 import { callListMedia, callUpdateMediaAsset } from '@/lib/admin-actions';
 
 const asset = {
@@ -36,7 +36,7 @@ const asset = {
   updatedAt: '2026-08-13',
 };
 
-describe('AdminMedia', () => {
+describe('admin media', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', vi.fn());
@@ -55,13 +55,13 @@ describe('AdminMedia', () => {
   });
 
   it('renders a genuine empty first page', () => {
-    render(<AdminMedia assets={[]} page={1} total={0} />);
+    render(<MediaLibrary assets={[]} page={1} total={0} />);
     expect(screen.getByText('No hay imágenes todavía.')).toBeTruthy();
     expect(screen.queryByText('Anterior')).toBeNull();
   });
 
   it('renders the upload and metadata fields with the shared admin primitives', () => {
-    render(<AdminMedia assets={[asset]} />);
+    render(<MediaLibrary assets={[asset]} />);
 
     expect(screen.getAllByLabelText('Texto alternativo')[0]!.getAttribute('data-slot')).toBe(
       'input'
@@ -84,7 +84,7 @@ describe('AdminMedia', () => {
       async () => new Response(JSON.stringify(asset), { status: 201 })
     );
     const select = vi.fn();
-    render(<AdminMedia assets={[]} onSelect={select} />);
+    render(<MediaPicker assets={[]} onSelect={select} />);
     fireEvent.change(screen.getByLabelText('Texto alternativo'), { target: { value: 'Mapa' } });
     fireEvent.change(screen.getByLabelText('Elegir imagen'), {
       target: { files: [new File(['png'], 'mapa.png', { type: 'image/png' })] },
@@ -107,7 +107,7 @@ describe('AdminMedia', () => {
   it('does not select or mutate editor content after upload failure', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 500 }));
     const select = vi.fn();
-    const { container } = render(<AdminMedia assets={[]} onSelect={select} />);
+    const { container } = render(<MediaPicker assets={[]} onSelect={select} />);
     const view = within(container);
     fireEvent.click(view.getByRole('checkbox', { name: 'Imagen decorativa' }));
     fireEvent.change(view.getByLabelText('Elegir imagen'), {
@@ -119,7 +119,7 @@ describe('AdminMedia', () => {
   });
 
   it('sends a missing alt text back to its field instead of uploading', async () => {
-    render(<AdminMedia assets={[]} onSelect={vi.fn()} />);
+    render(<MediaPicker assets={[]} onSelect={vi.fn()} />);
     const alt = screen.getByLabelText('Texto alternativo');
     expect(alt.hasAttribute('aria-invalid')).toBe(false);
 
@@ -139,7 +139,7 @@ describe('AdminMedia', () => {
 
   it('leaves the disabled state to the file input the label wraps', () => {
     vi.mocked(fetch).mockReturnValue(new Promise(() => {}));
-    render(<AdminMedia assets={[]} onSelect={vi.fn()} />);
+    render(<MediaPicker assets={[]} onSelect={vi.fn()} />);
     const input = screen.getByLabelText('Elegir imagen') as HTMLInputElement;
     fireEvent.change(screen.getByLabelText('Texto alternativo'), { target: { value: 'Mapa' } });
     fireEvent.change(input, {
@@ -154,7 +154,7 @@ describe('AdminMedia', () => {
 
   it('labels every metadata field visibly and saves through the form', async () => {
     vi.mocked(callUpdateMediaAsset).mockReturnValue(new Promise(() => {}));
-    render(<AdminMedia assets={[asset]} />);
+    render(<MediaLibrary assets={[asset]} />);
     const form = (screen.getByRole('button', { name: 'Guardar metadatos' }) as HTMLButtonElement)
       .form!;
     const view = within(form);
@@ -183,7 +183,7 @@ describe('AdminMedia', () => {
     vi.mocked(callUpdateMediaAsset)
       .mockResolvedValueOnce({ error: { code: 'INTERNAL_SERVER_ERROR' } } as never)
       .mockResolvedValueOnce({ data: { ...asset, altText: 'Mapa actualizado' } } as never);
-    render(<AdminMedia assets={[asset]} />);
+    render(<MediaLibrary assets={[asset]} />);
     fireEvent.click(screen.getByText('Editar metadatos'));
     const alt = screen.getAllByLabelText('Texto alternativo')[1]!;
     fireEvent.change(alt, { target: { value: 'Mapa actualizado' } });
@@ -213,7 +213,7 @@ describe('AdminMedia', () => {
       },
       error: undefined,
     } as never);
-    render(<AdminMedia assets={[asset]} total={21} onSelect={vi.fn()} />);
+    render(<MediaPicker assets={[asset]} total={21} onSelect={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
     expect(await screen.findAllByRole('button', { name: /Página dos/ })).toHaveLength(1);
     expect(callListMedia).toHaveBeenCalledWith({ page: 2 });
@@ -221,7 +221,7 @@ describe('AdminMedia', () => {
   });
 
   it('uses compact selectable rows and links to the library in picker mode', () => {
-    render(<AdminMedia assets={[asset]} onSelect={vi.fn()} />);
+    render(<MediaPicker assets={[asset]} onSelect={vi.fn()} />);
 
     const list = screen.getByRole('list');
     expect(list.className).toContain('grid-cols-1');
@@ -233,7 +233,7 @@ describe('AdminMedia', () => {
   });
 
   it('shows a card that selects nothing as content, not as a button', () => {
-    render(<AdminMedia assets={[asset]} />);
+    render(<MediaLibrary assets={[asset]} />);
     expect(screen.getByText('Mapa')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Mapa/ })).toBeNull();
   });
@@ -241,7 +241,7 @@ describe('AdminMedia', () => {
   it('reports a page that failed to load apart from the upload', async () => {
     let fail = (_: Error) => {};
     vi.mocked(callListMedia).mockReturnValue(new Promise((_, reject) => (fail = reject)));
-    render(<AdminMedia assets={[asset]} total={21} onSelect={vi.fn()} />);
+    render(<MediaPicker assets={[asset]} total={21} onSelect={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
     const list = screen.getByRole('list');
@@ -259,7 +259,7 @@ describe('AdminMedia', () => {
     vi.mocked(callUpdateMediaAsset).mockResolvedValue({
       error: { code: 'INTERNAL_SERVER_ERROR' },
     } as never);
-    render(<AdminMedia assets={[asset]} />);
+    render(<MediaLibrary assets={[asset]} />);
     fireEvent.click(screen.getByText('Editar metadatos'));
     const region = screen.getByRole('status');
 
